@@ -7,12 +7,15 @@ dependencies:
   - pandas
   - pyyaml
   - plotly
-  - scikit-learn-intelex
   - jupyter
+  - matplotlib
   - qgrid
   - viztracer
   - joblib
   - click
+  - lightgbm
+  - xgboost
+  - scikit-learn-intelex
   - pip
   - pip:
       - --pre

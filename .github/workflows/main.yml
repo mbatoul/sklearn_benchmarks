@@ -2,7 +2,7 @@ name: scikit-learn benchmark suite
 
 on:
   push:
-    branches: [master]
+    branches: [implement_gradient_boosting_benchmark]
   pull_request:
     types: [closed]
 
@@ -49,7 +49,7 @@ jobs:
 
       - name: Convert notebook to html
         run: |
-          jupyter nbconvert --to html --execute --output results/index.html reporting.ipynb
+          jupyter nbconvert --to html --execute --output results/index.html reporting_randomized_search.ipynb
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v2
