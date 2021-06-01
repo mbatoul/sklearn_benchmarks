@@ -8,14 +8,14 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import qgrid
-from IPython.display import HTML, Markdown, display, JSON
+from IPython.display import HTML, Markdown, display
 from plotly.subplots import make_subplots
 
 from sklearn_benchmarks.config import (
     BASE_LIB,
     BENCHMARKING_RESULTS_PATH,
-    ENV_INFO_PATH,
     DEFAULT_COMPARE_COLS,
+    ENV_INFO_PATH,
     PLOT_HEIGHT_IN_PX,
     PROFILING_RESULTS_PATH,
     REPORTING_FONT_SIZE,
@@ -239,6 +239,7 @@ class Report:
             ]
         else:
             group_by_params = "hyperparams_digest"
+        print(group_by_params)
         merged_df_grouped = merged_df.groupby(group_by_params)
 
         n_plots = len(merged_df_grouped)
