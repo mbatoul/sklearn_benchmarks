@@ -1,4 +1,4 @@
-name: scikit-learn benchmark suite
+name: Run benchmarks
 
 on:
   push:
