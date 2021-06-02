@@ -2,7 +2,6 @@ import tensorflow_decision_forests as tfdf
 import pandas as pd
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
-import tensorflow as tf
 
 X, y = make_classification(
     n_samples=100_000,
