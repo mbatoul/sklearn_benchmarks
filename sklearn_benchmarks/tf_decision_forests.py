@@ -29,4 +29,4 @@ model.fit(train_ds)
 test_ds = tfdf.keras.pd_dataframe_to_tf_dataset(X_test, label="label")
 
 model.compile(metrics=["accuracy"])
-print(model.evaluate(ds_test))
+print(model.evaluate(test_ds))
