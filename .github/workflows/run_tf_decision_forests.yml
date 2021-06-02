@@ -25,6 +25,7 @@ jobs:
           pip install joblib
           pip install threadpoolctl
           pip install --pre --index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple scikit-learn
+          pip install tensorflow --upgrade
           pip install tensorflow_decision_forests --upgrade
 
       - name: Run script

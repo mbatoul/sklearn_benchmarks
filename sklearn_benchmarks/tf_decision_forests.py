@@ -2,6 +2,7 @@
 import tensorflow_decision_forests as tfdf
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
+import tensorflow as tf
 
 X, y = make_classification(
     n_samples=100_000,
@@ -12,21 +13,17 @@ X, y = make_classification(
     random_state=42,
 )
 
-X_train, y_train, X_test, y_test = train_test_split(X, y)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.33, random_state=42
+)
 
-X_train["label"] = y_train
-X_test["label"] = y_test
-
-# Convert the pandas dataframe into a TensorFlow dataset
-train_ds = tfdf.keras.pd_dataframe_to_tf_dataset(X_train, label="species")
+ds_train = tf.data.Dataset.from_tensor_slices((X_train, y_train))
+ds_test = tf.data.Dataset.from_tensor_slices((X_test, y_test))
 
 # Train the model
 model = tfdf.keras.RandomForestModel()
-model.fit(train_ds)
-
-# Convert it to a TensorFlow dataset
-test_ds = tfdf.keras.pd_dataframe_to_tf_dataset(X_test, label="species")
+model.fit(ds_train)
 
 # Evaluate the model
 model.compile(metrics=["accuracy"])
-print(model.evaluate(test_ds))
+print(model.evaluate(ds_test))
