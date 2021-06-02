@@ -41,10 +41,6 @@ The estimators available are:
 - [Ridge](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html)
 - [HistGradientBoostingClassifier](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingClassifier.html)
 
-Benchmark and profiling results can be consulted [here](https://mbatoul.github.io/sklearn_benchmarks/) or on Binder:
-
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mbatoul/sklearn_benchmarks/master?filepath=reporting.ipynb)
-
 ## Getting Started
 
 In order to setup the environment, you need to have `conda` installed. See instructions [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html).
