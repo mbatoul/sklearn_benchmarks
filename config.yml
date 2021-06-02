@@ -142,18 +142,19 @@ benchmarking:
       estimator: sklearn.cluster.KMeans
       hyperparameters:
         init:
-          - k-means++
-          - random
-        algorithm:
-          - full
-        n_clusters:
-          - 300
-        max_iter:
-          - 20
-        n_init:
-          - 1
-        tol:
-          - 1e-16
+          init:
+            - k-means++
+            - random
+          algorithm:
+            - full
+          n_clusters:
+            - 300
+          max_iter:
+            - 20
+          n_init:
+            - 1
+          tol:
+            - 1e-16
       metrics:
         - adjusted_rand_score
       datasets:
