@@ -21,9 +21,9 @@
 
 ## About
 
-`sklearn_benchmarks` is a framework to benchmark `scikit-learn`'s estimators against concurrent implementations. It is written in Python.
+`sklearn_benchmarks` is a framework to benchmark `scikit-learn`'s estimators against concurrent implementations.
 
-Benchmarking results can be visualized in the `reporting.ipynb` notebook. They are automatically deployed to `github-pages`.
+Benchmarking results can be visualized in the `reporting.ipynb` notebook. They are automatically deployed to `github-pages`. See results [here](https://mbatoul.github.io/sklearn_benchmarks/).
 
 `sklearn_benchmarks` is used through a command line as described below.
 
