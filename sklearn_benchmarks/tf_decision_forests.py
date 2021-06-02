@@ -2,6 +2,7 @@ import tensorflow_decision_forests as tfdf
 import pandas as pd
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
+import tensorflow as tf
 
 X, y = make_classification(
     n_samples=100_000,
@@ -28,4 +29,4 @@ model.fit(train_ds)
 test_ds = tfdf.keras.pd_dataframe_to_tf_dataset(X_test, label="label")
 
 model.compile(metrics=["accuracy"])
-print(model.evaluate(test_ds))
+print(model.evaluate(ds_test))
