@@ -1,0 +1,31 @@
+name: Run benchmarks for TensorFlow Decision Forests
+
+on:
+  push:
+    branches: [add_tf_decision_forests]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: 3.8
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install joblib
+          pip install threadpoolctl
+          pip install --pre --index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple scikit-learn
+          pip install tensorflow_decision_forests --upgrade
+
+      - name: Run script
+        run: python sklearn_benchmarks/tf_decision_forests.py
