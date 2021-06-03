@@ -336,6 +336,8 @@ class ReportingHpo:
                     y=df_merged["accuracy_score"],
                     mode="markers",
                     name=name,
+                    hovertemplate=make_hover_template(df),
+                    customdata=df.values,
                 )
             )
 
