@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.offline as pyo
 import plotly.graph_objects as go
 import qgrid
 from IPython.display import HTML, Markdown, display
@@ -304,5 +305,50 @@ class Report:
         fig.show()
 
     def run(self):
+        self._plot()
+        self._print_table()
+
+
+class ReportingHpo:
+    def __init__(self, files=[]):
+        self.files = files
+
+    def _scatter(self):
+        fig = go.Figure()
+
+        for file in self.files:
+            name = file.split("/")[-1].split("_")[0]
+            df = pd.read_csv(file)
+
+            fit_times = df[df["function"] == "fit"][["mean"]]
+            fit_times = fit_times.reset_index(drop=True)
+
+            scores = df[df["function"] == "predict"][["accuracy_score"]]
+            scores = scores.reset_index(drop=True)
+
+            df_merged = fit_times.join(scores)
+            df_merged["cum_fit_times"] = df_merged["mean"].cumsum()
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df_merged["cum_fit_times"],
+                    y=df_merged["accuracy_score"],
+                    mode="markers",
+                    name=name,
+                )
+            )
+
+        fig["layout"]["xaxis{}".format(1)]["title"] = "Cumulated fit times"
+        fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
+        fig.show()
+
+    def _plot(self):
+        pass
+
+    def _print_table(self):
+        pass
+
+    def run(self):
+        self._scatter()
         self._plot()
         self._print_table()
