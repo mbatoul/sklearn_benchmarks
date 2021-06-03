@@ -30,9 +30,9 @@ Benchmarking results can be visualized in the `reporting.ipynb` notebook. They a
 So far, the concurrent libraries available are:
 
 - [Intel® oneAPI Data Analytics Library](https://github.com/oneapi-src/oneDAL)
-- [lightgbm](https://lightgbm.readthedocs.io/en/latest/index.html) (gradient boosting framework)
-- [XGBoost](https://xgboost.readthedocs.io/en/latest/) (gradient boosting framework)
-- [Catboost](https://catboost.ai/) (gradient boosting framework)
+- [lightgbm](https://lightgbm.readthedocs.io/en/latest/index.html) (gradient boosting library)
+- [XGBoost](https://xgboost.readthedocs.io/en/latest/) (gradient boosting library)
+- [Catboost](https://catboost.ai/) (gradient boosting library)
 
 The estimators available are:
 
