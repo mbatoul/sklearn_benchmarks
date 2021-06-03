@@ -26,9 +26,10 @@ from sklearn_benchmarks.config import (
     get_full_config,
 )
 from sklearn_benchmarks.utils.plotting import (
-    _gen_coordinates_grid,
-    _make_hover_template,
-    _order_columns,
+    gen_coordinates_grid,
+    make_hover_template,
+    order_columns,
+    percentile_permutated_curve,
 )
 
 
@@ -209,8 +210,8 @@ class Report:
             y=df["speedup"],
             name=name,
             marker_color=color,
-            hovertemplate=_make_hover_template(df),
-            customdata=df[_order_columns(df)].values,
+            hovertemplate=make_hover_template(df),
+            customdata=df[order_columns(df)].values,
             showlegend=showlegend,
             text=df["function"],
             textposition="auto",
@@ -245,7 +246,7 @@ class Report:
 
         n_plots = len(merged_df_grouped)
         n_rows = n_plots // self.n_cols + n_plots % self.n_cols
-        coordinates = _gen_coordinates_grid(n_rows, self.n_cols)
+        coordinates = gen_coordinates_grid(n_rows, self.n_cols)
 
         subplot_titles = [self._make_plot_title(df) for _, df in merged_df_grouped]
 
@@ -372,30 +373,3 @@ class ReportingHpo:
         display(Markdown("## Permutated curves"))
         self._plot()
         self._print_table()
-
-
-def compute_cumulated(fit_times, scores):
-    cumulated_fit_times = fit_times.cumsum()
-    best_val_score_so_far = pd.Series(scores).cummax()
-    return cumulated_fit_times, best_val_score_so_far
-
-
-def percentile_permutated_curve(
-    fit_times, cum_scores, q, n_permutations=1000, baseline_score=0.7
-):
-    grid_scores = np.linspace(baseline_score, cum_scores.max(), 1000)
-    all_fit_times = []
-    rng = np.random.RandomState(0)
-    for _ in range(n_permutations):
-        indices = rng.permutation(fit_times.shape[0])
-        cum_fit_times_p, cum_scores_p = compute_cumulated(
-            fit_times.iloc[indices], cum_scores.iloc[indices]
-        )
-        grid_fit_times = np.interp(
-            grid_scores,
-            cum_scores_p,
-            cum_fit_times_p,
-            right=cum_fit_times_p.max(),
-        )
-        all_fit_times.append(grid_fit_times)
-    return np.percentile(all_fit_times, q, axis=0), grid_scores
