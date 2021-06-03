@@ -341,7 +341,7 @@ class ReportingHpo:
                 )
             )
 
-        fig["layout"]["xaxis{}".format(1)]["title"] = "Cumulated fit times"
+        fig["layout"]["xaxis{}".format(1)]["title"] = "Fit times"
         fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
         fig.show()
 
