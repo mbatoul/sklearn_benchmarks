@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import qgrid
 from IPython.display import HTML, Markdown, display
 from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
 
 from sklearn_benchmarks.config import (
     BASE_LIB,
@@ -306,3 +307,95 @@ class Report:
     def run(self):
         self._plot()
         self._print_table()
+
+
+class ReportingHpo:
+    def __init__(self, files=[]):
+        self.files = files
+
+    def _scatter(self):
+        fig = go.Figure()
+
+        for file in self.files:
+            name = file.split("/")[-1].split("_")[0]
+            df = pd.read_csv(file)
+
+            fit_times = df[df["function"] == "fit"][["mean"]]
+            fit_times = fit_times.reset_index(drop=True)
+
+            scores = df[df["function"] == "predict"][["accuracy_score"]]
+            scores = scores.reset_index(drop=True)
+
+            df_merged = fit_times.join(scores)
+            df_merged["cum_fit_times"] = df_merged["mean"].cumsum()
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df_merged["cum_fit_times"],
+                    y=df_merged["accuracy_score"],
+                    mode="markers",
+                    name=name,
+                )
+            )
+
+        fig["layout"]["xaxis{}".format(1)]["title"] = "Cumulated fit times"
+        fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
+        fig.show()
+
+    def _plot(self):
+        colors = ["blue", "red", "green", "purple"]
+
+        for q in [25, 75]:
+            plt.figure(figsize=(12, 8))
+            for index, file in enumerate(self.files):
+                label = file.split("/")[-1].split("_")[0]
+                df = pd.read_csv(file)
+
+                fit_times = df[df["function"] == "fit"]["mean"]
+                scores = df[df["function"] == "predict"]["accuracy_score"]
+
+                grid_times, scores = percentile_permutated_curve(fit_times, scores, q)
+                plt.plot(grid_times, scores, c=f"tab:{colors[index]}", label=label)
+
+            plt.xlabel("Cumulated fit times in s")
+            plt.ylabel("Validation scores")
+            plt.legend()
+            display(Markdown(f"### {q}th percentile"))
+            plt.show()
+
+    def _print_table(self):
+        pass
+
+    def run(self):
+        display(Markdown("## Scatter"))
+        self._scatter()
+        display(Markdown("## Permutated curves"))
+        self._plot()
+        self._print_table()
+
+
+def compute_cumulated(fit_times, scores):
+    cumulated_fit_times = fit_times.cumsum()
+    best_val_score_so_far = pd.Series(scores).cummax()
+    return cumulated_fit_times, best_val_score_so_far
+
+
+def percentile_permutated_curve(
+    fit_times, cum_scores, q, n_permutations=1000, baseline_score=0.7
+):
+    grid_scores = np.linspace(baseline_score, cum_scores.max(), 1000)
+    all_fit_times = []
+    rng = np.random.RandomState(0)
+    for _ in range(n_permutations):
+        indices = rng.permutation(fit_times.shape[0])
+        cum_fit_times_p, cum_scores_p = compute_cumulated(
+            fit_times.iloc[indices], cum_scores.iloc[indices]
+        )
+        grid_fit_times = np.interp(
+            grid_scores,
+            cum_scores_p,
+            cum_fit_times_p,
+            right=cum_fit_times_p.max(),
+        )
+        all_fit_times.append(grid_fit_times)
+    return np.percentile(all_fit_times, q, axis=0), grid_scores
