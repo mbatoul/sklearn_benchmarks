@@ -465,6 +465,7 @@ benchmarking:
             - 1e5
           n_samples_test:
             - 1e3
+
     catboost:
       name: CatBoostClassifier
       estimator: catboost.CatBoostClassifier
@@ -476,6 +477,8 @@ benchmarking:
             - False
           grow_policy:
             - Lossguide
+          bootstrap_type:
+            - MVS
           learning_rate:
             - 0.01
             - 0.05
@@ -506,6 +509,18 @@ benchmarking:
             - 100
             - 200
             - 1000
+          subsample:
+            - 0.2
+            - 0.5
+            - 0.8
+            - 0.9
+            - 1
+          rsm:
+            - 0.2
+            - 0.5
+            - 0.8
+            - 0.9
+            - 1
         fit:
           eval_set: (X_valid, y_valid)
           early_stopping_rounds: 10
