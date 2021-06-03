@@ -348,7 +348,7 @@ class ReportingHpo:
     def _plot(self):
         colors = ["blue", "red", "green", "purple"]
 
-        for q in [25, 75]:
+        for q in [25, 50, 75]:
             plt.figure(figsize=(12, 8))
             for index, file in enumerate(self.files):
                 label = file.split("/")[-1].split("_")[0]
