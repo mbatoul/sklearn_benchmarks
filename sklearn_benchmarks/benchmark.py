@@ -37,17 +37,18 @@ class BenchFuncExecutor:
         max_iter=BENCHMARK_MAX_ITER,
         **kwargs,
     ):
-        # First run with a profiler (not timed)
-        # with VizTracer(verbose=0) as tracer:
-        #     tracer.start()
-        #     if y is not None:
-        #         func(X, y, **kwargs)
-        #     else:
-        #         func(X, **kwargs)
-        #     tracer.stop()
-        #     for extension in profiling_output_extensions:
-        #         output_file = f"{profiling_output_path}.{extension}"
-        #         tracer.save(output_file=output_file)
+        if max_iter > 1:
+            # First run with a profiler (not timed)
+            with VizTracer(verbose=0) as tracer:
+                tracer.start()
+                if y is not None:
+                    func(X, y, **kwargs)
+                else:
+                    func(X, **kwargs)
+                tracer.stop()
+                for extension in profiling_output_extensions:
+                    output_file = f"{profiling_output_path}.{extension}"
+                    tracer.save(output_file=output_file)
 
         # Next runs: at most 10 runs or 30 sec
         times = []
