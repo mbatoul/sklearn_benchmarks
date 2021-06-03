@@ -345,6 +345,24 @@ benchmarking:
             - 100
             - 200
             - 1000
+          bagging_fraction:
+            - 0.2
+            - 0.5
+            - 0.8
+            - 0.9
+            - 1
+          feature_fraction:
+            - 0.2
+            - 0.5
+            - 0.8
+            - 0.9
+            - 1
+          feature_fraction_bynode:
+            - 0.2
+            - 0.5
+            - 0.8
+            - 0.9
+            - 1
         fit:
           eval_set: (X_valid, y_valid)
           early_stopping_rounds: 10
@@ -406,6 +424,30 @@ benchmarking:
             - 100
             - 200
             - 1000
+          subsample:
+            - 0.2
+            - 0.5
+            - 0.8
+            - 0.9
+            - 1
+          colsample_bytree:
+            - 0.2
+            - 0.5
+            - 0.8
+            - 0.9
+            - 1
+          colsample_bylevel:
+            - 0.2
+            - 0.5
+            - 0.8
+            - 0.9
+            - 1
+          colsample_bynode:
+            - 0.2
+            - 0.5
+            - 0.8
+            - 0.9
+            - 1
         fit:
           eval_set: "[(X_valid, y_valid)]"
           early_stopping_rounds: 10
