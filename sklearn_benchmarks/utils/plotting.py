@@ -43,12 +43,13 @@ def _compute_cumulated(fit_times, scores):
     return cumulated_fit_times, best_val_score_so_far
 
 
-def percentile_permutated_curve(
-    fit_times, cum_scores, q, n_permutations=1000, baseline_score=0.7
+def permutated_curve(
+    fit_times, cum_scores, q=None, n_permutations=1000, baseline_score=0.7
 ):
     grid_scores = np.linspace(baseline_score, cum_scores.max(), 1000)
     all_fit_times = []
     rng = np.random.RandomState(0)
+
     for _ in range(n_permutations):
         indices = rng.permutation(fit_times.shape[0])
         cum_fit_times_p, cum_scores_p = _compute_cumulated(
@@ -61,4 +62,10 @@ def percentile_permutated_curve(
             right=cum_fit_times_p.max(),
         )
         all_fit_times.append(grid_fit_times)
-    return np.percentile(all_fit_times, q, axis=0), grid_scores
+
+    if q is not None:
+        ret = np.percentile(all_fit_times, q, axis=0)
+    else:
+        ret = np.mean(all_fit_times, axis=0)
+
+    return ret, grid_scores

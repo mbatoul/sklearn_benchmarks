@@ -1,16 +1,14 @@
 import importlib
 import json
 import os
-from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import qgrid
 from IPython.display import HTML, Markdown, display
 from plotly.subplots import make_subplots
-import matplotlib.pyplot as plt
 
 from sklearn_benchmarks.config import (
     BASE_LIB,
@@ -18,7 +16,6 @@ from sklearn_benchmarks.config import (
     DEFAULT_COMPARE_COLS,
     ENV_INFO_PATH,
     PLOT_HEIGHT_IN_PX,
-    PROFILING_RESULTS_PATH,
     REPORTING_FONT_SIZE,
     SPEEDUP_COL,
     STDEV_SPEEDUP_COL,
@@ -29,8 +26,19 @@ from sklearn_benchmarks.utils.plotting import (
     gen_coordinates_grid,
     make_hover_template,
     order_columns,
-    percentile_permutated_curve,
+    permutated_curve,
 )
+
+
+def print_time_report():
+    df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
+    display(df)
+
+
+def print_env_info():
+    with open(ENV_INFO_PATH) as json_file:
+        data = json.load(json_file)
+    print(json.dumps(data, indent=2))
 
 
 class Reporting:
@@ -40,16 +48,6 @@ class Reporting:
 
     def __init__(self, config_file_path=None):
         self.config_file_path = config_file_path
-
-    def _print_time_report(self):
-        df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
-        display(df)
-
-    def _print_env_info(self):
-        with open(ENV_INFO_PATH) as json_file:
-            data = json.load(json_file)
-
-        print(json.dumps(data, indent=2))
 
     def _get_estimator_default_hyperparameters(self, estimator):
         splitted_path = estimator.split(".")
@@ -72,9 +70,6 @@ class Reporting:
         reporting_config = config["reporting"]
         benchmarking_estimators = config["benchmarking"]["estimators"]
 
-        display(Markdown("## Time report"))
-        self._print_time_report()
-
         reporting_estimators = reporting_config["estimators"]
         for name, params in reporting_estimators.items():
             params["n_cols"] = reporting_config["n_cols"]
@@ -84,9 +79,6 @@ class Reporting:
             display(Markdown(f"## {name} vs {params['against_lib']}"))
             report = Report(**params)
             report.run()
-
-        display(Markdown("## Environment information"))
-        self._print_env_info()
 
 
 class Report:
@@ -314,7 +306,7 @@ class ReportingHpo:
     def __init__(self, files=[]):
         self.files = files
 
-    def _scatter(self):
+    def _display_scatter(self):
         fig = go.Figure()
 
         for file in self.files:
@@ -345,33 +337,37 @@ class ReportingHpo:
         fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
         fig.show()
 
-    def _plot(self):
+    def _display_permutated_curve(self, q=None):
         colors = ["blue", "red", "green", "purple"]
+        plt.figure(figsize=(12, 8))
 
-        for q in [25, 50, 75]:
-            plt.figure(figsize=(12, 8))
-            for index, file in enumerate(self.files):
-                label = file.split("/")[-1].split("_")[0]
-                df = pd.read_csv(file)
+        for index, file in enumerate(self.files):
+            label = file.split("/")[-1].split("_")[0]
+            df = pd.read_csv(file)
 
-                fit_times = df[df["function"] == "fit"]["mean"]
-                scores = df[df["function"] == "predict"]["accuracy_score"]
+            fit_times = df[df["function"] == "fit"]["mean"]
+            scores = df[df["function"] == "predict"]["accuracy_score"]
 
-                grid_times, scores = percentile_permutated_curve(fit_times, scores, q)
-                plt.plot(grid_times, scores, c=f"tab:{colors[index]}", label=label)
+            grid_times, scores = permutated_curve(fit_times, scores, q=q)
+            plt.plot(grid_times, scores, c=f"tab:{colors[index]}", label=label)
 
-            plt.xlabel("Cumulated fit times in s")
-            plt.ylabel("Validation scores")
-            plt.legend()
-            display(Markdown(f"### {q}th percentile"))
-            plt.show()
+        plt.xlabel("Cumulated fit times in s")
+        plt.ylabel("Validation scores")
+        plt.legend()
 
-    def _print_table(self):
-        pass
+        title = f"### {q}th percentile" if q is not None else "Mean"
+        display(Markdown(title))
+
+        plt.show()
+
+    def _display_plots(self):
+        self._display_permutated_curve(q=25)
+        self._display_permutated_curve()
+        self._display_permutated_curve(q=75)
 
     def run(self):
         display(Markdown("## Scatter"))
-        self._scatter()
+        self._display_scatter()
+
         display(Markdown("## Permutated curves"))
-        self._plot()
-        self._print_table()
+        self._display_plots()
