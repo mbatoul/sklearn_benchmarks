@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.express as px
-import plotly.offline as pyo
 import plotly.graph_objects as go
 import qgrid
 from IPython.display import HTML, Markdown, display
