@@ -59,7 +59,7 @@ class Reporting:
 
     def _get_estimator_hyperparameters(self, estimator_config):
         if "hyperparameters" in estimator_config:
-            return estimator_config["hyperparameters"].keys()
+            return estimator_config["hyperparameters"]["init"].keys()
         else:
             return self._get_estimator_default_hyperparameters(
                 estimator_config["estimator"]
@@ -239,7 +239,7 @@ class Report:
             ]
         else:
             group_by_params = "hyperparams_digest"
-        print(group_by_params)
+
         merged_df_grouped = merged_df.groupby(group_by_params)
 
         n_plots = len(merged_df_grouped)

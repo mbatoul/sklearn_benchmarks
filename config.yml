@@ -464,7 +464,3 @@ reporting:
     Ridge:
       name: Ridge
       against_lib: daal4py
-
-    HistGradientBoostingClassifier:
-      name: HistGradientBoostingClassifier
-      against_lib: lightgbm
