@@ -364,7 +364,7 @@ class ReportingHpo:
         fig.show()
 
     def _display_permutated_curve(self, q=None):
-        colors = ["blue", "red", "green", "purple"]
+        colors = ["blue", "red", "green", "purple", "orange"]
         aliases = dict(sklearn="scikit-learn")
         plt.figure(figsize=(12, 8))
 
