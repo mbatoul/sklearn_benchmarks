@@ -325,11 +325,18 @@ class ReportingHpo:
     def __init__(self, files=[]):
         self.files = files
 
+    def _set_versions(self):
+        with open(VERSIONS_PATH) as json_file:
+            self._versions = json.load(json_file)
+
     def _display_scatter(self):
         fig = go.Figure()
+        aliases = dict(sklearn="scikit-learn")
 
         for file in self.files:
             name = file.split("/")[-1].split("_")[0]
+            name = aliases.get(name, name)
+            name = f"{name} ({self._versions[name]})"
             df = pd.read_csv(file)
 
             fit_times = df[df["function"] == "fit"][["mean"]]
@@ -358,10 +365,13 @@ class ReportingHpo:
 
     def _display_permutated_curve(self, q=None):
         colors = ["blue", "red", "green", "purple"]
+        aliases = dict(sklearn="scikit-learn")
         plt.figure(figsize=(12, 8))
 
         for index, file in enumerate(self.files):
             label = file.split("/")[-1].split("_")[0]
+            label = aliases.get(label, label)
+            label = f"{label} ({self._versions[label]})"
             df = pd.read_csv(file)
 
             fit_times = df[df["function"] == "fit"]["mean"]
@@ -385,7 +395,9 @@ class ReportingHpo:
         self._display_permutated_curve(q=75)
 
     def run(self):
-        display(Markdown("## Scatter"))
+        self._set_versions()
+
+        display(Markdown("## Raw results"))
         self._display_scatter()
 
         display(Markdown("## Permutated curves"))
