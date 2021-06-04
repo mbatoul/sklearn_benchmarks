@@ -8,6 +8,7 @@ PROFILING_RESULTS_PATH = RESULTS_PATH / "profiling"
 BENCHMARKING_RESULTS_PATH = RESULTS_PATH / "benchmarking"
 TIME_REPORT_PATH = RESULTS_PATH / "time_report.csv"
 ENV_INFO_PATH = RESULTS_PATH / "env_info.txt"
+VERSIONS_PATH = RESULTS_PATH / "versions.txt"
 DEFAULT_CONFIG_FILE_PATH = "config.yml"
 BASE_LIB = "sklearn"
 FUNC_TIME_BUDGET = 30
@@ -18,6 +19,7 @@ PLOT_HEIGHT_IN_PX = 350
 REPORTING_FONT_SIZE = 12
 DEFAULT_COMPARE_COLS = [SPEEDUP_COL, STDEV_SPEEDUP_COL]
 BENCHMARK_TIME_BUDGET = 300
+BENCH_LIBS = ["scikit-learn", "daal4py", "xgboost", "lightgbm", "catboost"]
 
 
 def get_full_config(config_file_path=None):
