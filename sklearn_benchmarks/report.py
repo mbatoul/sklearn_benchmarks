@@ -43,6 +43,7 @@ def print_time_report():
 def print_env_info():
     with open(ENV_INFO_PATH) as json_file:
         data = json.load(json_file)
+    display(Markdown("# Benchmark environment information"))
     print(json.dumps(data, indent=2))
 
 
@@ -89,10 +90,11 @@ class Reporting:
             title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{params['against_lib']}` (`{versions[params['against_lib']]}`)"
             display(Markdown(title))
 
+            report = SingleEstimatorReport(**params)
             report.run()
 
 
-class Report:
+class SingleEstimatorReport:
     """
     Runs reporting for one estimator.
     """
