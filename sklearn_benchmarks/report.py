@@ -75,7 +75,6 @@ class Reporting:
         config = get_full_config(config_file_path=self.config_file_path)
         reporting_config = config["reporting"]
         benchmarking_estimators = config["benchmarking"]["estimators"]
-
         reporting_estimators = reporting_config["estimators"]
 
         with open(VERSIONS_PATH) as json_file:
@@ -302,11 +301,18 @@ class SingleEstimatorReport:
         fig.update_layout(
             height=n_rows * PLOT_HEIGHT_IN_PX, barmode="group", showlegend=True
         )
-        display(Markdown(f"All estimators share the following hyperparameters:"))
+
+        text = "All estimators share the following hyperparameters: "
         df_shared_hyperparameters = pd.DataFrame.from_dict(
             self._get_shared_hyperpameters(), orient="index", columns=["value"]
         )
-        display(df_shared_hyperparameters)
+        for i, (index, row) in enumerate(df_shared_hyperparameters.iterrows()):
+            text += "`%s=%s`" % (index, *row.values)
+            if i == len(df_shared_hyperparameters) - 1:
+                text += "."
+            else:
+                text += ", "
+        display(Markdown(text))
 
         fig.show()
 
