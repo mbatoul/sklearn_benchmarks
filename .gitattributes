@@ -1,2 +1,1 @@
-*.ipynb linguist-generated
-*.ipynb filter=strip-notebook-output
+*.ipynb linguist-generated filter=strip-notebook-output
