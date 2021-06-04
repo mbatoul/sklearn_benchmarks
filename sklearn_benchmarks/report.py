@@ -32,7 +32,11 @@ from sklearn_benchmarks.utils.plotting import (
 
 def print_time_report():
     df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
-    display(df)
+    df = df.sort_values(by=["hour", "min", "sec"])
+
+    display(Markdown("# Time report"))
+    for index, row in df.iterrows():
+        display(Markdown("%s: %ih %im %is" % (index.capitalize(), *row.values)))
 
 
 def print_env_info():
