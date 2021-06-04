@@ -15,6 +15,7 @@ from sklearn_benchmarks.config import (
     BENCHMARKING_RESULTS_PATH,
     DEFAULT_COMPARE_COLS,
     ENV_INFO_PATH,
+    VERSIONS_PATH,
     PLOT_HEIGHT_IN_PX,
     REPORTING_FONT_SIZE,
     SPEEDUP_COL,
@@ -75,13 +76,19 @@ class Reporting:
         benchmarking_estimators = config["benchmarking"]["estimators"]
 
         reporting_estimators = reporting_config["estimators"]
+
+        with open(VERSIONS_PATH) as json_file:
+            versions = json.load(json_file)
+
         for name, params in reporting_estimators.items():
             params["n_cols"] = reporting_config["n_cols"]
             params["estimator_hyperparameters"] = self._get_estimator_hyperparameters(
                 benchmarking_estimators[name]
             )
-            display(Markdown(f"## {name} vs {params['against_lib']}"))
-            report = Report(**params)
+
+            title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{params['against_lib']}` (`{versions[params['against_lib']]}`)"
+            display(Markdown(title))
+
             report.run()
 
 
