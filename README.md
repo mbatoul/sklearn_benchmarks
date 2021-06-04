@@ -71,7 +71,8 @@ Options:
   --config, --c TEXT              Path to config file. By default, `config.yml` is selected.
 
   --profiling, --p [html|json.gz]
-                                  Profiling files type. By default, both `html` and `json.gz` files are generated.
+                                  Profiling files type. By default, both `html` and `json.gz` files 
+                                  are generated.
 
   --estimator, --e TEXT           Estimator to benchmark. By default, all estimators in the config
                                   file will be benchmarked.
