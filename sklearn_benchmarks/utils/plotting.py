@@ -43,8 +43,11 @@ def _compute_cumulated(fit_times, scores):
     return cumulated_fit_times, best_val_score_so_far
 
 
-def permutated_curve(
-    fit_times, cum_scores, q=None, n_permutations=1000, baseline_score=0.7
+def permute_fit_times(
+    fit_times,
+    cum_scores,
+    n_permutations=1000,
+    baseline_score=0.7,
 ):
     grid_scores = np.linspace(baseline_score, cum_scores.max(), 1000)
     all_fit_times = []
@@ -63,9 +66,37 @@ def permutated_curve(
         )
         all_fit_times.append(grid_fit_times)
 
-    if q is not None:
-        ret = np.percentile(all_fit_times, q, axis=0)
-    else:
-        ret = np.mean(all_fit_times, axis=0)
+    return all_fit_times, grid_scores
 
-    return ret, grid_scores
+
+def quartile_permutated_curve(
+    fit_times,
+    cum_scores,
+    q,
+    n_permutations=1000,
+    baseline_score=0.7,
+):
+    fit_times, grid_scores = permute_fit_times(
+        fit_times,
+        cum_scores,
+        n_permutations=n_permutations,
+        baseline_score=baseline_score,
+    )
+
+    return np.percentile(fit_times, q, axis=0), grid_scores
+
+
+def mean_permutated_curve(
+    fit_times,
+    cum_scores,
+    n_permutations=1000,
+    baseline_score=0.7,
+):
+    fit_times, grid_scores = permute_fit_times(
+        fit_times,
+        cum_scores,
+        n_permutations=n_permutations,
+        baseline_score=baseline_score,
+    )
+
+    return np.mean(fit_times, axis=0), grid_scores

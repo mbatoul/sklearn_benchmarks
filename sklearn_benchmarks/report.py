@@ -27,7 +27,8 @@ from sklearn_benchmarks.utils.plotting import (
     gen_coordinates_grid,
     make_hover_template,
     order_columns,
-    permutated_curve,
+    mean_permutated_curve,
+    quartile_permutated_curve,
 )
 
 
@@ -363,36 +364,34 @@ class ReportingHpo:
         fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
         fig.show()
 
-    def _display_permutated_curve(self, q=None):
+    def display_smoothed_curves(self):
         colors = ["blue", "red", "green", "purple", "orange"]
         aliases = dict(sklearn="scikit-learn")
         plt.figure(figsize=(12, 8))
 
-        for index, file in enumerate(self.files):
-            label = file.split("/")[-1].split("_")[0]
+        for index, file_path in enumerate(self.files):
+            df = pd.read_csv(file_path)
+
+            label = file_path.split("/")[-1].split("_")[0]
             label = aliases.get(label, label)
             label = f"{label} ({self._versions[label]})"
-            df = pd.read_csv(file)
 
             fit_times = df[df["function"] == "fit"]["mean"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
 
-            grid_times, scores = permutated_curve(fit_times, scores, q=q)
-            plt.plot(grid_times, scores, c=f"tab:{colors[index]}", label=label)
+            color = colors[index]
+
+            # plot central mean curve
+            mean_grid_times, grid_scores = mean_permutated_curve(fit_times, scores)
+            plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=label)
+
+            first_quartile_fit_times = quartile_permutated_curve(fit_times, scores, 25)
+            third_quartile_fit_times = quartile_permutated_curve(fit_times, scores, 75)
 
         plt.xlabel("Cumulated fit times in s")
         plt.ylabel("Validation scores")
         plt.legend()
-
-        title = f"### {q}th percentile" if q is not None else "Mean"
-        display(Markdown(title))
-
         plt.show()
-
-    def _display_plots(self):
-        self._display_permutated_curve(q=25)
-        self._display_permutated_curve()
-        self._display_permutated_curve(q=75)
 
     def run(self):
         self._set_versions()
@@ -401,4 +400,4 @@ class ReportingHpo:
         self._display_scatter()
 
         display(Markdown("## Smoothed HPO Curves"))
-        self._display_plots()
+        self.display_smoothed_curves()
