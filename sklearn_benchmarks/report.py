@@ -400,5 +400,5 @@ class ReportingHpo:
         display(Markdown("## Raw results"))
         self._display_scatter()
 
-        display(Markdown("## Randomized HPO Curves"))
+        display(Markdown("## Smoothed HPO Curves"))
         self._display_plots()
