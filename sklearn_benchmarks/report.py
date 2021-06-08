@@ -381,12 +381,22 @@ class ReportingHpo:
 
             color = colors[index]
 
-            # plot central mean curve
             mean_grid_times, grid_scores = mean_permutated_curve(fit_times, scores)
             plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=label)
 
-            first_quartile_fit_times = quartile_permutated_curve(fit_times, scores, 25)
-            third_quartile_fit_times = quartile_permutated_curve(fit_times, scores, 75)
+            first_quartile_fit_times, _ = quartile_permutated_curve(
+                fit_times, scores, 25
+            )
+            third_quartile_fit_times, _ = quartile_permutated_curve(
+                fit_times, scores, 75
+            )
+            plt.fill_betweenx(
+                grid_scores,
+                first_quartile_fit_times,
+                third_quartile_fit_times,
+                color=color,
+                alpha=0.1,
+            )
 
         plt.xlabel("Cumulated fit times in s")
         plt.ylabel("Validation scores")
