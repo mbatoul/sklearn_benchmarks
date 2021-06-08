@@ -13,9 +13,10 @@ dependencies:
   - viztracer
   - joblib
   - click
+  - scikit-learn-intelex
   - lightgbm
   - xgboost
-  - scikit-learn-intelex
+  - catboost
   - pip
   - pip:
       - --pre

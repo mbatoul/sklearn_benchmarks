@@ -1,13 +1,12 @@
 import importlib
 import json
 import os
-from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import qgrid
 from IPython.display import HTML, Markdown, display
 from plotly.subplots import make_subplots
 
@@ -17,18 +16,37 @@ from sklearn_benchmarks.config import (
     DEFAULT_COMPARE_COLS,
     ENV_INFO_PATH,
     PLOT_HEIGHT_IN_PX,
-    PROFILING_RESULTS_PATH,
     REPORTING_FONT_SIZE,
     SPEEDUP_COL,
     STDEV_SPEEDUP_COL,
     TIME_REPORT_PATH,
+    VERSIONS_PATH,
     get_full_config,
 )
 from sklearn_benchmarks.utils.plotting import (
-    _gen_coordinates_grid,
-    _make_hover_template,
-    _order_columns,
+    gen_coordinates_grid,
+    identify_pareto,
+    make_hover_template,
+    mean_permutated_curve,
+    order_columns,
+    quartile_permutated_curve,
 )
+
+
+def print_time_report():
+    df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
+    df = df.sort_values(by=["hour", "min", "sec"])
+
+    display(Markdown("# Time report"))
+    for index, row in df.iterrows():
+        display(Markdown("**%s**: %ih %im %is" % (index, *row.values)))
+
+
+def print_env_info():
+    with open(ENV_INFO_PATH) as json_file:
+        data = json.load(json_file)
+    display(Markdown("# Benchmark environment"))
+    print(json.dumps(data, indent=2))
 
 
 class Reporting:
@@ -36,18 +54,8 @@ class Reporting:
     Runs reporting for specified estimators.
     """
 
-    def __init__(self, config_file_path=None):
-        self.config_file_path = config_file_path
-
-    def _print_time_report(self):
-        df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
-        display(df)
-
-    def _print_env_info(self):
-        with open(ENV_INFO_PATH) as json_file:
-            data = json.load(json_file)
-
-        print(json.dumps(data, indent=2))
+    def __init__(self, config=None):
+        self.config = config
 
     def _get_estimator_default_hyperparameters(self, estimator):
         splitted_path = estimator.split(".")
@@ -59,35 +67,35 @@ class Reporting:
 
     def _get_estimator_hyperparameters(self, estimator_config):
         if "hyperparameters" in estimator_config:
-            return estimator_config["hyperparameters"].keys()
+            return estimator_config["hyperparameters"]["init"].keys()
         else:
             return self._get_estimator_default_hyperparameters(
                 estimator_config["estimator"]
             )
 
     def run(self):
-        config = get_full_config(config_file_path=self.config_file_path)
+        config = get_full_config(config=self.config)
         reporting_config = config["reporting"]
         benchmarking_estimators = config["benchmarking"]["estimators"]
-
-        display(Markdown("## Time report"))
-        self._print_time_report()
-
         reporting_estimators = reporting_config["estimators"]
+
+        with open(VERSIONS_PATH) as json_file:
+            versions = json.load(json_file)
+
         for name, params in reporting_estimators.items():
             params["n_cols"] = reporting_config["n_cols"]
             params["estimator_hyperparameters"] = self._get_estimator_hyperparameters(
                 benchmarking_estimators[name]
             )
-            display(Markdown(f"## {name} vs {params['against_lib']}"))
-            report = Report(**params)
+
+            title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{params['against_lib']}` (`{versions[params['against_lib']]}`)"
+            display(Markdown(title))
+
+            report = SingleEstimatorReport(**params)
             report.run()
 
-        display(Markdown("## Environment information"))
-        self._print_env_info()
 
-
-class Report:
+class SingleEstimatorReport:
     """
     Runs reporting for one estimator.
     """
@@ -208,8 +216,8 @@ class Report:
             y=df["speedup"],
             name=name,
             marker_color=color,
-            hovertemplate=_make_hover_template(df),
-            customdata=df[_order_columns(df)].values,
+            hovertemplate=make_hover_template(df),
+            customdata=df[order_columns(df)].values,
             showlegend=showlegend,
             text=df["function"],
             textposition="auto",
@@ -239,12 +247,12 @@ class Report:
             ]
         else:
             group_by_params = "hyperparams_digest"
-        print(group_by_params)
+
         merged_df_grouped = merged_df.groupby(group_by_params)
 
         n_plots = len(merged_df_grouped)
         n_rows = n_plots // self.n_cols + n_plots % self.n_cols
-        coordinates = _gen_coordinates_grid(n_rows, self.n_cols)
+        coordinates = gen_coordinates_grid(n_rows, self.n_cols)
 
         subplot_titles = [self._make_plot_title(df) for _, df in merged_df_grouped]
 
@@ -295,14 +303,149 @@ class Report:
         fig.update_layout(
             height=n_rows * PLOT_HEIGHT_IN_PX, barmode="group", showlegend=True
         )
-        display(Markdown(f"All estimators share the following hyperparameters:"))
+
+        text = "All estimators share the following hyperparameters: "
         df_shared_hyperparameters = pd.DataFrame.from_dict(
             self._get_shared_hyperpameters(), orient="index", columns=["value"]
         )
-        display(df_shared_hyperparameters)
+        for i, (index, row) in enumerate(df_shared_hyperparameters.iterrows()):
+            text += "`%s=%s`" % (index, *row.values)
+            if i == len(df_shared_hyperparameters) - 1:
+                text += "."
+            else:
+                text += ", "
+        display(Markdown(text))
 
         fig.show()
 
     def run(self):
         self._plot()
         self._print_table()
+
+
+class ReportingHpo:
+    def __init__(self, config=None):
+        self.config = config
+
+    def _set_versions(self):
+        with open(VERSIONS_PATH) as json_file:
+            self._versions = json.load(json_file)
+
+    def _display_scatter(self):
+        fig = go.Figure()
+        colors = ["blue", "red", "green", "purple", "orange"]
+
+        for index, params in enumerate(self._config["estimators"]):
+            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
+            df = pd.read_csv(file)
+
+            legend = params.get("lib")
+            legend = params.get("legend", legend)
+
+            key_lib_version = params["lib"]
+            key_lib_version = self._config["version_aliases"].get(
+                key_lib_version, key_lib_version
+            )
+            legend += f" ({self._versions[key_lib_version]})"
+
+            fit_times = df[df["function"] == "fit"][["mean"]]
+            fit_times = fit_times.reset_index(drop=True)
+
+            scores = df[df["function"] == "predict"][["accuracy_score"]]
+            scores = scores.reset_index(drop=True)
+
+            df_merged = fit_times.join(scores)
+            df_merged["cum_fit_times"] = df_merged["mean"].cumsum()
+
+            color = colors[index]
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df_merged["cum_fit_times"],
+                    y=df_merged["accuracy_score"],
+                    mode="markers",
+                    name=legend,
+                    hovertemplate=make_hover_template(df),
+                    customdata=df.values,
+                    marker=dict(color=color),
+                    legendgroup=index,
+                )
+            )
+
+            data = df_merged[["cum_fit_times", "accuracy_score"]].values
+            pareto_indices = identify_pareto(data)
+            pareto_front = data[pareto_indices]
+            pareto_front_df = pd.DataFrame(pareto_front)
+            pareto_front_df.sort_values(0, inplace=True)
+            pareto_front = pareto_front_df.values
+
+            fig.add_trace(
+                go.Scatter(
+                    x=pareto_front[:, 0],
+                    y=pareto_front[:, 1],
+                    mode="lines",
+                    showlegend=False,
+                    marker=dict(color=color),
+                    legendgroup=index,
+                )
+            )
+
+        fig["layout"]["xaxis{}".format(1)]["title"] = "Fit times"
+        fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
+        fig.show()
+
+    def display_smoothed_curves(self):
+        colors = ["blue", "red", "green", "purple", "orange"]
+        plt.figure(figsize=(12, 8))
+
+        for index, params in enumerate(self._config["estimators"]):
+            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
+            df = pd.read_csv(file)
+
+            legend = params.get("lib")
+            legend = params.get("legend", legend)
+
+            key_lib_version = params["lib"]
+            key_lib_version = self._config["version_aliases"].get(
+                key_lib_version, key_lib_version
+            )
+            legend += f" ({self._versions[key_lib_version]})"
+
+            fit_times = df[df["function"] == "fit"]["mean"]
+            scores = df[df["function"] == "predict"]["accuracy_score"]
+
+            color = colors[index]
+
+            mean_grid_times, grid_scores = mean_permutated_curve(fit_times, scores)
+            plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
+
+            first_quartile_fit_times, _ = quartile_permutated_curve(
+                fit_times, scores, 25
+            )
+            third_quartile_fit_times, _ = quartile_permutated_curve(
+                fit_times, scores, 75
+            )
+            plt.fill_betweenx(
+                grid_scores,
+                first_quartile_fit_times,
+                third_quartile_fit_times,
+                color=color,
+                alpha=0.1,
+            )
+
+        plt.xlabel("Cumulated fit times in s")
+        plt.ylabel("Validation scores")
+        plt.legend()
+        plt.show()
+
+    def run(self):
+        config = get_full_config(config=self.config)
+        self._config = config["hpo_reporting"]
+
+        self._set_versions()
+
+        display(Markdown("## Raw results"))
+        self._display_scatter()
+
+        display(Markdown("## Smoothed HPO Curves"))
+        self.display_smoothed_curves()

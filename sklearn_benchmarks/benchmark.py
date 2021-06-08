@@ -37,17 +37,18 @@ class BenchFuncExecutor:
         max_iter=BENCHMARK_MAX_ITER,
         **kwargs,
     ):
-        # First run with a profiler (not timed)
-        # with VizTracer(verbose=0) as tracer:
-        #     tracer.start()
-        #     if y is not None:
-        #         func(X, y, **kwargs)
-        #     else:
-        #         func(X, **kwargs)
-        #     tracer.stop()
-        #     for extension in profiling_output_extensions:
-        #         output_file = f"{profiling_output_path}.{extension}"
-        #         tracer.save(output_file=output_file)
+        if max_iter > 1:
+            # First run with a profiler (not timed)
+            with VizTracer(verbose=0) as tracer:
+                tracer.start()
+                if y is not None:
+                    func(X, y, **kwargs)
+                else:
+                    func(X, **kwargs)
+                tracer.stop()
+                for extension in profiling_output_extensions:
+                    output_file = f"{profiling_output_path}.{extension}"
+                    tracer.save(output_file=output_file)
 
         # Next runs: at most 10 runs or 30 sec
         times = []
@@ -73,10 +74,18 @@ class BenchFuncExecutor:
         if hasattr(estimator, "n_iter_"):
             benchmark_info["n_iter"] = estimator.n_iter_
             n_iter = estimator.n_iter_
+        elif hasattr(estimator, "best_iteration_"):
+            n_iter = estimator.best_iteration_
+        elif hasattr(estimator, "get_best_iteration"):
+            n_iter = estimator.get_best_iteration()
+        elif hasattr(estimator, "get_booster"):
+            n_iter = estimator.get_booster().best_iteration
+
+        benchmark_info["n_iter"] = n_iter
         n_iter = 1 if n_iter is None else n_iter
 
-        benchmark_info["mean_time"] = mean
-        benchmark_info["stdev_time"] = np.std(times)
+        benchmark_info["mean"] = mean
+        benchmark_info["stdev"] = np.std(times)
         benchmark_info["throughput"] = X.nbytes * n_iter / mean / 1e9
         benchmark_info["latency"] = mean / X.shape[0]
 

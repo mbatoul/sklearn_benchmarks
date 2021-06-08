@@ -345,6 +345,14 @@ benchmarking:
             - 100
             - 200
             - 1000
+          bagging_fraction:
+            - 0.5
+            - 0.8
+            - 1
+          feature_fraction_bynode:
+            - 0.5
+            - 0.8
+            - 1
         fit:
           eval_set: (X_valid, y_valid)
           early_stopping_rounds: 10
@@ -406,8 +414,147 @@ benchmarking:
             - 100
             - 200
             - 1000
+          subsample:
+            - 0.5
+            - 0.8
+            - 1
+          colsample_bynode:
+            - 0.5
+            - 0.8
+            - 1
         fit:
           eval_set: "[(X_valid, y_valid)]"
+          early_stopping_rounds: 10
+      datasets:
+        - sample_generator: sklearn.datasets.make_classification
+          hpo_curve: True
+          params:
+            n_classes: 5
+            n_informative: 5
+            n_redundant: 0
+            random_state: 42
+          n_features: 1e2
+          n_samples_valid: 50000
+          n_samples_train:
+            - 1e5
+          n_samples_test:
+            - 1e3
+
+    catboost_lossguide:
+      name: CatBoostClassifier_lossguide
+      estimator: catboost.CatBoostClassifier
+      metrics:
+        - accuracy_score
+      hyperparameters:
+        init:
+          allow_writing_files:
+            - False
+          grow_policy:
+            - Lossguide
+          bootstrap_type:
+            - MVS
+          learning_rate:
+            - 0.01
+            - 0.05
+            - 0.1
+            - 0.5
+            - 1.
+          max_leaves:
+            - 2
+            - 3
+            - 5
+            - 20
+            - 30
+            - 50
+          iterations:
+            - 30
+            - 100
+            - 300
+            - 1000
+          border_count:
+            - 32
+            - 64
+            - 128
+            - 255
+          min_data_in_leaf:
+            - 2
+            - 10
+            - 20
+            - 100
+            - 200
+            - 1000
+          subsample:
+            - 0.5
+            - 0.8
+            - 1
+          rsm:
+            - 0.5
+            - 0.8
+            - 1
+        fit:
+          eval_set: (X_valid, y_valid)
+          early_stopping_rounds: 10
+      datasets:
+        - sample_generator: sklearn.datasets.make_classification
+          hpo_curve: True
+          params:
+            n_classes: 5
+            n_informative: 5
+            n_redundant: 0
+            random_state: 42
+          n_features: 1e2
+          n_samples_valid: 50000
+          n_samples_train:
+            - 1e5
+          n_samples_test:
+            - 1e3
+
+    catboost_symmetric:
+      name: CatBoostClassifier_symmetric
+      estimator: catboost.CatBoostClassifier
+      metrics:
+        - accuracy_score
+      hyperparameters:
+        init:
+          allow_writing_files:
+            - False
+          grow_policy:
+            - SymmetricTree
+          bootstrap_type:
+            - MVS
+          learning_rate:
+            - 0.01
+            - 0.05
+            - 0.1
+            - 0.5
+            - 1.
+          iterations:
+            - 30
+            - 100
+            - 300
+            - 1000
+          border_count:
+            - 32
+            - 64
+            - 128
+            - 255
+          min_data_in_leaf:
+            - 2
+            - 10
+            - 20
+            - 100
+            - 200
+            - 1000
+          subsample:
+            - 0.5
+            - 0.8
+            - 1
+          rsm:
+            - 0.5
+            - 0.8
+            - 1
+        fit:
+          eval_set: (X_valid, y_valid)
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
@@ -465,6 +612,25 @@ reporting:
       name: Ridge
       against_lib: daal4py
 
-    HistGradientBoostingClassifier:
+hpo_reporting:
+  version_aliases:
+    sklearn: scikit-learn
+
+  estimators:
+    - lib: sklearn
       name: HistGradientBoostingClassifier
-      against_lib: lightgbm
+      legend: scikit-learn
+
+    - lib: lightgbm
+      name: LGBMClassifier
+
+    - lib: xgboost
+      name: XGBClassifier
+
+    - lib: catboost
+      name: CatBoostClassifier_lossguide
+      legend: catboost lossguide
+
+    - lib: catboost
+      name: CatBoostClassifier_symmetric
+      legend: catboost symmetric
