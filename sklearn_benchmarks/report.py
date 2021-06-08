@@ -15,19 +15,20 @@ from sklearn_benchmarks.config import (
     BENCHMARKING_RESULTS_PATH,
     DEFAULT_COMPARE_COLS,
     ENV_INFO_PATH,
-    VERSIONS_PATH,
     PLOT_HEIGHT_IN_PX,
     REPORTING_FONT_SIZE,
     SPEEDUP_COL,
     STDEV_SPEEDUP_COL,
     TIME_REPORT_PATH,
+    VERSIONS_PATH,
     get_full_config,
 )
 from sklearn_benchmarks.utils.plotting import (
     gen_coordinates_grid,
+    identify_pareto,
     make_hover_template,
-    order_columns,
     mean_permutated_curve,
+    order_columns,
     quartile_permutated_curve,
 )
 
@@ -332,8 +333,9 @@ class ReportingHpo:
 
     def _display_scatter(self):
         fig = go.Figure()
+        colors = ["blue", "red", "green", "purple", "orange"]
 
-        for params in self._config["estimators"]:
+        for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
 
@@ -355,6 +357,8 @@ class ReportingHpo:
             df_merged = fit_times.join(scores)
             df_merged["cum_fit_times"] = df_merged["mean"].cumsum()
 
+            color = colors[index]
+
             fig.add_trace(
                 go.Scatter(
                     x=df_merged["cum_fit_times"],
@@ -363,6 +367,26 @@ class ReportingHpo:
                     name=legend,
                     hovertemplate=make_hover_template(df),
                     customdata=df.values,
+                    marker=dict(color=color),
+                    legendgroup=index,
+                )
+            )
+
+            data = df_merged[["cum_fit_times", "accuracy_score"]].values
+            pareto_indices = identify_pareto(data)
+            pareto_front = data[pareto_indices]
+            pareto_front_df = pd.DataFrame(pareto_front)
+            pareto_front_df.sort_values(0, inplace=True)
+            pareto_front = pareto_front_df.values
+
+            fig.add_trace(
+                go.Scatter(
+                    x=pareto_front[:, 0],
+                    y=pareto_front[:, 1],
+                    mode="lines",
+                    showlegend=False,
+                    marker=dict(color=color),
+                    legendgroup=index,
                 )
             )
 

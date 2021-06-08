@@ -615,6 +615,7 @@ reporting:
 hpo_reporting:
   version_aliases:
     sklearn: scikit-learn
+
   estimators:
     - lib: sklearn
       name: HistGradientBoostingClassifier

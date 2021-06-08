@@ -100,3 +100,15 @@ def mean_permutated_curve(
     )
 
     return np.mean(fit_times, axis=0), grid_scores
+
+
+def identify_pareto(data):
+    n = data.shape[0]
+    all_indices = np.arange(n)
+    pareto_front = np.ones(n, dtype=bool)
+    for i in range(n):
+        for j in range(n):
+            if all(data[j] >= data[i]) and any(data[j] > data[i]):
+                pareto_front[i] = 0
+                break
+    return all_indices[pareto_front]
