@@ -1,4 +1,4 @@
-# import tensorflow_decision_forests as tfdf
+import tensorflow_decision_forests as tfdf
 import numpy as np
 import pandas as pd
 import time
