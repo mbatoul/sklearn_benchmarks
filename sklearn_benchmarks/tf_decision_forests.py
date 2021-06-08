@@ -47,7 +47,13 @@ dtf_test = tfdf.keras.pd_dataframe_to_tf_dataset(df_test, label="dep_delayed_15m
 times = []
 scores = []
 for _ in range(10):
-    model = tfdf.keras.GradientBoostedTreesModel()
+    model = tfdf.keras.GradientBoostedTreesModel(
+        num_trees=100,
+        shrinkage=0.1,
+        early_stopping="LOSS_INCREASE",
+        validation_ratio=0.05,
+        early_stopping_num_trees_look_ahead=10,
+    )
     start = time.perf_counter()
     model.fit(x=dtf_train)
     end = time.perf_counter()
