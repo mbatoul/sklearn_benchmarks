@@ -14,7 +14,7 @@ from threadpoolctl import threadpool_info
 from sklearn_benchmarks.benchmark import Benchmark
 from sklearn_benchmarks.config import (
     BENCH_LIBS,
-    DEFAULT_CONFIG_FILE_PATH,
+    DEFAULT_CONFIG,
     ENV_INFO_PATH,
     TIME_REPORT_PATH,
     VERSIONS_PATH,
@@ -37,7 +37,7 @@ from sklearn_benchmarks.utils.misc import clean_results, convert
     "--config",
     "--c",
     type=str,
-    default=DEFAULT_CONFIG_FILE_PATH,
+    default=DEFAULT_CONFIG,
     help="Path to config file.",
 )
 @click.option(

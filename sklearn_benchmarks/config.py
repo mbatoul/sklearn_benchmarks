@@ -9,7 +9,7 @@ BENCHMARKING_RESULTS_PATH = RESULTS_PATH / "benchmarking"
 TIME_REPORT_PATH = RESULTS_PATH / "time_report.csv"
 ENV_INFO_PATH = RESULTS_PATH / "env_info.txt"
 VERSIONS_PATH = RESULTS_PATH / "versions.txt"
-DEFAULT_CONFIG_FILE_PATH = "config.yml"
+DEFAULT_CONFIG = "config.yml"
 BASE_LIB = "sklearn"
 FUNC_TIME_BUDGET = 30
 BENCHMARK_MAX_ITER = 10
@@ -22,10 +22,10 @@ BENCHMARK_TIME_BUDGET = 300
 BENCH_LIBS = ["scikit-learn", "daal4py", "xgboost", "lightgbm", "catboost"]
 
 
-def get_full_config(config_file_path=None):
-    if config_file_path is None:
-        config_file_path = os.environ.get("DEFAULT_CONFIG_FILE_PATH")
-    with open(config_file_path, "r") as config_file:
+def get_full_config(config=None):
+    if config is None:
+        config = os.environ.get("DEFAULT_CONFIG")
+    with open(config, "r") as config_file:
         config = yaml.full_load(config_file)
     return config
 
