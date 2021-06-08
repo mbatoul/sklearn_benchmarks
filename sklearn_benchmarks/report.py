@@ -53,8 +53,8 @@ class Reporting:
     Runs reporting for specified estimators.
     """
 
-    def __init__(self, config_file_path=None):
-        self.config_file_path = config_file_path
+    def __init__(self, config=None):
+        self.config = config
 
     def _get_estimator_default_hyperparameters(self, estimator):
         splitted_path = estimator.split(".")
@@ -73,7 +73,7 @@ class Reporting:
             )
 
     def run(self):
-        config = get_full_config(config_file_path=self.config_file_path)
+        config = get_full_config(config=self.config)
         reporting_config = config["reporting"]
         benchmarking_estimators = config["benchmarking"]["estimators"]
         reporting_estimators = reporting_config["estimators"]
@@ -323,8 +323,8 @@ class SingleEstimatorReport:
 
 
 class ReportingHpo:
-    def __init__(self, files=[]):
-        self.files = files
+    def __init__(self, config=None):
+        self.config = config
 
     def _set_versions(self):
         with open(VERSIONS_PATH) as json_file:
@@ -332,13 +332,19 @@ class ReportingHpo:
 
     def _display_scatter(self):
         fig = go.Figure()
-        aliases = dict(sklearn="scikit-learn")
 
-        for file in self.files:
-            name = file.split("/")[-1].split("_")[0]
-            name = aliases.get(name, name)
-            name = f"{name} ({self._versions[name]})"
+        for params in self._config["estimators"]:
+            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
+
+            legend = params.get("lib")
+            legend = params.get("legend", legend)
+
+            key_lib_version = params["lib"]
+            key_lib_version = self._config["version_aliases"].get(
+                key_lib_version, key_lib_version
+            )
+            legend += f" ({self._versions[key_lib_version]})"
 
             fit_times = df[df["function"] == "fit"][["mean"]]
             fit_times = fit_times.reset_index(drop=True)
@@ -354,7 +360,7 @@ class ReportingHpo:
                     x=df_merged["cum_fit_times"],
                     y=df_merged["accuracy_score"],
                     mode="markers",
-                    name=name,
+                    name=legend,
                     hovertemplate=make_hover_template(df),
                     customdata=df.values,
                 )
@@ -366,15 +372,20 @@ class ReportingHpo:
 
     def display_smoothed_curves(self):
         colors = ["blue", "red", "green", "purple", "orange"]
-        aliases = dict(sklearn="scikit-learn")
         plt.figure(figsize=(12, 8))
 
-        for index, file_path in enumerate(self.files):
-            df = pd.read_csv(file_path)
+        for index, params in enumerate(self._config["estimators"]):
+            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
+            df = pd.read_csv(file)
 
-            label = file_path.split("/")[-1].split("_")[0]
-            label = aliases.get(label, label)
-            label = f"{label} ({self._versions[label]})"
+            legend = params.get("lib")
+            legend = params.get("legend", legend)
+
+            key_lib_version = params["lib"]
+            key_lib_version = self._config["version_aliases"].get(
+                key_lib_version, key_lib_version
+            )
+            legend += f" ({self._versions[key_lib_version]})"
 
             fit_times = df[df["function"] == "fit"]["mean"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
@@ -382,7 +393,7 @@ class ReportingHpo:
             color = colors[index]
 
             mean_grid_times, grid_scores = mean_permutated_curve(fit_times, scores)
-            plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=label)
+            plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
 
             first_quartile_fit_times, _ = quartile_permutated_curve(
                 fit_times, scores, 25
@@ -404,6 +415,9 @@ class ReportingHpo:
         plt.show()
 
     def run(self):
+        config = get_full_config(config=self.config)
+        self._config = config["hpo_reporting"]
+
         self._set_versions()
 
         display(Markdown("## Raw results"))

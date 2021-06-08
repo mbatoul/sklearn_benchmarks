@@ -440,8 +440,8 @@ benchmarking:
           n_samples_test:
             - 1e3
 
-    catboost:
-      name: CatBoostClassifier
+    catboost_lossguide:
+      name: CatBoostClassifier_lossguide
       estimator: catboost.CatBoostClassifier
       metrics:
         - accuracy_score
@@ -611,3 +611,25 @@ reporting:
     Ridge:
       name: Ridge
       against_lib: daal4py
+
+hpo_reporting:
+  version_aliases:
+    sklearn: scikit-learn
+  estimators:
+    - lib: sklearn
+      name: HistGradientBoostingClassifier
+      legend: scikit-learn
+
+    - lib: lightgbm
+      name: LGBMClassifier
+
+    - lib: xgboost
+      name: XGBClassifier
+
+    - lib: catboost
+      name: CatBoostClassifier_lossguide
+      legend: catboost lossguide
+
+    - lib: catboost
+      name: CatBoostClassifier_symmetric
+      legend: catboost symmetric
