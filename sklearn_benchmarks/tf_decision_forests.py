@@ -6,7 +6,7 @@ from sklearn import metrics
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.preprocessing import LabelEncoder
 
-df_train = pd.read_csv("https://s3.amazonaws.com/benchm-ml--main/train-1m.csv")
+df_train = pd.read_csv("https://s3.amazonaws.com/benchm-ml--main/train-0.1m.csv")
 df_test = pd.read_csv("https://s3.amazonaws.com/benchm-ml--main/test.csv")
 
 df_train["dep_delayed_15min"] = np.where(df_train["dep_delayed_15min"] == "Y", 1, 0)
@@ -50,9 +50,9 @@ for _ in range(10):
     model = tfdf.keras.GradientBoostedTreesModel(
         num_trees=100,
         shrinkage=0.1,
-        early_stopping="LOSS_INCREASE",
-        validation_ratio=0.05,
-        early_stopping_num_trees_look_ahead=10,
+        early_stopping="NONE",
+        # validation_ratio=0.05,
+        # early_stopping_num_trees_look_ahead=10,
     )
     start = time.perf_counter()
     model.fit(x=dtf_train)
