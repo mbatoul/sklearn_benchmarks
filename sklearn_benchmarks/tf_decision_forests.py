@@ -11,8 +11,8 @@ df_test = pd.read_csv("https://s3.amazonaws.com/benchm-ml--main/test.csv")
 
 df_train["dep_delayed_15min"] = np.where(df_train["dep_delayed_15min"] == "Y", 1, 0)
 df_test["dep_delayed_15min"] = np.where(df_test["dep_delayed_15min"] == "Y", 1, 0)
-cat_cols = ["Month", "DayofMonth", "DayOfWeek", "UniqueCarrier", "Origin", "Dest"]
 
+cat_cols = ["Month", "DayofMonth", "DayOfWeek", "UniqueCarrier", "Origin", "Dest"]
 df_train[cat_cols] = df_train[cat_cols].apply(LabelEncoder().fit_transform)
 df_test[cat_cols] = df_test[cat_cols].apply(LabelEncoder().fit_transform)
 
@@ -30,18 +30,18 @@ for _ in range(10):
     model.fit(X_train, y_train)
     end = time.perf_counter()
 
-    time_elapsed = round(end - start, 5)
+    time_elapsed = round(end - start, 3)
     times.append(time_elapsed)
 
     y_pred = model.predict(X_test)
     score = round(metrics.roc_auc_score(y_test, y_pred), 3)
     scores.append(score)
 
-print(f"average score scikit-learn: {np.mean(scores)}")
 print(f"average time scikit-learn: {np.mean(times)}s")
+print(f"average score scikit-learn: {np.mean(scores)}")
 
 # TensorFlow Decision Forests
-dtf_train = tfdf.keras.pd_dataframe_to_tf_dataset(df_train, label="dep_delayed_13min")
+dtf_train = tfdf.keras.pd_dataframe_to_tf_dataset(df_train, label="dep_delayed_15min")
 dtf_test = tfdf.keras.pd_dataframe_to_tf_dataset(df_test, label="dep_delayed_15min")
 
 times = []
@@ -52,12 +52,12 @@ for _ in range(10):
     model.fit(x=dtf_train)
     end = time.perf_counter()
 
-    time_elapsed = round(end - start, 5)
+    time_elapsed = round(end - start, 3)
     times.append(time_elapsed)
 
     y_pred = model.predict(dtf_test)
     score = round(metrics.roc_auc_score(y_test, y_pred), 3)
     scores.append(score)
 
-print(f"average score tensorflow: {np.mean(scores)}")
-print(f"average time tensorflow: {np.mean(times)}s")
+print(f"average time tfdf: {np.mean(times)}s")
+print(f"average score tfdf: {np.mean(scores)}")
