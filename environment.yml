@@ -9,6 +9,7 @@ dependencies:
   - plotly
   - jupyter
   - matplotlib
+  - seaborn
   - qgrid
   - viztracer
   - joblib
