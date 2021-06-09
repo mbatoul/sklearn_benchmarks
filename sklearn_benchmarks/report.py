@@ -495,6 +495,38 @@ class ReportingHpo:
 
         plt.show()
 
+    def display_speedup_curves(self):
+        other_lib_dfs = {}
+        for params in self._config["estimators"]:
+            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
+            df = pd.read_csv(file)
+            if params["lib"] == BASE_LIB:
+                base_lib_df = df
+            else:
+                key = "".join(params.get("legend", params.get("lib")))
+                other_lib_dfs[key] = df
+
+        base_fit_times = base_lib_df[base_lib_df["function"] == "fit"]["mean"]
+        base_scores = base_lib_df[base_lib_df["function"] == "predict"][
+            "accuracy_score"
+        ]
+        base_mean_grid_times, _ = mean_permutated_curve(base_fit_times, base_scores)
+        colors = ["blue", "red", "green", "purple", "orange"]
+        plt.figure(figsize=(15, 10))
+        for index, (lib, df) in enumerate(other_lib_dfs.items()):
+            fit_times = df[df["function"] == "fit"]["mean"]
+            scores = df[df["function"] == "predict"]["accuracy_score"]
+            mean_grid_times, grid_scores = mean_permutated_curve(fit_times, scores)
+            speedup = base_mean_grid_times / mean_grid_times
+            color = colors[index]
+            plt.plot(
+                grid_scores, speedup, c=f"tab:{color}", label=f"scikit-learn vs. {lib}"
+            )
+        plt.xlabel("Validation scores")
+        plt.ylabel("Speedup")
+        plt.legend()
+        plt.show()
+
     def run(self):
         config = get_full_config(config=self.config)
         self._config = config["hpo_reporting"]
@@ -509,3 +541,6 @@ class ReportingHpo:
 
         display(Markdown("## Speedup barplots"))
         self.display_speedup_barplots()
+
+        display(Markdown("## Speedup curves"))
+        self.display_speedup_curves()
