@@ -613,9 +613,13 @@ reporting:
       against_lib: daal4py
 
 hpo_reporting:
+  speedup:
+    scores:
+      - 0.735
+      - 0.77
+      - 0.805
   version_aliases:
     sklearn: scikit-learn
-
   estimators:
     - lib: sklearn
       name: HistGradientBoostingClassifier

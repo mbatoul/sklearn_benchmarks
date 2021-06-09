@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import seaborn as sns
 from IPython.display import HTML, Markdown, display
 from plotly.subplots import make_subplots
 
@@ -31,6 +32,7 @@ from sklearn_benchmarks.utils.plotting import (
     order_columns,
     quartile_permutated_curve,
 )
+from sklearn_benchmarks.utils.misc import find_nearest
 
 
 def print_time_report():
@@ -438,6 +440,61 @@ class ReportingHpo:
         plt.legend()
         plt.show()
 
+    def display_speedup_barplots(self):
+        other_lib_dfs = {}
+        for params in self._config["estimators"]:
+            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
+            df = pd.read_csv(file)
+            if params["lib"] == BASE_LIB:
+                base_lib_df = df
+            else:
+                key = "".join(params.get("legend", params.get("lib")))
+                other_lib_dfs[key] = df
+
+        data = []
+        columns = ["score"]
+
+        base_fit_times = base_lib_df[base_lib_df["function"] == "fit"]["mean"]
+        base_scores = base_lib_df[base_lib_df["function"] == "predict"][
+            "accuracy_score"
+        ]
+
+        for val in self._config["speedup"]["scores"]:
+            row = [val]
+            for lib, df in other_lib_dfs.items():
+                if lib not in columns:
+                    columns.append(lib)
+
+                fit_times = df[df["function"] == "fit"]["mean"]
+                scores = df[df["function"] == "predict"]["accuracy_score"]
+
+                assert fit_times.shape == scores.shape
+
+                idx, _ = find_nearest(scores, val)
+                other_lib_time = fit_times.iloc[idx]
+
+                idx, _ = find_nearest(base_scores, val)
+                base_time = base_fit_times.iloc[idx]
+
+                speedup = base_time / other_lib_time
+
+                row.append(speedup)
+            data.append(row)
+
+        speedup_df = pd.DataFrame(columns=columns, data=data)
+        speedup_df = speedup_df.set_index("score")
+        fig, axes = plt.subplots(3, figsize=(10, 15))
+
+        for ax, score in zip(axes, speedup_df.index.unique()):
+            libs = speedup_df.columns
+            speedups = speedup_df.loc[score].values
+            ax.bar(x=libs, height=speedups)
+            ax.set_xlabel("Lib")
+            ax.set_ylabel(f"Speedup (time sklearn / time lib)")
+            ax.set_title(f"At score {score}")
+
+        plt.show()
+
     def run(self):
         config = get_full_config(config=self.config)
         self._config = config["hpo_reporting"]
@@ -449,3 +506,6 @@ class ReportingHpo:
 
         display(Markdown("## Smoothed HPO Curves"))
         self.display_smoothed_curves()
+
+        display(Markdown("## Speedup barplots"))
+        self.display_speedup_barplots()

@@ -1,5 +1,5 @@
 import os
-import yaml
+import numpy as np
 import glob
 import glob
 import importlib
@@ -55,3 +55,9 @@ def convert(seconds):
     min, sec = divmod(seconds, 60)
     hour, min = divmod(min, 60)
     return hour, min, sec
+
+
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx, array[idx]
