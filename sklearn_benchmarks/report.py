@@ -396,7 +396,7 @@ class ReportingHpo:
 
     def display_smoothed_curves(self):
         colors = ["blue", "red", "green", "purple", "orange"]
-        plt.figure(figsize=(12, 8))
+        plt.figure(figsize=(15, 10))
 
         for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
