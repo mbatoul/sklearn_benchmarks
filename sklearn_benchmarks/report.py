@@ -509,20 +509,29 @@ class ReportingHpo:
         base_scores = base_lib_df[base_lib_df["function"] == "predict"][
             "accuracy_score"
         ]
-        base_mean_grid_times, _ = mean_permutated_curve(base_fit_times, base_scores)
+        base_mean_grid_times, base_grid_scores = mean_permutated_curve(
+            base_fit_times, base_scores
+        )
         colors = ["blue", "red", "green", "purple", "orange"]
         plt.figure(figsize=(15, 10))
+
         for index, (lib, df) in enumerate(other_lib_dfs.items()):
             fit_times = df[df["function"] == "fit"]["mean"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
             mean_grid_times, grid_scores = mean_permutated_curve(fit_times, scores)
             speedup = base_mean_grid_times / mean_grid_times
             color = colors[index]
-            plt.plot(
-                grid_scores, speedup, c=f"tab:{color}", label=f"scikit-learn vs. {lib}"
-            )
+            plt.plot(grid_scores, speedup, c=f"tab:{color}", label=lib)
+
+        plt.plot(
+            base_grid_scores,
+            base_mean_grid_times / base_mean_grid_times,
+            c=f"tab:grey",
+            label=BASE_LIB,
+        )
+
         plt.xlabel("Validation scores")
-        plt.ylabel("Speedup")
+        plt.ylabel(f"Speedup vs. {BASE_LIB}")
         plt.legend()
         plt.show()
 
