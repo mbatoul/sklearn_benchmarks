@@ -357,13 +357,12 @@ class ReportingHpo:
             scores = scores.reset_index(drop=True)
 
             df_merged = fit_times.join(scores)
-            df_merged["cum_fit_times"] = df_merged["mean"].cumsum()
 
             color = colors[index]
 
             fig.add_trace(
                 go.Scatter(
-                    x=df_merged["cum_fit_times"],
+                    x=df_merged["mean"],
                     y=df_merged["accuracy_score"],
                     mode="markers",
                     name=legend,
@@ -374,7 +373,7 @@ class ReportingHpo:
                 )
             )
 
-            data = df_merged[["cum_fit_times", "accuracy_score"]].values
+            data = df_merged[["mean", "accuracy_score"]].values
             pareto_indices = identify_pareto(data)
             pareto_front = data[pareto_indices]
             pareto_front_df = pd.DataFrame(pareto_front)
