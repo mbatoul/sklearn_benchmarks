@@ -46,15 +46,15 @@ def _compute_cumulated(fit_times, scores):
 def permute_fit_times(
     fit_times,
     cum_scores,
-    n_permutations=1000,
+    n_bootstraps=10_000,
     baseline_score=0.7,
 ):
     grid_scores = np.linspace(baseline_score, cum_scores.max(), 1000)
     all_fit_times = []
     rng = np.random.RandomState(0)
-
-    for _ in range(n_permutations):
-        indices = rng.permutation(fit_times.shape[0])
+    n_samples = fit_times.shape[0]
+    for _ in range(n_bootstraps):
+        indices = rng.randint(n_samples, size=n_samples)
         cum_fit_times_p, cum_scores_p = _compute_cumulated(
             fit_times.iloc[indices], cum_scores.iloc[indices]
         )
@@ -73,13 +73,13 @@ def quartile_permutated_curve(
     fit_times,
     cum_scores,
     q,
-    n_permutations=1000,
+    n_bootstraps=10_000,
     baseline_score=0.7,
 ):
     fit_times, grid_scores = permute_fit_times(
         fit_times,
         cum_scores,
-        n_permutations=n_permutations,
+        n_bootstraps=n_bootstraps,
         baseline_score=baseline_score,
     )
 
@@ -89,13 +89,13 @@ def quartile_permutated_curve(
 def mean_permutated_curve(
     fit_times,
     cum_scores,
-    n_permutations=1000,
+    n_bootstraps=10_000,
     baseline_score=0.7,
 ):
     fit_times, grid_scores = permute_fit_times(
         fit_times,
         cum_scores,
-        n_permutations=n_permutations,
+        n_bootstraps=n_bootstraps,
         baseline_score=baseline_score,
     )
 
