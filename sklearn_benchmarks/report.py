@@ -333,7 +333,7 @@ class ReportingHpo:
         with open(VERSIONS_PATH) as json_file:
             self._versions = json.load(json_file)
 
-    def _display_scatter(self, time="fit"):
+    def _display_scatter(self, func="fit"):
         fig = go.Figure()
         colors = ["blue", "red", "green", "purple", "orange"]
 
@@ -350,20 +350,19 @@ class ReportingHpo:
             )
             legend += f" ({self._versions[key_lib_version]})"
 
-            times = df[df["function"] == time][["mean"]]
-            times = times.reset_index(drop=True)
-
-            scores = df[df["function"] == "predict"][["accuracy_score"]]
-            scores = scores.reset_index(drop=True)
-
-            df_merged = times.join(scores)
+            df_merged = df.query("function == 'fit'").merge(
+                df.query("function == 'predict'"),
+                on=["hyperparams_digest", "dataset_digest"],
+                how="inner",
+                suffixes=["_fit", "_predict"],
+            )
 
             color = colors[index]
 
             fig.add_trace(
                 go.Scatter(
-                    x=df_merged["mean"],
-                    y=df_merged["accuracy_score"],
+                    x=df_merged[f"mean_{func}"],
+                    y=df_merged["accuracy_score_predict"],
                     mode="markers",
                     name=legend,
                     hovertemplate=make_hover_template(df),
@@ -373,7 +372,7 @@ class ReportingHpo:
                 )
             )
 
-            data = df_merged[["mean", "accuracy_score"]].values
+            data = df_merged[[f"mean_{func}", "accuracy_score_predict"]].values
             pareto_indices = identify_pareto(data)
             pareto_front = data[pareto_indices]
             pareto_front_df = pd.DataFrame(pareto_front)
@@ -549,10 +548,10 @@ class ReportingHpo:
         self._set_versions()
 
         display(Markdown("## Raw fit times"))
-        self._display_scatter(time="fit")
+        self._display_scatter(func="fit")
 
         display(Markdown("## Raw predict times"))
-        self._display_scatter(time="predict")
+        self._display_scatter(func="predict")
 
         display(Markdown("## Smoothed HPO Curves"))
         display(Markdown("> The shaded areas represent boostrapped quartiles."))
