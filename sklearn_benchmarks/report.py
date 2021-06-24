@@ -28,9 +28,9 @@ from sklearn_benchmarks.utils.plotting import (
     gen_coordinates_grid,
     identify_pareto,
     make_hover_template,
-    mean_permutated_curve,
+    mean_bootstrapped_curve,
     order_columns,
-    quartile_permutated_curve,
+    quartile_bootstrapped_curve,
 )
 from sklearn_benchmarks.utils.misc import find_nearest
 
@@ -417,13 +417,13 @@ class ReportingHpo:
 
             color = colors[index]
 
-            mean_grid_times, grid_scores = mean_permutated_curve(fit_times, scores)
+            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
             plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
 
-            first_quartile_fit_times, _ = quartile_permutated_curve(
+            first_quartile_fit_times, _ = quartile_bootstrapped_curve(
                 fit_times, scores, 25
             )
-            third_quartile_fit_times, _ = quartile_permutated_curve(
+            third_quartile_fit_times, _ = quartile_bootstrapped_curve(
                 fit_times, scores, 75
             )
             plt.fill_betweenx(
@@ -509,7 +509,7 @@ class ReportingHpo:
         base_scores = base_lib_df[base_lib_df["function"] == "predict"][
             "accuracy_score"
         ]
-        base_mean_grid_times, base_grid_scores = mean_permutated_curve(
+        base_mean_grid_times, base_grid_scores = mean_bootstrapped_curve(
             base_fit_times, base_scores
         )
         colors = ["blue", "red", "green", "purple", "orange"]
@@ -518,7 +518,7 @@ class ReportingHpo:
         for index, (lib, df) in enumerate(other_lib_dfs.items()):
             fit_times = df[df["function"] == "fit"]["mean"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
-            mean_grid_times, grid_scores = mean_permutated_curve(fit_times, scores)
+            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
             speedup = base_mean_grid_times / mean_grid_times
             color = colors[index]
             plt.plot(grid_scores, speedup, c=f"tab:{color}", label=lib)

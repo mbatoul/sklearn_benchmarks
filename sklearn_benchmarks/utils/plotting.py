@@ -43,7 +43,7 @@ def _compute_cumulated(fit_times, scores):
     return cumulated_fit_times, best_val_score_so_far
 
 
-def permute_fit_times(
+def boostrap_fit_times(
     fit_times,
     cum_scores,
     n_bootstraps=10_000,
@@ -69,14 +69,14 @@ def permute_fit_times(
     return all_fit_times, grid_scores
 
 
-def quartile_permutated_curve(
+def quartile_bootstrapped_curve(
     fit_times,
     cum_scores,
     q,
     n_bootstraps=10_000,
     baseline_score=0.7,
 ):
-    fit_times, grid_scores = permute_fit_times(
+    fit_times, grid_scores = boostrap_fit_times(
         fit_times,
         cum_scores,
         n_bootstraps=n_bootstraps,
@@ -86,13 +86,13 @@ def quartile_permutated_curve(
     return np.percentile(fit_times, q, axis=0), grid_scores
 
 
-def mean_permutated_curve(
+def mean_bootstrapped_curve(
     fit_times,
     cum_scores,
     n_bootstraps=10_000,
     baseline_score=0.7,
 ):
-    fit_times, grid_scores = permute_fit_times(
+    fit_times, grid_scores = boostrap_fit_times(
         fit_times,
         cum_scores,
         n_bootstraps=n_bootstraps,
