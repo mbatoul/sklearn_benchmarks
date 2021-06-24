@@ -152,9 +152,12 @@ class Benchmark:
             n_samples_valid = dataset.get("n_samples_valid", None)
             is_hpo_curve = dataset.get("hpo_curve", False)
             for ns_train in n_samples_train:
+                n_samples = ns_train + max(n_samples_test)
+                if n_samples_valid is not None:
+                    n_samples += n_samples_valid
                 X, y = gen_data(
                     dataset["sample_generator"],
-                    n_samples=ns_train + max(n_samples_test),
+                    n_samples=n_samples,
                     n_features=n_features,
                     **dataset["params"],
                 )
