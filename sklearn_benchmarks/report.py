@@ -333,7 +333,7 @@ class ReportingHpo:
         with open(VERSIONS_PATH) as json_file:
             self._versions = json.load(json_file)
 
-    def _display_scatter(self):
+    def _display_scatter(self, time="fit"):
         fig = go.Figure()
         colors = ["blue", "red", "green", "purple", "orange"]
 
@@ -350,13 +350,13 @@ class ReportingHpo:
             )
             legend += f" ({self._versions[key_lib_version]})"
 
-            fit_times = df[df["function"] == "fit"][["mean"]]
-            fit_times = fit_times.reset_index(drop=True)
+            times = df[df["function"] == time][["mean"]]
+            times = times.reset_index(drop=True)
 
             scores = df[df["function"] == "predict"][["accuracy_score"]]
             scores = scores.reset_index(drop=True)
 
-            df_merged = fit_times.join(scores)
+            df_merged = times.join(scores)
 
             color = colors[index]
 
@@ -541,8 +541,11 @@ class ReportingHpo:
 
         self._set_versions()
 
-        display(Markdown("## Raw results"))
-        self._display_scatter()
+        display(Markdown("## Raw fit times"))
+        self._display_scatter(time="fit")
+
+        display(Markdown("## Raw predict times"))
+        self._display_scatter(time="predict")
 
         display(Markdown("## Smoothed HPO Curves"))
         self.display_smoothed_curves()
