@@ -548,6 +548,7 @@ class ReportingHpo:
         self._display_scatter(time="predict")
 
         display(Markdown("## Smoothed HPO Curves"))
+        display(Markdown("The shaded areas represent boostrap quartiles."))
         self.display_smoothed_curves()
 
         display(Markdown("## Speedup barplots"))
