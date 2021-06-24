@@ -254,6 +254,7 @@ benchmarking:
     HistGradientBoostingClassifier:
       name: HistGradientBoostingClassifier
       estimator: sklearn.ensemble.HistGradientBoostingClassifier
+      use_onnx_runtime: True
       metrics:
         - accuracy_score
       hyperparameters:

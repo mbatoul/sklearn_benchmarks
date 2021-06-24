@@ -5,18 +5,21 @@ from pprint import pprint
 
 import joblib
 import numpy as np
+import onnxruntime as rt
 import pandas as pd
 from scipy.sparse import data
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import ParameterGrid, train_test_split
 from sklearn.utils._testing import set_random_state
 from viztracer import VizTracer
 
 from sklearn_benchmarks.config import (
     BENCHMARK_MAX_ITER,
-    FUNC_TIME_BUDGET,
-    BENCHMARKING_RESULTS_PATH,
-    PROFILING_RESULTS_PATH,
     BENCHMARK_TIME_BUDGET,
+    BENCHMARKING_RESULTS_PATH,
+    FUNC_TIME_BUDGET,
+    PROFILING_RESULTS_PATH,
 )
 from sklearn_benchmarks.utils.misc import gen_data, predict_or_transform
 
@@ -35,6 +38,7 @@ class BenchFuncExecutor:
         X,
         y=None,
         max_iter=BENCHMARK_MAX_ITER,
+        use_onnx_runtime=False,
         **kwargs,
     ):
         if max_iter > 1:
@@ -59,7 +63,16 @@ class BenchFuncExecutor:
             if y is not None:
                 self.func_result_ = func(X, y, **kwargs)
             else:
-                self.func_result_ = func(X, **kwargs)
+                if self.use_onnx_runtime:
+                    sess = rt.InferenceSession(f"{joblib.hash(estimator)}.onnx")
+                    input_name = sess.get_inputs()[0].name
+                    label_name = sess.get_outputs()[0].name
+
+                    self.func_result_ = sess.run(
+                        [label_name], {input_name: X.astype(np.float32)}
+                    )[0]
+                else:
+                    self.func_result_ = func(X, **kwargs)
 
             end = time.perf_counter()
             times.append(end - start)
@@ -101,6 +114,7 @@ class Benchmark:
         metrics=[],
         hyperparameters={},
         datasets=[],
+        use_onnx_runtime=False,
         random_state=None,
         profiling_file_type="",
         profiling_output_extensions=[],
@@ -192,6 +206,12 @@ class Benchmark:
                         **fit_params,
                     )
 
+                    if self.use_onnx_runtime:
+                        initial_type = [("float_input", FloatTensorType([None, 4]))]
+                        onx = convert_sklearn(estimator, initial_types=initial_type)
+                        with open(f"{joblib.hash(estimator)}.onnx", "wb") as f:
+                            f.write(onx.SerializeToString())
+
                     row = dict(
                         estimator=self.name,
                         function=bench_func.__name__,
@@ -225,6 +245,7 @@ class Benchmark:
                             self.profiling_output_extensions,
                             X_test_,
                             max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
+                            use_onnx_runtime=self.use_onnx_runtime,
                             **bench_func_params,
                         )
                         row = dict(
