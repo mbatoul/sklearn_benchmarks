@@ -399,6 +399,7 @@ class ReportingHpo:
         colors = ["blue", "red", "green", "purple", "orange"]
         plt.figure(figsize=(15, 10))
 
+        fit_times_for_max_scores = []
         for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
@@ -418,6 +419,10 @@ class ReportingHpo:
             color = colors[index]
 
             mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
+            idx_max_score = np.argmax(grid_scores, axis=0)
+            fit_time_for_max_score = mean_grid_times[idx_max_score]
+            fit_times_for_max_scores.append(fit_time_for_max_score)
+
             plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
 
             first_quartile_fit_times, _ = quartile_bootstrapped_curve(
@@ -434,6 +439,8 @@ class ReportingHpo:
                 alpha=0.1,
             )
 
+        min_fit_time_all_constant = min(fit_times_for_max_scores)
+        plt.xlim(right=min_fit_time_all_constant)
         plt.xlabel("Cumulated fit times in s")
         plt.ylabel("Validation scores")
         plt.legend()
@@ -548,7 +555,7 @@ class ReportingHpo:
         self._display_scatter(time="predict")
 
         display(Markdown("## Smoothed HPO Curves"))
-        display(Markdown("The shaded areas represent boostrapped quartiles."))
+        display(Markdown("> The shaded areas represent boostrapped quartiles."))
         self.display_smoothed_curves()
 
         display(Markdown("## Speedup barplots"))
