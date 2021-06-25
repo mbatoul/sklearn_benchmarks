@@ -139,8 +139,6 @@ cython_debug/
 
 *.csv
 
-*.html
-
 *.txt
 
 tmp
@@ -152,3 +150,5 @@ tmp
 *.json.gz
 
 wip.ipynb
+
+results/profiling/*.html

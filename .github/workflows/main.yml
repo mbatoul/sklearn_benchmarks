@@ -49,7 +49,9 @@ jobs:
 
       - name: Convert notebook to html
         run: |
-          jupyter nbconvert --to html --execute --output results/index.html reporting.ipynb
+          jupyter nbconvert --to html --execute --output results/notebooks/sklearn_vs_sklearnex.html results/notebooks/sklearn_vs_sklearnex.ipynb
+          jupyter nbconvert --to html --execute --output results/notebooks/sklearn_vs_onnx.html results/notebooks/sklearn_vs_onnx.ipynb
+          jupyter nbconvert --to html --execute --output results/notebooks/gradient_boosting.html results/notebooks/gradient_boosting.ipynb
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v2
