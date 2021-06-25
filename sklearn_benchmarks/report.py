@@ -390,7 +390,7 @@ class ReportingHpo:
                 )
             )
 
-        fig["layout"]["xaxis{}".format(1)]["title"] = "Fit times"
+        fig["layout"]["xaxis{}".format(1)]["title"] = f"{func.capitalize()} times"
         fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
         fig.show()
 
@@ -547,10 +547,10 @@ class ReportingHpo:
 
         self._set_versions()
 
-        display(Markdown("## Raw fit times"))
+        display(Markdown("## Raw fit times vs. accuracy scores"))
         self._display_scatter(func="fit")
 
-        display(Markdown("## Raw predict times"))
+        display(Markdown("## Raw predict times vs. accuracy scores"))
         self._display_scatter(func="predict")
 
         display(Markdown("## Smoothed HPO Curves"))
