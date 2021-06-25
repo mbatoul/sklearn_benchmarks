@@ -63,7 +63,7 @@ class BenchFuncExecutor:
             if y is not None:
                 self.func_result_ = func(X, y, **kwargs)
             else:
-                if self.use_onnx_runtime:
+                if use_onnx_runtime:
                     sess = rt.InferenceSession(f"{joblib.hash(estimator)}.onnx")
                     input_name = sess.get_inputs()[0].name
                     label_name = sess.get_outputs()[0].name
@@ -125,6 +125,7 @@ class Benchmark:
         self.metrics = metrics
         self.hyperparameters = hyperparameters
         self.datasets = datasets
+        self.use_onnx_runtime = use_onnx_runtime
         self.random_state = random_state
         self.profiling_file_type = profiling_file_type
         self.profiling_output_extensions = profiling_output_extensions
@@ -207,7 +208,9 @@ class Benchmark:
                     )
 
                     if self.use_onnx_runtime:
-                        initial_type = [("float_input", FloatTensorType([None, 4]))]
+                        initial_type = [
+                            ("float_input", FloatTensorType([None, X_train.shape[1]]))
+                        ]
                         onx = convert_sklearn(estimator, initial_types=initial_type)
                         with open(f"{joblib.hash(estimator)}.onnx", "wb") as f:
                             f.write(onx.SerializeToString())
@@ -238,6 +241,34 @@ class Benchmark:
                             if bench_func.__name__ in self.hyperparameters
                             else {}
                         )
+
+                        if self.use_onnx_runtime:
+                            benchmark_info = executor.run(
+                                bench_func,
+                                estimator,
+                                profiling_output_path,
+                                self.profiling_output_extensions,
+                                X_test_,
+                                max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
+                                use_onnx_runtime=self.use_onnx_runtime,
+                                **bench_func_params,
+                            )
+
+                            row = dict(
+                                estimator=self.name,
+                                use_onnx_runtime=self.use_onnx_runtime,
+                                function=bench_func.__name__,
+                                n_samples_train=ns_train,
+                                n_samples=ns_test,
+                                n_features=n_features,
+                                hyperparams_digest=hyperparams_digest,
+                                dataset_digest=dataset_digest,
+                                **benchmark_info,
+                                **params,
+                            )
+                            pprint(row)
+                            self.results_.append(row)
+
                         benchmark_info = executor.run(
                             bench_func,
                             estimator,
@@ -245,9 +276,9 @@ class Benchmark:
                             self.profiling_output_extensions,
                             X_test_,
                             max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
-                            use_onnx_runtime=self.use_onnx_runtime,
                             **bench_func_params,
                         )
+
                         row = dict(
                             estimator=self.name,
                             function=bench_func.__name__,
