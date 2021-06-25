@@ -399,9 +399,22 @@ class ReportingHpo:
         plt.figure(figsize=(15, 10))
 
         fit_times_for_max_scores = []
+        dataset_info_label = "(n_samples, n_features, n_classes, generator)"
         for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
+
+            dataset_info_label += (
+                "(%s, %s, %s, %s)"
+                % df[
+                    [
+                        "n_samples_train",
+                        "n_features",
+                        "dataset_n_classes",
+                        "dataset_sample_generator",
+                    ]
+                ]
+            )
 
             legend = params.get("lib")
             legend = params.get("legend", legend)
@@ -424,19 +437,7 @@ class ReportingHpo:
 
             plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
 
-            first_quartile_fit_times, _ = quartile_bootstrapped_curve(
-                fit_times, scores, 25
-            )
-            third_quartile_fit_times, _ = quartile_bootstrapped_curve(
-                fit_times, scores, 75
-            )
-            plt.fill_betweenx(
-                grid_scores,
-                first_quartile_fit_times,
-                third_quartile_fit_times,
-                color=color,
-                alpha=0.1,
-            )
+        plt.figtext(0.8, 0.8, dataset_info_label)
 
         min_fit_time_all_constant = min(fit_times_for_max_scores)
         plt.xlim(right=min_fit_time_all_constant)
