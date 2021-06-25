@@ -28,9 +28,9 @@ from sklearn_benchmarks.utils.plotting import (
     gen_coordinates_grid,
     identify_pareto,
     make_hover_template,
-    mean_permutated_curve,
+    mean_bootstrapped_curve,
     order_columns,
-    quartile_permutated_curve,
+    quartile_bootstrapped_curve,
 )
 from sklearn_benchmarks.utils.misc import find_nearest
 
@@ -333,7 +333,7 @@ class ReportingHpo:
         with open(VERSIONS_PATH) as json_file:
             self._versions = json.load(json_file)
 
-    def _display_scatter(self):
+    def _display_scatter(self, func="fit"):
         fig = go.Figure()
         colors = ["blue", "red", "green", "purple", "orange"]
 
@@ -350,21 +350,19 @@ class ReportingHpo:
             )
             legend += f" ({self._versions[key_lib_version]})"
 
-            fit_times = df[df["function"] == "fit"][["mean"]]
-            fit_times = fit_times.reset_index(drop=True)
-
-            scores = df[df["function"] == "predict"][["accuracy_score"]]
-            scores = scores.reset_index(drop=True)
-
-            df_merged = fit_times.join(scores)
-            df_merged["cum_fit_times"] = df_merged["mean"].cumsum()
+            df_merged = df.query("function == 'fit'").merge(
+                df.query("function == 'predict'"),
+                on=["hyperparams_digest", "dataset_digest"],
+                how="inner",
+                suffixes=["_fit", "_predict"],
+            )
 
             color = colors[index]
 
             fig.add_trace(
                 go.Scatter(
-                    x=df_merged["cum_fit_times"],
-                    y=df_merged["accuracy_score"],
+                    x=df_merged[f"mean_{func}"],
+                    y=df_merged["accuracy_score_predict"],
                     mode="markers",
                     name=legend,
                     hovertemplate=make_hover_template(df),
@@ -374,7 +372,7 @@ class ReportingHpo:
                 )
             )
 
-            data = df_merged[["cum_fit_times", "accuracy_score"]].values
+            data = df_merged[[f"mean_{func}", "accuracy_score_predict"]].values
             pareto_indices = identify_pareto(data)
             pareto_front = data[pareto_indices]
             pareto_front_df = pd.DataFrame(pareto_front)
@@ -400,6 +398,7 @@ class ReportingHpo:
         colors = ["blue", "red", "green", "purple", "orange"]
         plt.figure(figsize=(15, 10))
 
+        fit_times_for_max_scores = []
         for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
@@ -418,13 +417,17 @@ class ReportingHpo:
 
             color = colors[index]
 
-            mean_grid_times, grid_scores = mean_permutated_curve(fit_times, scores)
+            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
+            idx_max_score = np.argmax(grid_scores, axis=0)
+            fit_time_for_max_score = mean_grid_times[idx_max_score]
+            fit_times_for_max_scores.append(fit_time_for_max_score)
+
             plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
 
-            first_quartile_fit_times, _ = quartile_permutated_curve(
+            first_quartile_fit_times, _ = quartile_bootstrapped_curve(
                 fit_times, scores, 25
             )
-            third_quartile_fit_times, _ = quartile_permutated_curve(
+            third_quartile_fit_times, _ = quartile_bootstrapped_curve(
                 fit_times, scores, 75
             )
             plt.fill_betweenx(
@@ -435,6 +438,8 @@ class ReportingHpo:
                 alpha=0.1,
             )
 
+        min_fit_time_all_constant = min(fit_times_for_max_scores)
+        plt.xlim(right=min_fit_time_all_constant)
         plt.xlabel("Cumulated fit times in s")
         plt.ylabel("Validation scores")
         plt.legend()
@@ -510,20 +515,29 @@ class ReportingHpo:
         base_scores = base_lib_df[base_lib_df["function"] == "predict"][
             "accuracy_score"
         ]
-        base_mean_grid_times, _ = mean_permutated_curve(base_fit_times, base_scores)
+        base_mean_grid_times, base_grid_scores = mean_bootstrapped_curve(
+            base_fit_times, base_scores
+        )
         colors = ["blue", "red", "green", "purple", "orange"]
         plt.figure(figsize=(15, 10))
+
         for index, (lib, df) in enumerate(other_lib_dfs.items()):
             fit_times = df[df["function"] == "fit"]["mean"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
-            mean_grid_times, grid_scores = mean_permutated_curve(fit_times, scores)
+            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
             speedup = base_mean_grid_times / mean_grid_times
             color = colors[index]
-            plt.plot(
-                grid_scores, speedup, c=f"tab:{color}", label=f"scikit-learn vs. {lib}"
-            )
+            plt.plot(grid_scores, speedup, c=f"tab:{color}", label=lib)
+
+        plt.plot(
+            base_grid_scores,
+            base_mean_grid_times / base_mean_grid_times,
+            c=f"tab:grey",
+            label=BASE_LIB,
+        )
+
         plt.xlabel("Validation scores")
-        plt.ylabel("Speedup")
+        plt.ylabel(f"Speedup vs. {BASE_LIB}")
         plt.legend()
         plt.show()
 
@@ -533,10 +547,14 @@ class ReportingHpo:
 
         self._set_versions()
 
-        display(Markdown("## Raw results"))
-        self._display_scatter()
+        display(Markdown("## Raw fit times"))
+        self._display_scatter(func="fit")
+
+        display(Markdown("## Raw predict times"))
+        self._display_scatter(func="predict")
 
         display(Markdown("## Smoothed HPO Curves"))
+        display(Markdown("> The shaded areas represent boostrapped quartiles."))
         self.display_smoothed_curves()
 
         display(Markdown("## Speedup barplots"))

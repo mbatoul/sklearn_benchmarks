@@ -279,10 +279,7 @@ benchmarking:
             - 30
             - 50
           max_iter:
-            - 30
-            - 100
             - 300
-            - 1000
           max_bins:
             - 32
             - 64
@@ -294,7 +291,6 @@ benchmarking:
             - 20
             - 100
             - 200
-            - 1000
       datasets:
         - sample_generator: sklearn.datasets.make_classification
           hpo_curve: True
@@ -330,10 +326,7 @@ benchmarking:
             - 30
             - 50
           n_estimators:
-            - 30
-            - 100
             - 300
-            - 1000
           max_bin:
             - 32
             - 64
@@ -345,7 +338,6 @@ benchmarking:
             - 20
             - 100
             - 200
-            - 1000
           bagging_fraction:
             - 0.5
             - 0.8
@@ -391,7 +383,7 @@ benchmarking:
             - 0.1
             - 0.5
             - 1.
-          max_leaf_nodes:
+          max_leaves:
             - 2
             - 3
             - 5
@@ -399,22 +391,18 @@ benchmarking:
             - 30
             - 50
           n_estimators:
-            - 30
-            - 100
             - 300
-            - 1000
           max_bin:
             - 32
             - 64
             - 128
             - 255
-          min_samples_leaf:
+          min_child_weight:
             - 2
             - 10
             - 20
             - 100
             - 200
-            - 1000
           subsample:
             - 0.5
             - 0.8
@@ -435,7 +423,7 @@ benchmarking:
             n_redundant: 0
             random_state: 42
           n_features: 1e2
-          n_samples_valid: 50000
+          n_samples_valid: 10_000
           n_samples_train:
             - 1e5
           n_samples_test:
@@ -468,10 +456,7 @@ benchmarking:
             - 30
             - 50
           iterations:
-            - 30
-            - 100
             - 300
-            - 1000
           border_count:
             - 32
             - 64
@@ -530,10 +515,7 @@ benchmarking:
             - 0.5
             - 1.
           iterations:
-            - 30
-            - 100
             - 300
-            - 1000
           border_count:
             - 32
             - 64
