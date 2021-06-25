@@ -488,10 +488,17 @@ class ReportingHpo:
 
         speedup_df = pd.DataFrame(columns=columns, data=data)
         speedup_df = speedup_df.set_index("score")
-        fig, axes = plt.subplots(3, figsize=(10, 15))
+        _, axes = plt.subplots(3, figsize=(10, 15))
+
+        libs = list(speedup_df.columns)
+        for i in range(len(libs)):
+            key_lib_version = libs[i].split(" ")[0]
+            key_lib_version = self._config["version_aliases"].get(
+                key_lib_version, key_lib_version
+            )
+            libs[i] = f"{libs[i]} ({self._versions[key_lib_version]})"
 
         for ax, score in zip(axes, speedup_df.index.unique()):
-            libs = speedup_df.columns
             speedups = speedup_df.loc[score].values
             ax.bar(x=libs, height=speedups)
             ax.set_xlabel("Lib")
@@ -518,22 +525,61 @@ class ReportingHpo:
         base_mean_grid_times, base_grid_scores = mean_bootstrapped_curve(
             base_fit_times, base_scores
         )
+        base_first_quartile_fit_times, _ = quartile_bootstrapped_curve(
+            base_fit_times, base_scores, 25
+        )
+        base_third_quartile_fit_times, _ = quartile_bootstrapped_curve(
+            base_fit_times, base_scores, 75
+        )
         colors = ["blue", "red", "green", "purple", "orange"]
         plt.figure(figsize=(15, 10))
 
         for index, (lib, df) in enumerate(other_lib_dfs.items()):
             fit_times = df[df["function"] == "fit"]["mean"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
-            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
-            speedup = base_mean_grid_times / mean_grid_times
-            color = colors[index]
-            plt.plot(grid_scores, speedup, c=f"tab:{color}", label=lib)
 
+            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
+            speedup_mean = base_mean_grid_times / mean_grid_times
+
+            color = colors[index]
+
+            key_lib_version = lib.split(" ")[0]
+            key_lib_version = self._config["version_aliases"].get(
+                key_lib_version, key_lib_version
+            )
+            label = f"{lib} ({self._versions[key_lib_version]})"
+
+            plt.plot(grid_scores, speedup_mean, c=f"tab:{color}", label=label)
+
+            first_quartile_grid_times, _ = quartile_bootstrapped_curve(
+                fit_times, scores, 25
+            )
+            speedup_first_quartile = (
+                base_first_quartile_fit_times / first_quartile_grid_times
+            )
+
+            third_quartile_grid_times, _ = quartile_bootstrapped_curve(
+                fit_times, scores, 75
+            )
+            speedup_third_quartile = (
+                base_third_quartile_fit_times / third_quartile_grid_times
+            )
+
+            plt.fill_between(
+                grid_scores,
+                speedup_third_quartile,
+                speedup_first_quartile,
+                color=color,
+                alpha=0.1,
+            )
+
+        base_lib_alias = self._config["version_aliases"][BASE_LIB]
+        label = f"{base_lib_alias} ({self._versions[base_lib_alias]})"
         plt.plot(
             base_grid_scores,
             base_mean_grid_times / base_mean_grid_times,
             c=f"tab:grey",
-            label=BASE_LIB,
+            label=label,
         )
 
         plt.xlabel("Validation scores")
