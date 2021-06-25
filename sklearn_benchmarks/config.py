@@ -19,7 +19,7 @@ PLOT_HEIGHT_IN_PX = 350
 REPORTING_FONT_SIZE = 12
 DEFAULT_COMPARE_COLS = [SPEEDUP_COL, STDEV_SPEEDUP_COL]
 BENCHMARK_TIME_BUDGET = 900
-BENCH_LIBS = ["scikit-learn", "daal4py", "xgboost", "lightgbm", "catboost"]
+BENCH_LIBS = ["scikit-learn", "scikit-learn-intelex", "xgboost", "lightgbm", "catboost"]
 
 
 def get_full_config(config=None):

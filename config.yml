@@ -41,9 +41,9 @@ benchmarking:
             - 1
             - 1e3
 
-    daal4py_KNeighborsClassifier:
+    sklearnex_KNeighborsClassifier:
       inherit: KNeighborsClassifier
-      estimator: daal4py.sklearn.neighbors.KNeighborsClassifier
+      estimator: sklearnex.neighbors.KNeighborsClassifier
 
     KNeighborsClassifier_kd_tree:
       name: KNeighborsClassifier_kd_tree
@@ -85,9 +85,9 @@ benchmarking:
             - 1
             - 1e3
 
-    daal4py_KNeighborsClassifier_kd_tree:
+    sklearnex_KNeighborsClassifier_kd_tree:
       inherit: KNeighborsClassifier_kd_tree
-      estimator: daal4py.sklearn.neighbors.KNeighborsClassifier
+      estimator: sklearnex.neighbors.KNeighborsClassifier
 
     KMeans_tall:
       name: KMeans_tall
@@ -133,9 +133,9 @@ benchmarking:
             - 1
             - 1e3
 
-    daal4py_KMeans_tall:
+    sklearnex_KMeans_tall:
       inherit: KMeans_tall
-      estimator: daal4py.sklearn.cluster.KMeans
+      estimator: sklearnex.cluster.KMeans
 
     KMeans_short:
       name: KMeans_short
@@ -181,9 +181,9 @@ benchmarking:
             - 1
             - 1e3
 
-    daal4py_KMeans_short:
+    sklearnex_KMeans_short:
       inherit: KMeans_short
-      estimator: daal4py.sklearn.cluster.KMeans
+      estimator: sklearnex.cluster.KMeans
 
     LogisticRegression:
       name: LogisticRegression
@@ -216,9 +216,9 @@ benchmarking:
             - 1
             - 1e2
 
-    daal4py_LogisticRegression:
+    sklearnex_LogisticRegression:
       inherit: LogisticRegression
-      estimator: daal4py.sklearn.linear_model.LogisticRegression
+      estimator: sklearnex.linear_model.LogisticRegression
 
     Ridge:
       name: Ridge
@@ -247,9 +247,9 @@ benchmarking:
             - 1
             - 1e3
 
-    daal4py_Ridge:
+    sklearnex_Ridge:
       inherit: Ridge
-      estimator: daal4py.sklearn.linear_model.Ridge
+      estimator: sklearnex.linear_model.Ridge
 
     HistGradientBoostingClassifier:
       name: HistGradientBoostingClassifier
@@ -556,7 +556,7 @@ reporting:
   estimators:
     KNeighborsClassifier:
       name: KNeighborsClassifier
-      against_lib: daal4py
+      against_lib: sklearnex
       split_bars:
         - n_jobs
       compare:
@@ -564,7 +564,7 @@ reporting:
 
     KNeighborsClassifier_kd_tree:
       name: KNeighborsClassifier_kd_tree
-      against_lib: daal4py
+      against_lib: sklearnex
       split_bars:
         - n_jobs
       compare:
@@ -572,25 +572,25 @@ reporting:
 
     KMeans_tall:
       name: KMeans_tall
-      against_lib: daal4py
+      against_lib: sklearnex
       compare:
         - n_iter
         - adjusted_rand_score
 
     KMeans_short:
       name: KMeans_short
-      against_lib: daal4py
+      against_lib: sklearnex
       compare:
         - n_iter
         - adjusted_rand_score
 
     LogisticRegression:
       name: LogisticRegression
-      against_lib: daal4py
+      against_lib: sklearnex
 
     Ridge:
       name: Ridge
-      against_lib: daal4py
+      against_lib: sklearnex
 
 hpo_reporting:
   speedup:
