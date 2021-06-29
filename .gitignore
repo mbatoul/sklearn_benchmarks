@@ -152,3 +152,4 @@ tmp
 wip.ipynb
 
 results/profiling/*.html
+results/notebooks/*.html
