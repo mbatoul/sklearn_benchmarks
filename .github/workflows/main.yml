@@ -47,26 +47,32 @@ jobs:
       - name: Run benchmark suite
         run: python -m sklearn_benchmarks --config config.yml
 
+      - name: list files
+        run: ls results
+
       - name: Convert notebook to html
         run: |
           jupyter nbconvert --to html --execute --output sklearn_vs_sklearnex.html results/notebooks/sklearn_vs_sklearnex.ipynb
           jupyter nbconvert --to html --execute --output sklearn_vs_onnx.html results/notebooks/sklearn_vs_onnx.ipynb
           jupyter nbconvert --to html --execute --output gradient_boosting.html results/notebooks/gradient_boosting.ipynb
 
-      - name: Upload benchmark results
-        uses: actions/upload-artifact@v2
-        with:
-          name: results
-          path: results
+      - name: list files
+        run: ls results
 
-      - name: Download docs folder
-        uses: actions/download-artifact@v2
-        with:
-          name: results
-          path: results
+      # - name: Upload benchmark results
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: results
+      #     path: results
 
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@4.1.1
-        with:
-          branch: gh-pages
-          folder: results
+      # - name: Download docs folder
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: results
+      #     path: results
+
+      # - name: Deploy
+      #   uses: JamesIves/github-pages-deploy-action@4.1.1
+      #   with:
+      #     branch: gh-pages
+      #     folder: results
