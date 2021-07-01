@@ -39,7 +39,7 @@ def print_time_report():
     df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
     df = df.sort_values(by=["hour", "min", "sec"])
 
-    display(Markdown("# Time report"))
+    display(Markdown("## Time report"))
     for index, row in df.iterrows():
         display(Markdown("**%s**: %ih %im %is" % (index, *row.values)))
 
@@ -47,8 +47,24 @@ def print_time_report():
 def print_env_info():
     with open(ENV_INFO_PATH) as json_file:
         data = json.load(json_file)
-    display(Markdown("# Benchmark environment"))
+    display(Markdown("## Benchmark environment"))
     print(json.dumps(data, indent=2))
+
+
+def display_links_to_notebooks():
+    if os.environ.get("RESULTS_BASE_URL") is not None:
+        base_url = os.environ.get("RESULTS_BASE_URL")
+    else:
+        base_url = "http://localhost:8888/notebooks/"
+    notebook_titles = dict(
+        sklearn_vs_sklearnex="`scikit-learn` vs. `scikit-learn-intelex` (Intel® oneAPI) benchmarks",
+        sklearn_vs_onnx="`scikit-learn` vs. `ONNX Runtime` (Microsoft) benchmarks",
+        gradient_boosting="Gradient boosting: randomized HPO benchmarks",
+    )
+    file_extension = "html" if os.environ.get("RESULTS_BASE_URL") else "ipynb"
+    display(Markdown("## Notebooks"))
+    for file, title in notebook_titles.items():
+        display(Markdown(f"[{title}]({base_url}{file}.{file_extension})"))
 
 
 class Reporting:
@@ -399,22 +415,22 @@ class ReportingHpo:
         plt.figure(figsize=(15, 10))
 
         fit_times_for_max_scores = []
-        dataset_info_label = "(n_samples, n_features, n_classes, generator)"
+        # dataset_info_label = "(n_samples, n_features, n_classes, generator)"
         for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
 
-            dataset_info_label += (
-                "(%s, %s, %s, %s)"
-                % df[
-                    [
-                        "n_samples_train",
-                        "n_features",
-                        "dataset_n_classes",
-                        "dataset_sample_generator",
-                    ]
-                ]
-            )
+            # dataset_info_label += (
+            #     "(%s, %s, %s, %s)"
+            #     % df[
+            #         [
+            #             "n_samples_train",
+            #             "n_features",
+            #             "dataset_n_classes",
+            #             "dataset_sample_generator",
+            #         ]
+            #     ]
+            # )
 
             legend = params.get("lib")
             legend = params.get("legend", legend)
@@ -437,7 +453,7 @@ class ReportingHpo:
 
             plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
 
-        plt.figtext(0.8, 0.8, dataset_info_label)
+        # plt.figtext(0.8, 0.8, dataset_info_label)
 
         min_fit_time_all_constant = min(fit_times_for_max_scores)
         plt.xlim(right=min_fit_time_all_constant)

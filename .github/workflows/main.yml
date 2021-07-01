@@ -49,6 +49,7 @@ jobs:
 
       - name: Convert notebook to html
         run: |
+          jupyter nbconvert --to html --execute --output results/index.html index.ipynb
           jupyter nbconvert --to html --execute --output results/sklearn_vs_sklearnex.html sklearn_vs_sklearnex.ipynb
           jupyter nbconvert --to html --execute --output results/sklearn_vs_onnx.html sklearn_vs_onnx.ipynb
           jupyter nbconvert --to html --execute --output results/gradient_boosting.html gradient_boosting.ipynb
