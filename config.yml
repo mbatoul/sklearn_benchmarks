@@ -48,6 +48,10 @@ benchmarking:
     KNeighborsClassifier_kd_tree:
       name: KNeighborsClassifier_kd_tree
       estimator: sklearn.neighbors.KNeighborsClassifier
+      use_onnx_runtime: True
+      onnx_params:
+        shape_fct: skl2onnx.common.shape_calculator.calculate_linear_classifier_output_shapes
+        convert_fct: skl2onnx.operator_converters.nearest_neighbours.convert_nearest_neighbors_classifier
       hyperparameters:
         init:
           n_neighbors:
@@ -62,17 +66,17 @@ benchmarking:
       metrics:
         - accuracy_score
       datasets:
-        - sample_generator: sklearn.datasets.make_classification
-          params:
-            n_classes: 2
-            n_redundant: 0
-            random_state: 42
-          n_features: 10
-          n_samples_train:
-            - 1e6
-          n_samples_test:
-            - 1
-            - 1e3
+        # - sample_generator: sklearn.datasets.make_classification
+        #   params:
+        #     n_classes: 2
+        #     n_redundant: 0
+        #     random_state: 42
+        #   n_features: 10
+        #   n_samples_train:
+        #     - 1e6
+        #   n_samples_test:
+        #     - 1
+        #     - 1e3
         - sample_generator: sklearn.datasets.make_classification
           params:
             n_classes: 2
@@ -80,10 +84,10 @@ benchmarking:
             random_state: 42
           n_features: 2
           n_samples_train:
-            - 1e6
+            - 1e3
           n_samples_test:
             - 1
-            - 1e3
+            # - 1e3
 
     daal4py_KNeighborsClassifier_kd_tree:
       inherit: KNeighborsClassifier_kd_tree

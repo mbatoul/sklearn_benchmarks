@@ -1,6 +1,9 @@
+import glob
 import importlib
+import os
 import random
 import time
+from pathlib import Path
 from pprint import pprint
 
 import joblib
@@ -8,7 +11,8 @@ import numpy as np
 import onnxruntime as rt
 import pandas as pd
 from scipy.sparse import data
-from skl2onnx import convert_sklearn
+from skl2onnx import convert_sklearn, supported_converters, update_registered_converter
+from skl2onnx.common import MissingShapeCalculator
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import ParameterGrid, train_test_split
 from sklearn.utils._testing import set_random_state
@@ -38,7 +42,7 @@ class BenchFuncExecutor:
         X,
         y=None,
         max_iter=BENCHMARK_MAX_ITER,
-        use_onnx_runtime=False,
+        onnx_model_filename=None,
         **kwargs,
     ):
         if max_iter > 1:
@@ -63,8 +67,8 @@ class BenchFuncExecutor:
             if y is not None:
                 self.func_result_ = func(X, y, **kwargs)
             else:
-                if use_onnx_runtime:
-                    sess = rt.InferenceSession(f"{joblib.hash(estimator)}.onnx")
+                if onnx_model_filename is not None:
+                    sess = rt.InferenceSession(onnx_model_filename)
                     input_name = sess.get_inputs()[0].name
                     label_name = sess.get_outputs()[0].name
 
@@ -115,6 +119,7 @@ class Benchmark:
         hyperparameters={},
         datasets=[],
         use_onnx_runtime=False,
+        onnx_params={},
         random_state=None,
         profiling_file_type="",
         profiling_output_extensions=[],
@@ -126,6 +131,7 @@ class Benchmark:
         self.hyperparameters = hyperparameters
         self.datasets = datasets
         self.use_onnx_runtime = use_onnx_runtime
+        self.onnx_params = onnx_params
         self.random_state = random_state
         self.profiling_file_type = profiling_file_type
         self.profiling_output_extensions = profiling_output_extensions
@@ -159,6 +165,10 @@ class Benchmark:
         metrics_funcs = self._load_metrics_funcs()
         params_grid = self._make_params_grid()
         self.results_ = []
+        self.use_onnx_runtime = (
+            self.use_onnx_runtime
+            and f"Sklearn{self.estimator.split('.')[-1]}" in supported_converters()
+        )
         start = time.perf_counter()
         for dataset in self.datasets:
             n_features = dataset["n_features"]
@@ -214,8 +224,36 @@ class Benchmark:
                         initial_type = [
                             ("float_input", FloatTensorType([None, X_train.shape[1]]))
                         ]
-                        onx = convert_sklearn(estimator, initial_types=initial_type)
-                        with open(f"{joblib.hash(estimator)}.onnx", "wb") as f:
+                        onnx_model_filename = f"{self.lib_}_{self.name}_{hyperparams_digest}_{dataset_digest}.onnx"
+
+                        try:
+                            onx = convert_sklearn(estimator, initial_types=initial_type)
+                        except MissingShapeCalculator as e:
+                            shape_fct_path = self.onnx_params["shape_fct"]
+                            shape_fct_splitted_path = shape_fct_path.split(".")
+                            module, func = (
+                                ".".join(shape_fct_splitted_path[:-1]),
+                                shape_fct_splitted_path[-1],
+                            )
+                            shape_fct = getattr(importlib.import_module(module), func)
+
+                            convert_fct_path = self.onnx_params["convert_fct"]
+                            convert_fct_splitted_path = convert_fct_path.split(".")
+                            module, func = (
+                                ".".join(convert_fct_splitted_path[:-1]),
+                                convert_fct_splitted_path[-1],
+                            )
+                            convert_fct = getattr(importlib.import_module(module), func)
+
+                            update_registered_converter(
+                                estimator_class,
+                                f"Sklearn{self.estimator.split('.')[-1]}",
+                                shape_fct,
+                                convert_fct,
+                            )
+                            onx = convert_sklearn(estimator, initial_types=initial_type)
+
+                        with open(onnx_model_filename, "wb") as f:
                             f.write(onx.SerializeToString())
 
                     row = dict(
@@ -253,7 +291,7 @@ class Benchmark:
                                 self.profiling_output_extensions,
                                 X_test_,
                                 max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
-                                use_onnx_runtime=self.use_onnx_runtime,
+                                onnx_model_filename=onnx_model_filename,
                                 **bench_func_params,
                             )
 
@@ -303,10 +341,24 @@ class Benchmark:
                         self.results_.append(row)
                         self.to_csv()
 
+                        # os.remove(onnx_model_filename)
+
                         if is_hpo_curve:
                             now = time.perf_counter()
                             if now - start > BENCHMARK_TIME_BUDGET:
                                 return
+
+        # if self.use_onnx_runtime:
+        #     print("onnx")
+        #     root_path = str(Path(__file__).resolve() / "*") + ".onnx"
+        #     print(root_path)
+        #     files = glob.glob(root_path, recursive=True)
+        #     print(files)
+        #     for f in files:
+        #         try:
+        #             os.remove(f)
+        #         except OSError as e:
+        #             print("Error: %s : %s" % (f, e.strerror))
         return self
 
     def to_csv(self):
