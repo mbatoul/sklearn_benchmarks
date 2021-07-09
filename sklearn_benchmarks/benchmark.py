@@ -168,10 +168,6 @@ class Benchmark:
             n_samples_test = list(reversed(sorted(dataset["n_samples_test"])))
             n_samples_valid = dataset.get("n_samples_valid", None)
             is_hpo_curve = dataset.get("hpo_curve", False)
-            dataset_params = {
-                "dataset_" + str(key): val for key, val in dataset["params"].items()
-            }
-            dataset_params["dataset_sample_generator"] = dataset["sample_generator"]
             for ns_train in n_samples_train:
                 n_samples = ns_train + max(n_samples_test)
                 if n_samples_valid is not None:
@@ -235,7 +231,6 @@ class Benchmark:
                         n_features=n_features,
                         hyperparams_digest=hyperparams_digest,
                         dataset_digest=dataset_digest,
-                        **dataset_params,
                         **benchmark_info,
                         **params,
                     )
@@ -300,7 +295,6 @@ class Benchmark:
                             n_features=n_features,
                             hyperparams_digest=hyperparams_digest,
                             dataset_digest=dataset_digest,
-                            **dataset_params,
                             **benchmark_info,
                             **params,
                         )
