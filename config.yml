@@ -553,6 +553,8 @@ benchmarking:
 
 reporting:
   n_cols: 2
+  version_aliases:
+    sklearnex: scikit-learn-intelex
   estimators:
     KNeighborsClassifier:
       name: KNeighborsClassifier

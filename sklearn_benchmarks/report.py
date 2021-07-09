@@ -105,8 +105,11 @@ class Reporting:
             params["estimator_hyperparameters"] = self._get_estimator_hyperparameters(
                 benchmarking_estimators[name]
             )
-
-            title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{params['against_lib']}` (`{versions[params['against_lib']]}`)"
+            key_lib_version = params["against_lib"]
+            key_lib_version = reporting_config["version_aliases"].get(
+                key_lib_version, key_lib_version
+            )
+            title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{key_lib_version}` (`{versions[key_lib_version]}`)"
             display(Markdown(title))
 
             report = SingleEstimatorReport(**params)
