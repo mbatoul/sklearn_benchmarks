@@ -108,7 +108,7 @@ def identify_pareto(data):
     pareto_front = np.ones(n, dtype=bool)
     for i in range(n):
         for j in range(n):
-            if all(data[j] >= data[i]) and any(data[j] > data[i]):
+            if data[i][0] > data[j][0] and data[i][1] < data[j][1]:
                 pareto_front[i] = 0
                 break
     return all_indices[pareto_front]
