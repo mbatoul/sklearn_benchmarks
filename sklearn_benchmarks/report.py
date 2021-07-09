@@ -16,6 +16,7 @@ from sklearn_benchmarks.config import (
     BENCHMARKING_RESULTS_PATH,
     DEFAULT_COMPARE_COLS,
     ENV_INFO_PATH,
+    HPO_CURVES_COLORS,
     PLOT_HEIGHT_IN_PX,
     REPORTING_FONT_SIZE,
     SPEEDUP_COL,
@@ -24,6 +25,7 @@ from sklearn_benchmarks.config import (
     VERSIONS_PATH,
     get_full_config,
 )
+from sklearn_benchmarks.utils.misc import find_nearest
 from sklearn_benchmarks.utils.plotting import (
     gen_coordinates_grid,
     identify_pareto,
@@ -32,7 +34,6 @@ from sklearn_benchmarks.utils.plotting import (
     order_columns,
     quartile_bootstrapped_curve,
 )
-from sklearn_benchmarks.utils.misc import find_nearest
 
 
 def print_time_report():
@@ -356,7 +357,6 @@ class ReportingHpo:
 
     def _display_scatter(self, func="fit"):
         fig = go.Figure()
-        colors = ["blue", "red", "green", "purple", "orange"]
 
         for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
@@ -388,7 +388,7 @@ class ReportingHpo:
                 inplace=True,
             )
 
-            color = colors[index]
+            color = HPO_CURVES_COLORS[index]
 
             df_hover = df_merged.copy()
             df_hover.columns = df_hover.columns.str.rstrip(f"_{func}")
@@ -432,7 +432,6 @@ class ReportingHpo:
         fig.show()
 
     def display_smoothed_curves(self):
-        colors = ["blue", "red", "green", "purple", "orange"]
         plt.figure(figsize=(15, 10))
 
         fit_times_for_max_scores = []
@@ -452,7 +451,7 @@ class ReportingHpo:
             fit_times = df[df["function"] == "fit"]["mean"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
 
-            color = colors[index]
+            color = HPO_CURVES_COLORS[index]
 
             mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
             idx_max_score = np.argmax(grid_scores, axis=0)
@@ -522,7 +521,7 @@ class ReportingHpo:
 
         for ax, score in zip(axes, speedup_df.index.unique()):
             speedups = speedup_df.loc[score].values
-            ax.bar(x=libs, height=speedups, width=0.3)
+            ax.bar(x=libs, height=speedups, width=0.3, color=HPO_CURVES_COLORS)
             ax.set_xlabel("Lib")
             ax.set_ylabel(f"Speedup (time sklearn / time lib)")
             ax.set_title(f"At score {score}")
@@ -554,8 +553,16 @@ class ReportingHpo:
         base_third_quartile_fit_times, _ = quartile_bootstrapped_curve(
             base_fit_times, base_scores, 75
         )
-        colors = ["blue", "red", "green", "purple", "orange"]
         plt.figure(figsize=(15, 10))
+
+        base_lib_alias = self._config["version_aliases"][BASE_LIB]
+        label = f"{base_lib_alias} ({self._versions[base_lib_alias]})"
+        plt.plot(
+            base_grid_scores,
+            base_mean_grid_times / base_mean_grid_times,
+            c=HPO_CURVES_COLORS[0],
+            label=label,
+        )
 
         for index, (lib, df) in enumerate(other_lib_dfs.items()):
             fit_times = df[df["function"] == "fit"]["mean"]
@@ -564,7 +571,7 @@ class ReportingHpo:
             mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
             speedup_mean = base_mean_grid_times / mean_grid_times
 
-            color = colors[index]
+            color = HPO_CURVES_COLORS[index + 1]
 
             key_lib_version = lib.split(" ")[0]
             key_lib_version = self._config["version_aliases"].get(
@@ -595,15 +602,6 @@ class ReportingHpo:
                 color=color,
                 alpha=0.1,
             )
-
-        base_lib_alias = self._config["version_aliases"][BASE_LIB]
-        label = f"{base_lib_alias} ({self._versions[base_lib_alias]})"
-        plt.plot(
-            base_grid_scores,
-            base_mean_grid_times / base_mean_grid_times,
-            c=f"tab:grey",
-            label=label,
-        )
 
         plt.xlabel("Validation scores")
         plt.ylabel(f"Speedup vs. {BASE_LIB}")

@@ -606,17 +606,22 @@ hpo_reporting:
     - lib: sklearn
       name: HistGradientBoostingClassifier
       legend: scikit-learn
+      color: blue
 
     - lib: lightgbm
       name: LGBMClassifier
+      color: red
 
     - lib: xgboost
       name: XGBClassifier
+      color: green
 
     - lib: catboost
       name: CatBoostClassifier_lossguide
       legend: catboost lossguide
+      color: purple
 
     - lib: catboost
       name: CatBoostClassifier_symmetric
       legend: catboost symmetric
+      color: orange
