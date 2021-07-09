@@ -196,7 +196,7 @@ class SingleEstimatorReport:
                 title += "<br>"
         return title
 
-    def _print_table(self):
+    def _print_tables(self):
         df = self._make_reporting_df()
         df = df.round(3)
         nunique = df.apply(pd.Series.nunique)
@@ -210,7 +210,9 @@ class SingleEstimatorReport:
                 ["function", "hyperparams_digest", "dataset_digest"]
             ].apply(self._make_profiling_link, lib=lib, axis=1)
         df = df.drop(["hyperparams_digest", "dataset_digest"], axis=1)
-        display(HTML(df.to_html(escape=False)))
+        splitted_dfs = [x for _, x in df.groupby(["function"])]
+        for df in splitted_dfs:
+            display(HTML(df.to_html(escape=False)))
 
     def _make_x_plot(self, df):
         return [f"({ns}, {nf})" for ns, nf in df[["n_samples", "n_features"]].values]
@@ -338,7 +340,7 @@ class SingleEstimatorReport:
 
     def run(self):
         self._plot()
-        self._print_table()
+        self._print_tables()
 
 
 class ReportingHpo:
