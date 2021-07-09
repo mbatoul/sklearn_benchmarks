@@ -387,6 +387,9 @@ class ReportingHpo:
 
             df_hover = df_merged.copy()
             df_hover.columns = df_hover.columns.str.rstrip(f"_{func}")
+            df_hover = df_hover.rename(
+                columns={"mean": f"mean_{func}_time", "stdev": f"stdev_{func}_time"}
+            )
 
             fig.add_trace(
                 go.Scatter(
