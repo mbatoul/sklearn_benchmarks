@@ -76,6 +76,8 @@ def main(append, config, profiling, estimator):
         if "inherit" in params:
             curr_estimator = params["estimator"]
             params = all_estimators[params["inherit"]]
+            if "use_onnx_runtime" in params:
+                params.pop("use_onnx_runtime")
             params["estimator"] = curr_estimator
 
         params = prepare_params(params)

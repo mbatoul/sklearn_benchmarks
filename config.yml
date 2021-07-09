@@ -49,9 +49,6 @@ benchmarking:
       name: KNeighborsClassifier_kd_tree
       estimator: sklearn.neighbors.KNeighborsClassifier
       use_onnx_runtime: True
-      onnx_params:
-        shape_fct: skl2onnx.common.shape_calculator.calculate_linear_classifier_output_shapes
-        convert_fct: skl2onnx.operator_converters.nearest_neighbours.convert_nearest_neighbors_classifier
       hyperparameters:
         init:
           n_neighbors:
