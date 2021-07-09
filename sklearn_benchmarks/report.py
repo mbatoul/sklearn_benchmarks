@@ -372,23 +372,36 @@ class ReportingHpo:
                 how="inner",
                 suffixes=["_fit", "_predict"],
             )
+            df_merged = df_merged.dropna(axis=1)
+            suffix_to_drop = "_predict" if func == "fit" else "_fit"
+            df_merged = df_merged.rename(
+                columns={"accuracy_score_predict": "accuracy_score"}
+            )
+            df_merged.drop(
+                df_merged.filter(regex=f"{suffix_to_drop}$").columns.tolist(),
+                axis=1,
+                inplace=True,
+            )
 
             color = colors[index]
+
+            df_hover = df_merged.copy()
+            df_hover.columns = df_hover.columns.str.rstrip(f"_{func}")
 
             fig.add_trace(
                 go.Scatter(
                     x=df_merged[f"mean_{func}"],
-                    y=df_merged["accuracy_score_predict"],
+                    y=df_merged["accuracy_score"],
                     mode="markers",
                     name=legend,
-                    hovertemplate=make_hover_template(df),
-                    customdata=df.values,
+                    hovertemplate=make_hover_template(df_hover),
+                    customdata=df_hover[order_columns(df_hover)].values,
                     marker=dict(color=color),
                     legendgroup=index,
                 )
             )
 
-            data = df_merged[[f"mean_{func}", "accuracy_score_predict"]].values
+            data = df_merged[[f"mean_{func}", "accuracy_score"]].values
             pareto_indices = identify_pareto(data)
             pareto_front = data[pareto_indices]
             pareto_front_df = pd.DataFrame(pareto_front)
@@ -420,18 +433,6 @@ class ReportingHpo:
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
 
-            # dataset_info_label += (
-            #     "(%s, %s, %s, %s)"
-            #     % df[
-            #         [
-            #             "n_samples_train",
-            #             "n_features",
-            #             "dataset_n_classes",
-            #             "dataset_sample_generator",
-            #         ]
-            #     ]
-            # )
-
             legend = params.get("lib")
             legend = params.get("legend", legend)
 
@@ -452,8 +453,6 @@ class ReportingHpo:
             fit_times_for_max_scores.append(fit_time_for_max_score)
 
             plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
-
-        # plt.figtext(0.8, 0.8, dataset_info_label)
 
         min_fit_time_all_constant = min(fit_times_for_max_scores)
         plt.xlim(right=min_fit_time_all_constant)
