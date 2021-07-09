@@ -43,11 +43,13 @@ def clean_results():
         files_path = str(RESULTS_PATH / "**/*") + extension
         files += glob.glob(str(files_path), recursive=True)
 
-    for f in files:
+    for file in files:
+        if file.split("/")[-1] == "index.html":
+            continue
         try:
-            os.remove(f)
+            os.remove(file)
         except OSError as e:
-            print("Error: %s : %s" % (f, e.strerror))
+            print("Error: %s : %s" % (file, e.strerror))
 
 
 def convert(seconds):

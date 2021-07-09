@@ -16,6 +16,7 @@ from sklearn_benchmarks.config import (
     BENCHMARKING_RESULTS_PATH,
     DEFAULT_COMPARE_COLS,
     ENV_INFO_PATH,
+    HPO_CURVES_COLORS,
     PLOT_HEIGHT_IN_PX,
     REPORTING_FONT_SIZE,
     SPEEDUP_COL,
@@ -24,6 +25,7 @@ from sklearn_benchmarks.config import (
     VERSIONS_PATH,
     get_full_config,
 )
+from sklearn_benchmarks.utils.misc import find_nearest
 from sklearn_benchmarks.utils.plotting import (
     gen_coordinates_grid,
     identify_pareto,
@@ -32,14 +34,13 @@ from sklearn_benchmarks.utils.plotting import (
     order_columns,
     quartile_bootstrapped_curve,
 )
-from sklearn_benchmarks.utils.misc import find_nearest
 
 
 def print_time_report():
     df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
     df = df.sort_values(by=["hour", "min", "sec"])
 
-    display(Markdown("# Time report"))
+    display(Markdown("## Time report"))
     for index, row in df.iterrows():
         display(Markdown("**%s**: %ih %im %is" % (index, *row.values)))
 
@@ -47,8 +48,24 @@ def print_time_report():
 def print_env_info():
     with open(ENV_INFO_PATH) as json_file:
         data = json.load(json_file)
-    display(Markdown("# Benchmark environment"))
+    display(Markdown("## Benchmark environment"))
     print(json.dumps(data, indent=2))
+
+
+def display_links_to_notebooks():
+    if os.environ.get("RESULTS_BASE_URL") is not None:
+        base_url = os.environ.get("RESULTS_BASE_URL")
+    else:
+        base_url = "http://localhost:8888/notebooks/"
+    notebook_titles = dict(
+        sklearn_vs_sklearnex="`scikit-learn` vs. `scikit-learn-intelex` (Intel® oneAPI) benchmarks",
+        sklearn_vs_onnx="`scikit-learn` vs. `ONNX Runtime` (Microsoft) benchmarks",
+        gradient_boosting="Gradient boosting: randomized HPO benchmarks",
+    )
+    file_extension = "html" if os.environ.get("RESULTS_BASE_URL") else "ipynb"
+    display(Markdown("## Notebooks"))
+    for file, title in notebook_titles.items():
+        display(Markdown(f"[{title}]({base_url}{file}.{file_extension})"))
 
 
 class Reporting:
@@ -89,8 +106,11 @@ class Reporting:
             params["estimator_hyperparameters"] = self._get_estimator_hyperparameters(
                 benchmarking_estimators[name]
             )
-
-            title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{params['against_lib']}` (`{versions[params['against_lib']]}`)"
+            key_lib_version = params["against_lib"]
+            key_lib_version = reporting_config["version_aliases"].get(
+                key_lib_version, key_lib_version
+            )
+            title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{key_lib_version}` (`{versions[key_lib_version]}`)"
             display(Markdown(title))
 
             report = SingleEstimatorReport(**params)
@@ -180,7 +200,7 @@ class SingleEstimatorReport:
                 title += "<br>"
         return title
 
-    def _print_table(self):
+    def _print_tables(self):
         df = self._make_reporting_df()
         df = df.round(3)
         nunique = df.apply(pd.Series.nunique)
@@ -194,7 +214,9 @@ class SingleEstimatorReport:
                 ["function", "hyperparams_digest", "dataset_digest"]
             ].apply(self._make_profiling_link, lib=lib, axis=1)
         df = df.drop(["hyperparams_digest", "dataset_digest"], axis=1)
-        display(HTML(df.to_html(escape=False)))
+        splitted_dfs = [x for _, x in df.groupby(["function"])]
+        for df in splitted_dfs:
+            display(HTML(df.to_html(escape=False)))
 
     def _make_x_plot(self, df):
         return [f"({ns}, {nf})" for ns, nf in df[["n_samples", "n_features"]].values]
@@ -322,7 +344,7 @@ class SingleEstimatorReport:
 
     def run(self):
         self._plot()
-        self._print_table()
+        self._print_tables()
 
 
 class ReportingHpo:
@@ -335,7 +357,6 @@ class ReportingHpo:
 
     def _display_scatter(self, func="fit"):
         fig = go.Figure()
-        colors = ["blue", "red", "green", "purple", "orange"]
 
         for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
@@ -356,23 +377,39 @@ class ReportingHpo:
                 how="inner",
                 suffixes=["_fit", "_predict"],
             )
+            df_merged = df_merged.dropna(axis=1)
+            suffix_to_drop = "_predict" if func == "fit" else "_fit"
+            df_merged = df_merged.rename(
+                columns={"accuracy_score_predict": "accuracy_score"}
+            )
+            df_merged.drop(
+                df_merged.filter(regex=f"{suffix_to_drop}$").columns.tolist(),
+                axis=1,
+                inplace=True,
+            )
 
-            color = colors[index]
+            color = HPO_CURVES_COLORS[index]
+
+            df_hover = df_merged.copy()
+            df_hover.columns = df_hover.columns.str.rstrip(f"_{func}")
+            df_hover = df_hover.rename(
+                columns={"mean": f"mean_{func}_time", "stdev": f"stdev_{func}_time"}
+            )
 
             fig.add_trace(
                 go.Scatter(
                     x=df_merged[f"mean_{func}"],
-                    y=df_merged["accuracy_score_predict"],
+                    y=df_merged["accuracy_score"],
                     mode="markers",
                     name=legend,
-                    hovertemplate=make_hover_template(df),
-                    customdata=df.values,
+                    hovertemplate=make_hover_template(df_hover),
+                    customdata=df_hover[order_columns(df_hover)].values,
                     marker=dict(color=color),
                     legendgroup=index,
                 )
             )
 
-            data = df_merged[[f"mean_{func}", "accuracy_score_predict"]].values
+            data = df_merged[[f"mean_{func}", "accuracy_score"]].values
             pareto_indices = identify_pareto(data)
             pareto_front = data[pareto_indices]
             pareto_front_df = pd.DataFrame(pareto_front)
@@ -390,12 +427,11 @@ class ReportingHpo:
                 )
             )
 
-        fig["layout"]["xaxis{}".format(1)]["title"] = "Fit times"
+        fig["layout"]["xaxis{}".format(1)]["title"] = f"{func.capitalize()} times"
         fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
         fig.show()
 
     def display_smoothed_curves(self):
-        colors = ["blue", "red", "green", "purple", "orange"]
         plt.figure(figsize=(15, 10))
 
         fit_times_for_max_scores = []
@@ -415,7 +451,7 @@ class ReportingHpo:
             fit_times = df[df["function"] == "fit"]["mean"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
 
-            color = colors[index]
+            color = HPO_CURVES_COLORS[index]
 
             mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
             idx_max_score = np.argmax(grid_scores, axis=0)
@@ -423,20 +459,6 @@ class ReportingHpo:
             fit_times_for_max_scores.append(fit_time_for_max_score)
 
             plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
-
-            first_quartile_fit_times, _ = quartile_bootstrapped_curve(
-                fit_times, scores, 25
-            )
-            third_quartile_fit_times, _ = quartile_bootstrapped_curve(
-                fit_times, scores, 75
-            )
-            plt.fill_betweenx(
-                grid_scores,
-                first_quartile_fit_times,
-                third_quartile_fit_times,
-                color=color,
-                alpha=0.1,
-            )
 
         min_fit_time_all_constant = min(fit_times_for_max_scores)
         plt.xlim(right=min_fit_time_all_constant)
@@ -452,9 +474,8 @@ class ReportingHpo:
             df = pd.read_csv(file)
             if params["lib"] == BASE_LIB:
                 base_lib_df = df
-            else:
-                key = "".join(params.get("legend", params.get("lib")))
-                other_lib_dfs[key] = df
+            key = "".join(params.get("legend", params.get("lib")))
+            other_lib_dfs[key] = df
 
         data = []
         columns = ["score"]
@@ -488,16 +509,24 @@ class ReportingHpo:
 
         speedup_df = pd.DataFrame(columns=columns, data=data)
         speedup_df = speedup_df.set_index("score")
-        fig, axes = plt.subplots(3, figsize=(10, 15))
+        _, axes = plt.subplots(3, figsize=(12, 20))
+
+        libs = list(speedup_df.columns)
+        for i in range(len(libs)):
+            key_lib_version = libs[i].split(" ")[0]
+            key_lib_version = self._config["version_aliases"].get(
+                key_lib_version, key_lib_version
+            )
+            libs[i] = f"{libs[i]} ({self._versions[key_lib_version]})"
 
         for ax, score in zip(axes, speedup_df.index.unique()):
-            libs = speedup_df.columns
             speedups = speedup_df.loc[score].values
-            ax.bar(x=libs, height=speedups)
+            ax.bar(x=libs, height=speedups, width=0.3, color=HPO_CURVES_COLORS)
             ax.set_xlabel("Lib")
             ax.set_ylabel(f"Speedup (time sklearn / time lib)")
             ax.set_title(f"At score {score}")
 
+        plt.tight_layout()
         plt.show()
 
     def display_speedup_curves(self):
@@ -518,23 +547,61 @@ class ReportingHpo:
         base_mean_grid_times, base_grid_scores = mean_bootstrapped_curve(
             base_fit_times, base_scores
         )
-        colors = ["blue", "red", "green", "purple", "orange"]
+        base_first_quartile_fit_times, _ = quartile_bootstrapped_curve(
+            base_fit_times, base_scores, 25
+        )
+        base_third_quartile_fit_times, _ = quartile_bootstrapped_curve(
+            base_fit_times, base_scores, 75
+        )
         plt.figure(figsize=(15, 10))
+
+        base_lib_alias = self._config["version_aliases"][BASE_LIB]
+        label = f"{base_lib_alias} ({self._versions[base_lib_alias]})"
+        plt.plot(
+            base_grid_scores,
+            base_mean_grid_times / base_mean_grid_times,
+            c=HPO_CURVES_COLORS[0],
+            label=label,
+        )
 
         for index, (lib, df) in enumerate(other_lib_dfs.items()):
             fit_times = df[df["function"] == "fit"]["mean"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
-            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
-            speedup = base_mean_grid_times / mean_grid_times
-            color = colors[index]
-            plt.plot(grid_scores, speedup, c=f"tab:{color}", label=lib)
 
-        plt.plot(
-            base_grid_scores,
-            base_mean_grid_times / base_mean_grid_times,
-            c=f"tab:grey",
-            label=BASE_LIB,
-        )
+            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
+            speedup_mean = base_mean_grid_times / mean_grid_times
+
+            color = HPO_CURVES_COLORS[index + 1]
+
+            key_lib_version = lib.split(" ")[0]
+            key_lib_version = self._config["version_aliases"].get(
+                key_lib_version, key_lib_version
+            )
+            label = f"{lib} ({self._versions[key_lib_version]})"
+
+            plt.plot(grid_scores, speedup_mean, c=f"tab:{color}", label=label)
+
+            first_quartile_grid_times, _ = quartile_bootstrapped_curve(
+                fit_times, scores, 25
+            )
+            speedup_first_quartile = (
+                base_first_quartile_fit_times / first_quartile_grid_times
+            )
+
+            third_quartile_grid_times, _ = quartile_bootstrapped_curve(
+                fit_times, scores, 75
+            )
+            speedup_third_quartile = (
+                base_third_quartile_fit_times / third_quartile_grid_times
+            )
+
+            plt.fill_between(
+                grid_scores,
+                speedup_third_quartile,
+                speedup_first_quartile,
+                color=color,
+                alpha=0.1,
+            )
 
         plt.xlabel("Validation scores")
         plt.ylabel(f"Speedup vs. {BASE_LIB}")
@@ -547,10 +614,10 @@ class ReportingHpo:
 
         self._set_versions()
 
-        display(Markdown("## Raw fit times"))
+        display(Markdown("## Raw fit times vs. accuracy scores"))
         self._display_scatter(func="fit")
 
-        display(Markdown("## Raw predict times"))
+        display(Markdown("## Raw predict times vs. accuracy scores"))
         self._display_scatter(func="predict")
 
         display(Markdown("## Smoothed HPO Curves"))
