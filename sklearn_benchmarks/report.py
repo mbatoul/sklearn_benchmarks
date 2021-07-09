@@ -431,7 +431,6 @@ class ReportingHpo:
         plt.figure(figsize=(15, 10))
 
         fit_times_for_max_scores = []
-        # dataset_info_label = "(n_samples, n_features, n_classes, generator)"
         for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
