@@ -471,9 +471,8 @@ class ReportingHpo:
             df = pd.read_csv(file)
             if params["lib"] == BASE_LIB:
                 base_lib_df = df
-            else:
-                key = "".join(params.get("legend", params.get("lib")))
-                other_lib_dfs[key] = df
+            key = "".join(params.get("legend", params.get("lib")))
+            other_lib_dfs[key] = df
 
         data = []
         columns = ["score"]
@@ -507,7 +506,7 @@ class ReportingHpo:
 
         speedup_df = pd.DataFrame(columns=columns, data=data)
         speedup_df = speedup_df.set_index("score")
-        _, axes = plt.subplots(3, figsize=(10, 15))
+        _, axes = plt.subplots(3, figsize=(12, 20))
 
         libs = list(speedup_df.columns)
         for i in range(len(libs)):
@@ -519,11 +518,12 @@ class ReportingHpo:
 
         for ax, score in zip(axes, speedup_df.index.unique()):
             speedups = speedup_df.loc[score].values
-            ax.bar(x=libs, height=speedups)
+            ax.bar(x=libs, height=speedups, width=0.3)
             ax.set_xlabel("Lib")
             ax.set_ylabel(f"Speedup (time sklearn / time lib)")
             ax.set_title(f"At score {score}")
 
+        plt.tight_layout()
         plt.show()
 
     def display_speedup_curves(self):
