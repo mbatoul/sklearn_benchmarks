@@ -427,6 +427,8 @@ class ReportingHpo:
                 )
             )
 
+        fig.update_xaxes(showspikes=True)
+        fig.update_yaxes(showspikes=True)
         fig["layout"]["xaxis{}".format(1)]["title"] = f"{func.capitalize()} times"
         fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
         fig.show()
