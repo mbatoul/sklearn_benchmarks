@@ -398,15 +398,18 @@ class ReportingHpo:
         for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
+            df = df.fillna(value={"use_onnx_runtime": False})
 
             legend = params.get("lib")
             legend = params.get("legend", legend)
-
             key_lib_version = params["lib"]
             key_lib_version = self._config["version_aliases"].get(
                 key_lib_version, key_lib_version
             )
             legend += f" ({self._versions[key_lib_version]})"
+
+            if "use_onnx_runtime" in df.columns:
+                df = df.query("use_onnx_runtime == False")
 
             df_merged = df.query("function == 'fit'").merge(
                 df.query("function == 'predict'"),
@@ -467,6 +470,52 @@ class ReportingHpo:
                     legendgroup=index,
                 )
             )
+
+            if "use_onnx_runtime" in df.columns and func == "predict":
+                # Add ONNX points
+                legend = f"ONNX ({self._versions['onnx']})"
+                color = HPO_CURVES_COLORS[len(self._config["estimators"])]
+
+                df = pd.read_csv(file)
+                df = df.fillna(value={"use_onnx_runtime": False})
+                df_merged = df.query("function == 'predict' & use_onnx_runtime == True")
+
+                df_hover = df_merged.copy()
+                df_hover = df_hover[
+                    df_hover.columns.drop(list(df_hover.filter(regex="digest")))
+                ]
+                df_hover = df_hover.round(3)
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_merged[f"mean"],
+                        y=df_merged["accuracy_score"],
+                        mode="markers",
+                        name=legend,
+                        hovertemplate=make_hover_template(df_hover),
+                        customdata=df_hover[order_columns(df_hover)].values,
+                        marker=dict(color=color),
+                        legendgroup=len(self._config["estimators"]),
+                    )
+                )
+
+                data = df_merged[[f"mean", "accuracy_score"]].values
+                pareto_indices = identify_pareto(data)
+                pareto_front = data[pareto_indices]
+                pareto_front_df = pd.DataFrame(pareto_front)
+                pareto_front_df.sort_values(0, inplace=True)
+                pareto_front = pareto_front_df.values
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=pareto_front[:, 0],
+                        y=pareto_front[:, 1],
+                        mode="lines",
+                        showlegend=False,
+                        marker=dict(color=color),
+                        legendgroup=index,
+                    )
+                )
 
         fig.update_xaxes(showspikes=True)
         fig.update_yaxes(showspikes=True)

@@ -27,7 +27,7 @@ BENCH_LIBS = [
     "catboost",
     "onnx",
 ]
-HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange"]
+HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange", "grey"]
 
 
 def get_full_config(config=None):

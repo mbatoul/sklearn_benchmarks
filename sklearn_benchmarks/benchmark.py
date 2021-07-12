@@ -274,6 +274,12 @@ class Benchmark:
                                 **benchmark_info,
                                 **params,
                             )
+
+                            for metric_func in metrics_funcs:
+                                y_pred = executor.func_result_
+                                score = metric_func(y_test_, y_pred)
+                                row[metric_func.__name__] = score
+
                             pprint(row)
                             self.results_.append(row)
 
