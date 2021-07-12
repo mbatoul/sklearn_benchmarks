@@ -566,8 +566,12 @@ class ReportingHpo:
         for params in self._config["estimators"]:
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
+
             if params["lib"] == BASE_LIB:
                 base_lib_df = df
+                base_lib_df = base_lib_df.fillna(value={"use_onnx_runtime": False})
+                base_lib_df = base_lib_df.query("use_onnx_runtime == False")
+
             key = "".join(params.get("legend", params.get("lib")))
             other_lib_dfs[key] = df
 
@@ -584,6 +588,10 @@ class ReportingHpo:
             for lib, df in other_lib_dfs.items():
                 if lib not in columns:
                     columns.append(lib)
+
+                if "use_onnx_runtime" in df.columns:
+                    df = df.fillna(value={"use_onnx_runtime": False})
+                    df = df.query("use_onnx_runtime == False")
 
                 fit_times = df[df["function"] == "fit"]["mean"]
                 scores = df[df["function"] == "predict"]["accuracy_score"]
