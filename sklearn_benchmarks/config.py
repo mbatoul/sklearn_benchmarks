@@ -19,6 +19,7 @@ PLOT_HEIGHT_IN_PX = 350
 REPORTING_FONT_SIZE = 12
 DEFAULT_COMPARE_COLS = [SPEEDUP_COL, STDEV_SPEEDUP_COL]
 BENCHMARK_TIME_BUDGET = 300
+BENCHMARK_PREDICTIONS_TIME_BUDGET = 3
 BENCH_LIBS = ["scikit-learn", "scikit-learn-intelex", "xgboost", "lightgbm", "catboost"]
 HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange"]
 
