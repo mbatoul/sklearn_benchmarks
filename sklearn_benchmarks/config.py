@@ -9,7 +9,7 @@ BENCHMARKING_RESULTS_PATH = RESULTS_PATH / "benchmarking"
 TIME_REPORT_PATH = RESULTS_PATH / "time_report.csv"
 ENV_INFO_PATH = RESULTS_PATH / "env_info.txt"
 VERSIONS_PATH = RESULTS_PATH / "versions.txt"
-DEFAULT_CONFIG = "config.yml"
+DEFAULT_CONFIG_PATH = "config.yml"
 BASE_LIB = "sklearn"
 FUNC_TIME_BUDGET = 30
 BENCHMARK_MAX_ITER = 10
@@ -21,11 +21,17 @@ DEFAULT_COMPARE_COLS = [SPEEDUP_COL, STDEV_SPEEDUP_COL]
 BENCHMARK_TIME_BUDGET = 300
 BENCH_LIBS = ["scikit-learn", "scikit-learn-intelex", "xgboost", "lightgbm", "catboost"]
 HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange"]
+STATIC_FILE_EXTENSIONS = ["csv", "html", "json.gz", "txt"]
+REPORTING_NOTEBOOKS_TITLES = dict(
+    sklearn_vs_sklearnex="`scikit-learn` vs. `scikit-learn-intelex` (Intel® oneAPI) benchmarks",
+    sklearn_vs_onnx="`scikit-learn` vs. `ONNX Runtime` (Microsoft) benchmarks",
+    gradient_boosting="Gradient boosting: randomized HPO benchmarks",
+)
 
 
-def get_full_config(config=None):
+def load_full_config(config=None):
     if config is None:
-        config = os.environ.get("DEFAULT_CONFIG")
+        config = os.environ.get("DEFAULT_CONFIG_PATH")
     with open(config, "r") as config_file:
         config = yaml.full_load(config_file)
     return config

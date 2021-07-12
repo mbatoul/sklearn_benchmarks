@@ -15,15 +15,14 @@ from sklearn_benchmarks.config import (
     BASE_LIB,
     BENCHMARKING_RESULTS_PATH,
     DEFAULT_COMPARE_COLS,
-    ENV_INFO_PATH,
+    DEFAULT_CONFIG_PATH,
     HPO_CURVES_COLORS,
     PLOT_HEIGHT_IN_PX,
     REPORTING_FONT_SIZE,
     SPEEDUP_COL,
     STDEV_SPEEDUP_COL,
-    TIME_REPORT_PATH,
     VERSIONS_PATH,
-    get_full_config,
+    load_full_config,
 )
 from sklearn_benchmarks.utils.misc import find_nearest
 from sklearn_benchmarks.utils.plotting import (
@@ -35,46 +34,42 @@ from sklearn_benchmarks.utils.plotting import (
     quartile_bootstrapped_curve,
 )
 
-
-def print_time_report():
-    df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
-    df = df.sort_values(by=["hour", "min", "sec"])
-
-    display(Markdown("## Time report"))
-    for index, row in df.iterrows():
-        display(Markdown("**%s**: %ih %im %is" % (index, *row.values)))
-
-
-def print_env_info():
-    with open(ENV_INFO_PATH) as json_file:
-        data = json.load(json_file)
-    display(Markdown("## Benchmark environment"))
-    print(json.dumps(data, indent=2))
-
-
-def display_links_to_notebooks():
-    if os.environ.get("RESULTS_BASE_URL") is not None:
-        base_url = os.environ.get("RESULTS_BASE_URL")
-    else:
-        base_url = "http://localhost:8888/notebooks/"
-    notebook_titles = dict(
-        sklearn_vs_sklearnex="`scikit-learn` vs. `scikit-learn-intelex` (Intel® oneAPI) benchmarks",
-        sklearn_vs_onnx="`scikit-learn` vs. `ONNX Runtime` (Microsoft) benchmarks",
-        gradient_boosting="Gradient boosting: randomized HPO benchmarks",
-    )
-    file_extension = "html" if os.environ.get("RESULTS_BASE_URL") else "ipynb"
-    display(Markdown("## Notebooks"))
-    for file, title in notebook_titles.items():
-        display(Markdown(f"[{title}]({base_url}{file}.{file_extension})"))
+pd.set_option("display.max_colwidth", None)
+pd.set_option("display.max_columns", None)
+pd.set_option("display.max_rows", None)
 
 
 class Reporting:
+    def __init__(
+        self,
+        config_path=DEFAULT_CONFIG_PATH,
+    ):
+        self.config_path = config_path
+
+    def _load_config(self):
+        self._config = load_full_config(config=self.config_path)
+
+    def _load_versions(self):
+        with open(VERSIONS_PATH) as json_file:
+            self._versions = json.load(json_file)
+
+    def _load_aliases(self):
+        self._aliases = self._config["reporting"]["aliases"]
+
+    def run(self):
+        self._load_config()
+        self._load_versions()
+        self._load_aliases()
+        pass
+
+
+class HPMatchReporting:
     """
     Runs reporting for specified estimators.
     """
 
-    def __init__(self, config=None):
-        self.config = config
+    def __init__(self, config_path=DEFAULT_CONFIG_PATH):
+        self.config_path = config_path
 
     def _get_estimator_default_hyperparameters(self, estimator):
         splitted_path = estimator.split(".")
@@ -93,7 +88,7 @@ class Reporting:
             )
 
     def run(self):
-        config = get_full_config(config=self.config)
+        config = load_full_config(config=self.config_path)
         reporting_config = config["reporting"]
         benchmarking_estimators = config["benchmarking"]["estimators"]
         reporting_estimators = reporting_config["estimators"]
@@ -106,8 +101,9 @@ class Reporting:
             params["estimator_hyperparameters"] = self._get_estimator_hyperparameters(
                 benchmarking_estimators[name]
             )
+
             key_lib_version = params["against_lib"]
-            key_lib_version = reporting_config["version_aliases"].get(
+            key_lib_version = reporting_config["aliases"].get(
                 key_lib_version, key_lib_version
             )
             title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{key_lib_version}` (`{versions[key_lib_version]}`)"
@@ -347,11 +343,11 @@ class SingleEstimatorReport:
         self._print_tables()
 
 
-class ReportingHpo:
-    def __init__(self, config=None):
-        self.config = config
+class HPOReporting:
+    def __init__(self, config_path=DEFAULT_CONFIG_PATH):
+        self.config_path = config_path
 
-    def _set_versions(self):
+    def _load_versions(self):
         with open(VERSIONS_PATH) as json_file:
             self._versions = json.load(json_file)
 
@@ -366,7 +362,7 @@ class ReportingHpo:
             legend = params.get("legend", legend)
 
             key_lib_version = params["lib"]
-            key_lib_version = self._config["version_aliases"].get(
+            key_lib_version = self._config["aliases"].get(
                 key_lib_version, key_lib_version
             )
             legend += f" ({self._versions[key_lib_version]})"
@@ -451,7 +447,7 @@ class ReportingHpo:
             legend = params.get("legend", legend)
 
             key_lib_version = params["lib"]
-            key_lib_version = self._config["version_aliases"].get(
+            key_lib_version = self._config["aliases"].get(
                 key_lib_version, key_lib_version
             )
             legend += f" ({self._versions[key_lib_version]})"
@@ -522,7 +518,7 @@ class ReportingHpo:
         libs = list(speedup_df.columns)
         for i in range(len(libs)):
             key_lib_version = libs[i].split(" ")[0]
-            key_lib_version = self._config["version_aliases"].get(
+            key_lib_version = self._config["aliases"].get(
                 key_lib_version, key_lib_version
             )
             libs[i] = f"{libs[i]} ({self._versions[key_lib_version]})"
@@ -563,7 +559,7 @@ class ReportingHpo:
         )
         plt.figure(figsize=(15, 10))
 
-        base_lib_alias = self._config["version_aliases"][BASE_LIB]
+        base_lib_alias = self._config["aliases"][BASE_LIB]
         label = f"{base_lib_alias} ({self._versions[base_lib_alias]})"
         plt.plot(
             base_grid_scores,
@@ -582,7 +578,7 @@ class ReportingHpo:
             color = HPO_CURVES_COLORS[index + 1]
 
             key_lib_version = lib.split(" ")[0]
-            key_lib_version = self._config["version_aliases"].get(
+            key_lib_version = self._config["aliases"].get(
                 key_lib_version, key_lib_version
             )
             label = f"{lib} ({self._versions[key_lib_version]})"
@@ -617,10 +613,10 @@ class ReportingHpo:
         plt.show()
 
     def run(self):
-        config = get_full_config(config=self.config)
+        config = load_full_config(config=self.config_path)
         self._config = config["hpo_reporting"]
 
-        self._set_versions()
+        self._load_versions()
 
         display(Markdown("## Raw fit times vs. accuracy scores"))
         self._display_scatter(func="fit")

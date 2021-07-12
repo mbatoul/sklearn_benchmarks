@@ -14,14 +14,14 @@ from threadpoolctl import threadpool_info
 from sklearn_benchmarks.benchmark import Benchmark
 from sklearn_benchmarks.config import (
     BENCH_LIBS,
-    DEFAULT_CONFIG,
+    DEFAULT_CONFIG_PATH,
     ENV_INFO_PATH,
     TIME_REPORT_PATH,
     VERSIONS_PATH,
-    get_full_config,
+    load_full_config,
     prepare_params,
 )
-from sklearn_benchmarks.utils.misc import clean_results, convert
+from sklearn_benchmarks.utils.misc import delete_static_files, convert
 
 
 @click.command()
@@ -37,7 +37,7 @@ from sklearn_benchmarks.utils.misc import clean_results, convert
     "--config",
     "--c",
     type=str,
-    default=DEFAULT_CONFIG,
+    default=DEFAULT_CONFIG_PATH,
     help="Path to config file.",
 )
 @click.option(
@@ -57,8 +57,8 @@ from sklearn_benchmarks.utils.misc import clean_results, convert
 )
 def main(append, config, profiling, estimator):
     if not append:
-        clean_results()
-    config = get_full_config(config)
+        delete_static_files()
+    config = load_full_config(config)
     benchmarking_config = config["benchmarking"]
     if not "estimators" in benchmarking_config:
         return
