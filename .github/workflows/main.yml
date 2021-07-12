@@ -47,18 +47,18 @@ jobs:
       - name: Run benchmark suite
         run: python -m sklearn_benchmarks --config config.yml
 
-      - name: Upload benchmark results
-        uses: actions/upload-artifact@v2
-        with:
-          name: results
-          path: results
-
       - name: Convert notebook to html
         run: |
           jupyter nbconvert --to html --execute --output results/index.html index.ipynb
           jupyter nbconvert --to html --execute --output results/sklearn_vs_sklearnex.html sklearn_vs_sklearnex.ipynb
           jupyter nbconvert --to html --execute --output results/sklearn_vs_onnx.html sklearn_vs_onnx.ipynb
           jupyter nbconvert --to html --execute --output results/gradient_boosting.html gradient_boosting.ipynb
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v2
+        with:
+          name: results
+          path: results
 
       - name: Download docs folder
         uses: actions/download-artifact@v2

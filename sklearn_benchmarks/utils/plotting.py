@@ -32,7 +32,7 @@ def make_hover_template(df):
     columns = order_columns(df.columns)
     template = ""
     for index, name in enumerate(columns):
-        template += "%s: <b>%%{customdata[%i]}</b><br>" % (name, index)
+        template += "<b>%s</b>: %%{customdata[%i]}<br>" % (name, index)
     template += "<extra></extra>"
     return template
 

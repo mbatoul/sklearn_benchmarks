@@ -428,10 +428,14 @@ class ReportingHpo:
             color = HPO_CURVES_COLORS[index]
 
             df_hover = df_merged.copy()
-            df_hover.columns = df_hover.columns.str.rstrip(f"_{func}")
+            df_hover.columns = df_hover.columns.str.replace(f"_{func}", "")
             df_hover = df_hover.rename(
                 columns={"mean": f"mean_{func}_time", "stdev": f"stdev_{func}_time"}
             )
+            df_hover = df_hover[
+                df_hover.columns.drop(list(df_hover.filter(regex="digest")))
+            ]
+            df_hover = df_hover.round(3)
 
             fig.add_trace(
                 go.Scatter(
@@ -464,7 +468,11 @@ class ReportingHpo:
                 )
             )
 
-        fig["layout"]["xaxis{}".format(1)]["title"] = f"{func.capitalize()} times"
+        fig.update_xaxes(showspikes=True)
+        fig.update_yaxes(showspikes=True)
+        fig["layout"]["xaxis{}".format(1)][
+            "title"
+        ] = f"{func.capitalize()} times in seconds"
         fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
         fig.show()
 
