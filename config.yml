@@ -574,6 +574,14 @@ reporting:
       compare:
         - accuracy_score
 
+    KNeighborsClassifier_kd_tree:
+      name: KNeighborsClassifier_kd_tree
+      against_lib: onnx
+      split_bars:
+        - n_jobs
+      compare:
+        - accuracy_score
+
     KMeans_tall:
       name: KMeans_tall
       against_lib: sklearnex

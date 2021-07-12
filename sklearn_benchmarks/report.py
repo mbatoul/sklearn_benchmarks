@@ -72,7 +72,8 @@ class Reporting:
     Runs reporting for specified estimators.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, against_lib, config=None):
+        self.against_lib = against_lib
         self.config = config
 
     def _get_estimator_default_hyperparameters(self, estimator):
@@ -101,6 +102,8 @@ class Reporting:
             versions = json.load(json_file)
 
         for name, params in reporting_estimators.items():
+            if params["against_lib"] != self.against_lib:
+                continue
             params["n_cols"] = reporting_config["n_cols"]
             params["estimator_hyperparameters"] = self._get_estimator_hyperparameters(
                 benchmarking_estimators[name]
@@ -145,7 +148,7 @@ class SingleEstimatorReport:
     def _get_compare_cols(self):
         return [*self.compare, *DEFAULT_COMPARE_COLS]
 
-    def _make_reporting_df(self):
+    def _make_reporting_df_sklearnex(self):
         base_lib_df = self._get_benchmark_df()
         base_lib_time = base_lib_df[SPEEDUP_COL]
         base_lib_std = base_lib_df[STDEV_SPEEDUP_COL]
@@ -174,6 +177,41 @@ class SingleEstimatorReport:
         )
 
         return merged_df
+
+    def _make_reporting_df_onnx(self):
+        df = self._get_benchmark_df()
+        df = df.query("function == 'predict'")
+        df = df.fillna(value={"use_onnx_runtime": False})
+        merged_df = df.query("use_onnx_runtime == True").merge(
+            df.query("use_onnx_runtime == False"),
+            on=["hyperparams_digest", "dataset_digest"],
+            how="inner",
+            suffixes=["", "_onnx"],
+        )
+        merged_df = merged_df.dropna(axis=1)
+        columns_to_drop = merged_df.filter(regex="_onnx$").columns.tolist()
+        columns_to_drop = filter(
+            lambda col: "mean" not in col and "stdev" not in col, columns_to_drop
+        )
+        merged_df.drop(
+            columns_to_drop,
+            axis=1,
+            inplace=True,
+        )
+        merged_df["speedup"] = merged_df["mean"] / merged_df["mean_onnx"]
+        merged_df["stdev_speedup"] = merged_df["speedup"] * (
+            np.sqrt(
+                (merged_df["stdev"] / merged_df["mean"]) ** 2
+                + (merged_df["stdev_onnx"] / merged_df["mean_onnx"]) ** 2
+            )
+        )
+        return merged_df
+
+    def _make_reporting_df(self):
+        if self.against_lib == "sklearnx":
+            return self._make_reporting_df_sklearnex()
+        else:
+            return self._make_reporting_df_onnx()
 
     def _make_profiling_link(self, components, lib=BASE_LIB):
         function, hyperparams_digest, dataset_digest = components
