@@ -271,12 +271,10 @@ benchmarking:
           n_iter_no_change:
             - 10
           max_leaf_nodes:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           max_iter:
             - 300
           max_bins:
@@ -318,12 +316,10 @@ benchmarking:
             - 0.5
             - 1.
           num_leaves:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           n_estimators:
             - 300
           max_bin:
@@ -383,12 +379,10 @@ benchmarking:
             - 0.5
             - 1.
           max_leaves:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           n_estimators:
             - 300
           max_bin:
@@ -448,12 +442,10 @@ benchmarking:
             - 0.5
             - 1.
           max_leaves:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           iterations:
             - 300
           border_count:
