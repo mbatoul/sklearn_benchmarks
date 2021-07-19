@@ -69,19 +69,15 @@ class BenchFuncExecutor:
         benchmark_info = {}
         mean = np.mean(times)
 
-        n_iter = None
-        if hasattr(estimator, "n_iter_"):
-            benchmark_info["n_iter"] = estimator.n_iter_
-            n_iter = estimator.n_iter_
-        elif hasattr(estimator, "best_iteration_"):
-            n_iter = estimator.best_iteration_
-        elif hasattr(estimator, "get_best_iteration"):
-            n_iter = estimator.get_best_iteration()
-        elif hasattr(estimator, "get_booster"):
-            n_iter = estimator.get_booster().best_iteration
+        benchmark_info["n_iter"] = estimator.n_iter_ if hasattr(estimator, "n_iter_") else None
+        benchmark_info["best_iteration"] = None
 
-        benchmark_info["n_iter"] = n_iter
-        n_iter = 1 if n_iter is None else n_iter
+        if hasattr(estimator, "best_iteration_"):
+            benchmark_info["best_iteration"] = estimator.best_iteration_
+        elif hasattr(estimator, "get_best_iteration"):
+            benchmark_info["best_iteration"] = estimator.get_best_iteration()
+        elif hasattr(estimator, "get_booster"):
+            benchmark_info["best_iteration"] = estimator.get_booster().best_iteration
 
         benchmark_info["mean"] = mean
         benchmark_info["stdev"] = np.std(times)
