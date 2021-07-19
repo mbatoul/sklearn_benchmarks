@@ -19,7 +19,7 @@ from sklearn_benchmarks.config import (
     TIME_REPORT_PATH,
     VERSIONS_PATH,
     get_full_config,
-    prepare_params,
+    parse_parameters,
 )
 from sklearn_benchmarks.utils.misc import clean_results, convert
 
@@ -78,7 +78,7 @@ def main(append, config, profiling, estimator):
             params = all_estimators[params["inherit"]]
             params["estimator"] = curr_estimator
 
-        params = prepare_params(params)
+        params = parse_parameters(params)
 
         params["random_state"] = config.get("random_state", None)
         params["profiling_output_extensions"] = profiling
