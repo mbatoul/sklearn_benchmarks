@@ -6,6 +6,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import ParameterGrid, train_test_split
+from sklearn.utils import check_random_state
 from sklearn.utils._testing import set_random_state
 from viztracer import VizTracer
 
@@ -106,7 +107,7 @@ class Benchmark:
         self.metrics = metrics
         self.hyperparameters = hyperparameters
         self.datasets = datasets
-        self.random_state = random_state
+        self.random_state = check_random_state(random_state)
         self.profiling_file_type = profiling_file_type
         self.profiling_output_extensions = profiling_output_extensions
 
@@ -118,7 +119,7 @@ class Benchmark:
             # Parameters grid should have list values
             params = {k: [v] for k, v in estimator.__dict__.items()}
         grid = list(ParameterGrid(params))
-        np.random.shuffle(grid)
+        self.random_state.shuffle(grid)
         return grid
 
     def _set_lib(self):
