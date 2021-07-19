@@ -122,9 +122,6 @@ class Benchmark:
         self.random_state.shuffle(grid)
         return grid
 
-    def _set_lib(self):
-        self.lib_ = self.estimator.split(".")[0]
-
     def _load_estimator_class(self):
         split_path = self.estimator.split(".")
         mod, class_name = ".".join(split_path[:-1]), split_path[-1]
@@ -135,11 +132,11 @@ class Benchmark:
         return [getattr(module, m) for m in self.metrics]
 
     def run(self):
-        self._set_lib()
+        library = self.estimator.split(".")[0]
         estimator_class = self._load_estimator_class()
         metrics_funcs = self._load_metrics_funcs()
         params_grid = self._make_params_grid()
-        self.results_ = []
+        benchmark_results = []
         start = time.perf_counter()
         for dataset in self.datasets:
             n_features = dataset["n_features"]
@@ -178,7 +175,7 @@ class Benchmark:
                     # Use digests to identify results later in reporting
                     hyperparams_digest = joblib.hash(params)
                     dataset_digest = joblib.hash(dataset)
-                    profiling_output_path = f"{PROFILING_RESULTS_PATH}/{self.lib_}_fit_{hyperparams_digest}_{dataset_digest}"
+                    profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_fit_{hyperparams_digest}_{dataset_digest}"
 
                     benchmark_info = BenchFuncExecutor().run(
                         bench_func,
@@ -203,7 +200,7 @@ class Benchmark:
                         **params,
                     )
 
-                    self.results_.append(row)
+                    benchmark_results.append(row)
 
                     start_predictions = time.perf_counter()
                     for i in range(len(n_samples_test)):
@@ -211,7 +208,7 @@ class Benchmark:
                         X_test_, y_test_ = X_test[:ns_test], y_test[:ns_test]
                         bench_func = predict_or_transform(estimator)
 
-                        profiling_output_path = f"{PROFILING_RESULTS_PATH}/{self.lib_}_{bench_func.__name__}_{hyperparams_digest}_{dataset_digest}"
+                        profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_{bench_func.__name__}_{hyperparams_digest}_{dataset_digest}"
                         executor = BenchFuncExecutor()
                         bench_func_params = (
                             self.hyperparameters[bench_func.__name__]
@@ -245,8 +242,13 @@ class Benchmark:
                             row[metric_func.__name__] = score
 
                         pprint(row)
-                        self.results_.append(row)
-                        self.to_csv()
+                        benchmark_results.append(row)
+                        csv_path = f"{BENCHMARKING_RESULTS_PATH}/{library}_{self.name}.csv"
+                        pd.DataFrame(benchmark_results).to_csv(
+                            csv_path,
+                            mode="w+",
+                            index=False,
+                        )
 
                         if is_hpo_curve:
                             now = time.perf_counter()
@@ -259,10 +261,3 @@ class Benchmark:
                                 break
         return self
 
-    def to_csv(self):
-        csv_path = f"{BENCHMARKING_RESULTS_PATH}/{self.lib_}_{self.name}.csv"
-        pd.DataFrame(self.results_).to_csv(
-            csv_path,
-            mode="w+",
-            index=False,
-        )
