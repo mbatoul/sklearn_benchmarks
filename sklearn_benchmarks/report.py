@@ -124,6 +124,7 @@ class SingleEstimatorReport:
     def __init__(
         self,
         name="",
+        base_lib=BASE_LIB,
         against_lib="",
         split_bars=[],
         compare=[],
@@ -131,13 +132,14 @@ class SingleEstimatorReport:
         n_cols=None,
     ):
         self.name = name
+        self.base_lib = base_lib
         self.against_lib = against_lib
         self.split_bars = split_bars
         self.compare = compare
         self.n_cols = n_cols
         self.estimator_hyperparameters = estimator_hyperparameters
 
-    def _get_benchmark_df(self, lib=BASE_LIB):
+    def _get_benchmark_df(self, lib):
         benchmarking_results_path = str(BENCHMARKING_RESULTS_PATH)
         file_path = f"{benchmarking_results_path}/{lib}_{self.name}.csv"
         return pd.read_csv(file_path)
@@ -146,7 +148,7 @@ class SingleEstimatorReport:
         return [*self.compare, *DEFAULT_COMPARE_COLS]
 
     def _make_reporting_df(self):
-        base_lib_df = self._get_benchmark_df()
+        base_lib_df = self._get_benchmark_df(lib=self.base_lib)
         base_lib_time = base_lib_df[SPEEDUP_COL]
         base_lib_std = base_lib_df[STDEV_SPEEDUP_COL]
 
@@ -156,7 +158,7 @@ class SingleEstimatorReport:
 
         compare_cols = self._get_compare_cols()
 
-        suffixes = map(lambda lib: f"_{lib}", [BASE_LIB, self.against_lib])
+        suffixes = map(lambda lib: f"_{lib}", [self.base_lib, self.against_lib])
         merged_df = pd.merge(
             base_lib_df,
             against_lib_df[compare_cols],
@@ -175,7 +177,7 @@ class SingleEstimatorReport:
 
         return merged_df
 
-    def _make_profiling_link(self, components, lib=BASE_LIB):
+    def _make_profiling_link(self, components, lib):
         function, hyperparams_digest, dataset_digest = components
         path = f"profiling/{lib}_{function}_{hyperparams_digest}_{dataset_digest}.html"
         if os.environ.get("RESULTS_BASE_URL") is not None:
@@ -208,7 +210,7 @@ class SingleEstimatorReport:
             col for col in cols_to_drop if col in self.estimator_hyperparameters
         ]
         df = df.drop(cols_to_drop, axis=1)
-        for lib in [BASE_LIB, self.against_lib]:
+        for lib in [self.base_lib, self.against_lib]:
             df[f"{lib}_profiling"] = df[
                 ["function", "hyperparams_digest", "dataset_digest"]
             ].apply(self._make_profiling_link, lib=lib, axis=1)
