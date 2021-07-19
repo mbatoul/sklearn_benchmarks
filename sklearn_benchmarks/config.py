@@ -22,6 +22,9 @@ BENCHMARK_TIME_BUDGET = 300
 BENCHMARK_PREDICTIONS_TIME_BUDGET = 3
 BENCH_LIBS = ["scikit-learn", "scikit-learn-intelex", "xgboost", "lightgbm", "catboost"]
 HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange"]
+# TODO: Probably use a dict here to map library to color and vice versa, e.g:
+# BENCH_LIBS_TO_COLORS = dict(zip(BENCH_LIBS, HPO_CURVES_COLORS))
+# COLORS_TO_BENCH_LIBS = dict(zip(HPO_CURVES_COLORS, BENCH_LIBS))
 
 
 def get_full_config(config=None):
