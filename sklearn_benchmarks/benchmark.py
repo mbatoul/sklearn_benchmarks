@@ -144,7 +144,7 @@ class Benchmark:
         for dataset in self.datasets:
             n_features = dataset["n_features"]
             n_samples_train = dataset["n_samples_train"]
-            n_samples_test = list(reversed(sorted(dataset["n_samples_test"])))
+            n_samples_test = sorted(dataset["n_samples_test"], reverse=True)
             n_samples_valid = dataset.get("n_samples_valid", None)
             is_hpo_curve = dataset.get("hpo_curve", False)
             for ns_train in n_samples_train:
