@@ -89,7 +89,6 @@ def main(append, config, profiling, estimator):
         t1_ = time.perf_counter()
 
         time_report.loc[len(time_report)] = [name, *convert(t1_ - t0_)]
-        benchmark_estimator.to_csv()
 
     # Store bench time report
     t1 = time.perf_counter()
