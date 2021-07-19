@@ -17,6 +17,8 @@ from sklearn_benchmarks.config import (
     PROFILING_RESULTS_PATH,
     BENCHMARK_TIME_BUDGET,
     BENCHMARK_PREDICTIONS_TIME_BUDGET,
+    MEAN_RUNTIME,
+    STD_RUNTIME,
 )
 from sklearn_benchmarks.utils.misc import gen_data, predict_or_transform
 
@@ -80,8 +82,8 @@ class BenchFuncExecutor:
         elif hasattr(estimator, "get_booster"):
             benchmark_info["best_iteration"] = estimator.get_booster().best_iteration
 
-        benchmark_info["mean"] = mean
-        benchmark_info["stdev"] = np.std(times)
+        benchmark_info[MEAN_RUNTIME] = mean
+        benchmark_info[STD_RUNTIME] = np.std(times)
         benchmark_info["throughput"] = X.nbytes / mean / 1e9
         benchmark_info["latency"] = mean / X.shape[0]
 

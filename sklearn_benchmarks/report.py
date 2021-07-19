@@ -18,8 +18,8 @@ from sklearn_benchmarks.config import (
     HPO_CURVES_COLORS,
     PLOT_HEIGHT_IN_PX,
     REPORTING_FONT_SIZE,
-    SPEEDUP_COL,
-    STDEV_SPEEDUP_COL,
+    MEAN_RUNTIME,
+    STD_RUNTIME,
     TIME_REPORT_PATH,
     VERSIONS_PATH,
     get_full_config,
@@ -149,12 +149,12 @@ class SingleEstimatorReport:
 
     def _make_reporting_df(self):
         base_lib_df = self._get_benchmark_df(lib=self.base_lib)
-        base_lib_time = base_lib_df[SPEEDUP_COL]
-        base_lib_std = base_lib_df[STDEV_SPEEDUP_COL]
+        base_lib_time = base_lib_df[MEAN_RUNTIME]
+        base_lib_std = base_lib_df[STD_RUNTIME]
 
         against_lib_df = self._get_benchmark_df(lib=self.against_lib)
-        against_lib_time = against_lib_df[SPEEDUP_COL]
-        against_lib_std = against_lib_df[STDEV_SPEEDUP_COL]
+        against_lib_time = against_lib_df[MEAN_RUNTIME]
+        against_lib_std = against_lib_df[STD_RUNTIME]
 
         compare_cols = self._get_compare_cols()
 
