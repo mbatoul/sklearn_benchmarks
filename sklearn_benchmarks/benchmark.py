@@ -54,25 +54,27 @@ class BenchFuncExecutor:
 
         # Next runs: at most 10 runs or 30 sec
         times = []
-        start = time.perf_counter()
+        start_global = time.perf_counter()
         for _ in range(max_iter):
-            start = time.perf_counter()
+            start_iter = time.perf_counter()
 
             if y is not None:
                 self.func_result_ = func(X, y, **kwargs)
             else:
                 self.func_result_ = func(X, **kwargs)
 
-            end = time.perf_counter()
-            times.append(end - start)
+            end_iter = time.perf_counter()
+            times.append(end_iter - start_iter)
 
-            if end - start > FUNC_TIME_BUDGET:
+            if end_iter - start_global > FUNC_TIME_BUDGET:
                 break
 
         benchmark_info = {}
         mean = np.mean(times)
 
-        benchmark_info["n_iter"] = estimator.n_iter_ if hasattr(estimator, "n_iter_") else None
+        benchmark_info["n_iter"] = (
+            estimator.n_iter_ if hasattr(estimator, "n_iter_") else None
+        )
         benchmark_info["best_iteration"] = None
 
         if hasattr(estimator, "best_iteration_"):
@@ -245,7 +247,9 @@ class Benchmark:
 
                         pprint(row)
                         benchmark_results.append(row)
-                        csv_path = f"{BENCHMARKING_RESULTS_PATH}/{library}_{self.name}.csv"
+                        csv_path = (
+                            f"{BENCHMARKING_RESULTS_PATH}/{library}_{self.name}.csv"
+                        )
                         pd.DataFrame(benchmark_results).to_csv(
                             csv_path,
                             mode="w+",
@@ -262,4 +266,3 @@ class Benchmark:
                             ):
                                 break
         return self
-
