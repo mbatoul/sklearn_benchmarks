@@ -18,14 +18,14 @@ jobs:
       - name: Checkout repo content
         uses: actions/checkout@v2
 
-      # - name: Cache conda
-      #   uses: actions/cache@v2
-      #   env:
-      #     CACHE_NUMBER: 0
-      #   with:
-      #     path: ~/conda_pkgs_dir
-      #     key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-      #       hashFiles('environment.yml') }}
+      - name: Cache conda
+        uses: actions/cache@v2
+        env:
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+            hashFiles('environment.yml') }}
 
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v2
@@ -66,8 +66,8 @@ jobs:
           name: results
           path: results
 
-      # - name: Deploy
-      #   uses: JamesIves/github-pages-deploy-action@4.1.1
-      #   with:
-      #     branch: gh-pages
-      #     folder: results
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@4.1.1
+        with:
+          branch: gh-pages
+          folder: results
