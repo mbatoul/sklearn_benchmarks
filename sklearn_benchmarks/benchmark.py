@@ -325,16 +325,7 @@ class Benchmark:
                         self.to_csv()
 
                         if self.use_onnx_runtime:
-                            print(
-                                f"file {onnx_model_filepath} exists: ",
-                                os.path.exists(onnx_model_filepath),
-                            )
-                            print(f"removing {onnx_model_filepath} file...")
                             os.remove(onnx_model_filepath)
-                            print(
-                                f"file {onnx_model_filepath} exists: ",
-                                os.path.exists(onnx_model_filepath),
-                            )
 
                         if is_hpo_curve:
                             now = time.perf_counter()
