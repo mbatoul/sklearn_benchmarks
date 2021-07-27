@@ -16,7 +16,7 @@ from sklearn_benchmarks.config import (
     FUNC_TIME_BUDGET,
     BENCHMARKING_RESULTS_PATH,
     PROFILING_RESULTS_PATH,
-    BENCHMARK_TIME_BUDGET,
+    HPO_BENCHMARK_TIME_BUDGET,
     BENCHMARK_PREDICTIONS_TIME_BUDGET,
 )
 from sklearn_benchmarks.utils.misc import gen_data, predict_or_transform
@@ -255,7 +255,7 @@ class Benchmark:
 
                         if is_hpo_curve:
                             now = time.perf_counter()
-                            if now - start > BENCHMARK_TIME_BUDGET:
+                            if now - start > HPO_BENCHMARK_TIME_BUDGET:
                                 return
                             if (
                                 now - start_predictions
