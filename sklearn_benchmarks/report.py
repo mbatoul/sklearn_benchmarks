@@ -41,7 +41,7 @@ def print_time_report():
 
     display(Markdown("## Time report"))
     for index, row in df.iterrows():
-        display(Markdown("**%s**: %ih %im %is" % (index, *row.values)))
+        display(Markdown("**%s** (%s): %ih %im %is" % (index, *row.values)))
 
 
 def print_env_info():
