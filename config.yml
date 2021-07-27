@@ -1,8 +1,8 @@
 benchmarking:
   random_state: 42
   estimators:
-    KNeighborsClassifier:
-      name: KNeighborsClassifier
+    KNeighborsClassifier_brute_force:
+      name: KNeighborsClassifier_brute_force
       estimator: sklearn.neighbors.KNeighborsClassifier
       hyperparameters:
         init:
@@ -41,8 +41,8 @@ benchmarking:
             - 1
             - 1e3
 
-    sklearnex_KNeighborsClassifier:
-      inherit: KNeighborsClassifier
+    sklearnex_KNeighborsClassifier_brute_force:
+      inherit: KNeighborsClassifier_brute_force
       estimator: sklearnex.neighbors.KNeighborsClassifier
 
     KNeighborsClassifier_kd_tree:
