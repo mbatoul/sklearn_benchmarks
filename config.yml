@@ -25,7 +25,7 @@ benchmarking:
             random_state: 42
           n_features: 1e2
           n_samples_train:
-            - 1e6
+            - 1e5
           n_samples_test:
             - 1
             - 1e3
@@ -36,7 +36,7 @@ benchmarking:
             random_state: 42
           n_features: 2
           n_samples_train:
-            - 1e6
+            - 1e5
           n_samples_test:
             - 1
             - 1e3
