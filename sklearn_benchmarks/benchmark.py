@@ -19,6 +19,7 @@ from sklearn_benchmarks.config import (
     BENCHMARKING_RESULTS_PATH,
     FUNC_TIME_BUDGET,
     PROFILING_RESULTS_PATH,
+    RESULTS_PATH,
     HPO_BENCHMARK_TIME_BUDGET,
     BENCHMARK_PREDICTIONS_TIME_BUDGET,
 )
@@ -39,7 +40,7 @@ class BenchFuncExecutor:
         X,
         y=None,
         max_iter=BENCHMARK_MAX_ITER,
-        onnx_model_filename=None,
+        onnx_model_filepath=None,
         **kwargs,
     ):
         if max_iter > 1:
@@ -64,8 +65,15 @@ class BenchFuncExecutor:
             if y is not None:
                 self.func_result_ = func(X, y, **kwargs)
             else:
-                if onnx_model_filename is not None:
-                    sess = rt.InferenceSession(onnx_model_filename)
+                if onnx_model_filepath is not None:
+                    print(
+                        f"file {onnx_model_filepath} exists: ",
+                        os.path.exists(onnx_model_filepath),
+                    )
+                    print(
+                        f"starting prediction for model in file {onnx_model_filepath}..."
+                    )
+                    sess = rt.InferenceSession(onnx_model_filepath)
                     input_name = sess.get_inputs()[0].name
                     label_name = sess.get_outputs()[0].name
 
@@ -217,11 +225,11 @@ class Benchmark:
                         initial_type = [
                             ("float_input", FloatTensorType([None, X_train.shape[1]]))
                         ]
-                        onnx_model_filename = f"{self.lib_}_{self.name}_{hyperparams_digest}_{dataset_digest}.onnx"
+                        onnx_model_filepath = f"{RESULTS_PATH}/{self.lib_}_{self.name}_{hyperparams_digest}_{dataset_digest}.onnx"
 
                         onx = convert_sklearn(estimator, initial_types=initial_type)
 
-                        with open(onnx_model_filename, "wb") as f:
+                        with open(onnx_model_filepath, "wb") as f:
                             f.write(onx.SerializeToString())
 
                     row = dict(
@@ -260,7 +268,7 @@ class Benchmark:
                                 self.profiling_output_extensions,
                                 X_test_,
                                 max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
-                                onnx_model_filename=onnx_model_filename,
+                                onnx_model_filepath=onnx_model_filepath,
                                 **bench_func_params,
                             )
 
@@ -317,7 +325,16 @@ class Benchmark:
                         self.to_csv()
 
                         if self.use_onnx_runtime:
-                            os.remove(onnx_model_filename)
+                            print(
+                                f"file {onnx_model_filepath} exists: ",
+                                os.path.exists(onnx_model_filepath),
+                            )
+                            print(f"removing {onnx_model_filepath} file...")
+                            os.remove(onnx_model_filepath)
+                            print(
+                                f"file {onnx_model_filepath} exists: ",
+                                os.path.exists(onnx_model_filepath),
+                            )
 
                         if is_hpo_curve:
                             now = time.perf_counter()
