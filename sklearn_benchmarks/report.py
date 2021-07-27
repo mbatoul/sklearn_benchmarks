@@ -65,7 +65,7 @@ def display_links_to_notebooks():
     file_extension = "html" if os.environ.get("RESULTS_BASE_URL") else "ipynb"
     display(Markdown("## Notebooks"))
     for file, title in notebook_titles.items():
-        display(Markdown(f"[{title}]({base_url}{file}.{file_extension})"))
+        display(Markdown(f"### [{title}]({base_url}{file}.{file_extension})"))
 
 
 class Reporting:
