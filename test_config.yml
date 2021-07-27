@@ -1,0 +1,564 @@
+benchmarking:
+  random_state: 42
+  estimators:
+    KNeighborsClassifier:
+      name: KNeighborsClassifier
+      estimator: sklearn.neighbors.KNeighborsClassifier
+      hyperparameters:
+        init:
+          n_neighbors:
+            - 1
+            - 5
+            - 100
+          algorithm:
+            - brute
+          n_jobs:
+            - -1
+            - 1
+      metrics:
+        - accuracy_score
+      datasets:
+        - sample_generator: sklearn.datasets.make_classification
+          params:
+            n_classes: 2
+            n_redundant: 0
+            random_state: 42
+          n_features: 10
+          n_samples_train:
+            - 100
+          n_samples_test:
+            - 1
+
+    sklearnex_KNeighborsClassifier:
+      inherit: KNeighborsClassifier
+      estimator: sklearnex.neighbors.KNeighborsClassifier
+
+    KNeighborsClassifier_kd_tree:
+      name: KNeighborsClassifier_kd_tree
+      estimator: sklearn.neighbors.KNeighborsClassifier
+      use_onnx_runtime: True
+      hyperparameters:
+        init:
+          n_neighbors:
+            - 1
+            - 5
+            - 100
+          algorithm:
+            - kd_tree
+          n_jobs:
+            - -1
+            - 1
+      metrics:
+        - accuracy_score
+      datasets:
+        - sample_generator: sklearn.datasets.make_classification
+          params:
+            n_classes: 2
+            n_redundant: 0
+            random_state: 42
+          n_features: 10
+          n_samples_train:
+            - 100
+          n_samples_test:
+            - 1
+
+    sklearnex_KNeighborsClassifier_kd_tree:
+      inherit: KNeighborsClassifier_kd_tree
+      estimator: sklearnex.neighbors.KNeighborsClassifier
+
+    KMeans_tall:
+      name: KMeans_tall
+      estimator: sklearn.cluster.KMeans
+      hyperparameters:
+        init:
+          init:
+            - k-means++
+            - random
+          algorithm:
+            - full
+          n_clusters:
+            - 3
+          max_iter:
+            - 30
+          n_init:
+            - 1
+          tol:
+            - 1e-16
+      metrics:
+        - adjusted_rand_score
+      datasets:
+        - sample_generator: sklearn.datasets.make_blobs
+          params:
+            random_state: 42
+            cluster_std: 20.0
+            centers: 200
+          n_features: 10
+          n_samples_train:
+            - 100
+          n_samples_test:
+            - 1
+
+    sklearnex_KMeans_tall:
+      inherit: KMeans_tall
+      estimator: sklearnex.cluster.KMeans
+
+    KMeans_short:
+      name: KMeans_short
+      estimator: sklearn.cluster.KMeans
+      hyperparameters:
+        init:
+          init:
+            - k-means++
+            - random
+          algorithm:
+            - full
+          n_clusters:
+            - 50
+          max_iter:
+            - 20
+          n_init:
+            - 1
+          tol:
+            - 1e-16
+      metrics:
+        - adjusted_rand_score
+      datasets:
+        - sample_generator: sklearn.datasets.make_blobs
+          params:
+            random_state: 42
+            cluster_std: 20.0
+            centers: 200
+          n_features: 10
+          n_samples_train:
+            - 100
+          n_samples_test:
+            - 1
+
+    sklearnex_KMeans_short:
+      inherit: KMeans_short
+      estimator: sklearnex.cluster.KMeans
+
+    LogisticRegression:
+      name: LogisticRegression
+      estimator: sklearn.linear_model.LogisticRegression
+      metrics:
+        - accuracy_score
+      datasets:
+        - sample_generator: sklearn.datasets.make_classification
+          params:
+            n_classes: 2
+            n_redundant: 0
+            random_state: 42
+          n_features: 10
+          n_samples_train:
+            - 100
+          n_samples_test:
+            - 1
+
+    sklearnex_LogisticRegression:
+      inherit: LogisticRegression
+      estimator: sklearnex.linear_model.LogisticRegression
+
+    Ridge:
+      name: Ridge
+      estimator: sklearn.linear_model.Ridge
+      metrics:
+        - r2_score
+      datasets:
+        - sample_generator: sklearn.datasets.make_regression
+          params:
+            n_informative: 1
+            random_state: 42
+          n_features: 10
+          n_samples_train:
+            - 100
+          n_samples_test:
+            - 1
+
+    sklearnex_Ridge:
+      inherit: Ridge
+      estimator: sklearnex.linear_model.Ridge
+
+    HistGradientBoostingClassifier:
+      name: HistGradientBoostingClassifier
+      estimator: sklearn.ensemble.HistGradientBoostingClassifier
+      use_onnx_runtime: True
+      metrics:
+        - accuracy_score
+      hyperparameters:
+        init:
+          early_stopping:
+            - True
+          validation_fraction:
+            - 0.05
+          learning_rate:
+            - 0.01
+            - 0.05
+            - 0.1
+            - 0.5
+            - 1.
+          n_iter_no_change:
+            - 10
+          max_leaf_nodes:
+            - 2
+            - 3
+            - 5
+            - 20
+            - 30
+            - 50
+          max_iter:
+            - 300
+          max_bins:
+            - 32
+            - 64
+            - 128
+            - 255
+          min_samples_leaf:
+            - 2
+            - 10
+            - 20
+            - 100
+            - 200
+      datasets:
+        - sample_generator: sklearn.datasets.make_classification
+          hpo_curve: True
+          params:
+            n_classes: 2
+            n_informative: 8
+            n_redundant: 0
+            random_state: 42
+          n_features: 10
+          n_samples_train:
+            - 1000
+          n_samples_test:
+            - 1
+
+    lightgbm:
+      name: LGBMClassifier
+      estimator: lightgbm.LGBMClassifier
+      metrics:
+        - accuracy_score
+      hyperparameters:
+        init:
+          learning_rate:
+            - 0.01
+            - 0.05
+            - 0.1
+            - 0.5
+            - 1.
+          num_leaves:
+            - 2
+            - 3
+            - 5
+            - 20
+            - 30
+            - 50
+          n_estimators:
+            - 300
+          max_bin:
+            - 32
+            - 64
+            - 128
+            - 255
+          min_data_in_leaf:
+            - 2
+            - 10
+            - 20
+            - 100
+            - 200
+          bagging_fraction:
+            - 0.5
+            - 0.8
+            - 1
+          feature_fraction_bynode:
+            - 0.5
+            - 0.8
+            - 1
+        fit:
+          eval_set: (X_valid, y_valid)
+          early_stopping_rounds: 10
+      datasets:
+        - sample_generator: sklearn.datasets.make_classification
+          hpo_curve: True
+          params:
+            n_classes: 2
+            n_informative: 8
+            n_redundant: 0
+            random_state: 42
+          n_features: 10
+          n_samples_valid: 50
+          n_samples_train:
+            - 1000
+          n_samples_test:
+            - 1
+
+    xgboost:
+      name: XGBClassifier
+      estimator: xgboost.XGBClassifier
+      metrics:
+        - accuracy_score
+      hyperparameters:
+        init:
+          validate_parameters:
+            - True
+          tree_method:
+            - hist
+          use_label_encoder:
+            - False
+          learning_rate:
+            - 0.01
+            - 0.05
+            - 0.1
+            - 0.5
+            - 1.
+          max_leaves:
+            - 2
+            - 3
+            - 5
+            - 20
+            - 30
+            - 50
+          n_estimators:
+            - 300
+          max_bin:
+            - 32
+            - 64
+            - 128
+            - 255
+          min_child_weight:
+            - 2
+            - 10
+            - 20
+            - 100
+            - 200
+          subsample:
+            - 0.5
+            - 0.8
+            - 1
+          colsample_bynode:
+            - 0.5
+            - 0.8
+            - 1
+        fit:
+          eval_set: "[(X_valid, y_valid)]"
+          early_stopping_rounds: 10
+      datasets:
+        - sample_generator: sklearn.datasets.make_classification
+          hpo_curve: True
+          params:
+            n_classes: 2
+            n_informative: 8
+            n_redundant: 0
+            random_state: 42
+          n_features: 10
+          n_samples_valid: 50
+          n_samples_train:
+            - 1000
+          n_samples_test:
+            - 1
+
+    catboost_lossguide:
+      name: CatBoostClassifier_lossguide
+      estimator: catboost.CatBoostClassifier
+      metrics:
+        - accuracy_score
+      hyperparameters:
+        init:
+          allow_writing_files:
+            - False
+          grow_policy:
+            - Lossguide
+          bootstrap_type:
+            - MVS
+          learning_rate:
+            - 0.01
+            - 0.05
+            - 0.1
+            - 0.5
+            - 1.
+          max_leaves:
+            - 2
+            - 3
+            - 5
+            - 20
+            - 30
+            - 50
+          iterations:
+            - 300
+          border_count:
+            - 32
+            - 64
+            - 128
+            - 255
+          min_data_in_leaf:
+            - 2
+            - 10
+            - 20
+            - 100
+            - 200
+          subsample:
+            - 0.5
+            - 0.8
+            - 1
+          rsm:
+            - 0.5
+            - 0.8
+            - 1
+        fit:
+          eval_set: (X_valid, y_valid)
+          early_stopping_rounds: 10
+      datasets:
+        - sample_generator: sklearn.datasets.make_classification
+          hpo_curve: True
+          params:
+            n_classes: 2
+            n_informative: 8
+            n_redundant: 0
+            random_state: 42
+          n_features: 10
+          n_samples_valid: 50
+          n_samples_train:
+            - 1000
+          n_samples_test:
+            - 1
+
+    catboost_symmetric:
+      name: CatBoostClassifier_symmetric
+      estimator: catboost.CatBoostClassifier
+      metrics:
+        - accuracy_score
+      hyperparameters:
+        init:
+          allow_writing_files:
+            - False
+          grow_policy:
+            - SymmetricTree
+          bootstrap_type:
+            - MVS
+          learning_rate:
+            - 0.01
+            - 0.05
+            - 0.1
+            - 0.5
+            - 1.
+          iterations:
+            - 300
+          border_count:
+            - 32
+            - 64
+            - 128
+            - 255
+          min_data_in_leaf:
+            - 2
+            - 10
+            - 20
+            - 100
+            - 200
+          subsample:
+            - 0.5
+            - 0.8
+            - 1
+          rsm:
+            - 0.5
+            - 0.8
+            - 1
+        fit:
+          eval_set: (X_valid, y_valid)
+          early_stopping_rounds: 10
+      datasets:
+        - sample_generator: sklearn.datasets.make_classification
+          hpo_curve: True
+          params:
+            n_classes: 2
+            n_informative: 8
+            n_redundant: 0
+            random_state: 42
+          n_features: 10
+          n_samples_valid: 50
+          n_samples_train:
+            - 1000
+          n_samples_test:
+            - 1
+
+reporting:
+  n_cols: 2
+  version_aliases:
+    sklearnex: scikit-learn-intelex
+  estimators:
+    KNeighborsClassifier:
+      name: KNeighborsClassifier
+      against_lib: sklearnex
+      split_bars:
+        - n_jobs
+      compare:
+        - accuracy_score
+
+    KNeighborsClassifier_kd_tree:
+      name: KNeighborsClassifier_kd_tree
+      against_lib: sklearnex
+      split_bars:
+        - n_jobs
+      compare:
+        - accuracy_score
+
+    KNeighborsClassifier_kd_tree:
+      name: KNeighborsClassifier_kd_tree
+      against_lib: onnx
+      split_bars:
+        - n_jobs
+      compare:
+        - accuracy_score
+
+    KMeans_tall:
+      name: KMeans_tall
+      against_lib: sklearnex
+      compare:
+        - n_iter
+        - adjusted_rand_score
+
+    KMeans_short:
+      name: KMeans_short
+      against_lib: sklearnex
+      compare:
+        - n_iter
+        - adjusted_rand_score
+
+    LogisticRegression:
+      name: LogisticRegression
+      against_lib: sklearnex
+
+    Ridge:
+      name: Ridge
+      against_lib: sklearnex
+
+hpo_reporting:
+  speedup:
+    scores:
+      - 0.735
+      - 0.77
+      - 0.805
+  version_aliases:
+    sklearn: scikit-learn
+  estimators:
+    - lib: sklearn
+      name: HistGradientBoostingClassifier
+      legend: scikit-learn
+      color: blue
+
+    - lib: lightgbm
+      name: LGBMClassifier
+      color: red
+
+    - lib: xgboost
+      name: XGBClassifier
+      color: green
+
+    - lib: catboost
+      name: CatBoostClassifier_lossguide
+      legend: catboost lossguide
+      color: purple
+
+    - lib: catboost
+      name: CatBoostClassifier_symmetric
+      legend: catboost symmetric
+      color: orange

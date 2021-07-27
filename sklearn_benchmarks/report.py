@@ -208,7 +208,7 @@ class SingleEstimatorReport:
         return merged_df
 
     def _make_reporting_df(self):
-        if self.against_lib == "sklearnx":
+        if self.against_lib == "sklearnex":
             return self._make_reporting_df_sklearnex()
         else:
             return self._make_reporting_df_onnx()
