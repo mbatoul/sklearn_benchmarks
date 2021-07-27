@@ -18,7 +18,6 @@ STDEV_SPEEDUP_COL = "stdev"
 PLOT_HEIGHT_IN_PX = 350
 REPORTING_FONT_SIZE = 12
 DEFAULT_COMPARE_COLS = [SPEEDUP_COL, STDEV_SPEEDUP_COL]
-BENCHMARK_TIME_BUDGET = 20
 BENCH_LIBS = [
     "scikit-learn",
     "scikit-learn-intelex",
@@ -28,6 +27,8 @@ BENCH_LIBS = [
     "onnx",
 ]
 HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange", "grey"]
+HPO_BENCHMARK_TIME_BUDGET = 20
+BENCHMARK_PREDICTIONS_TIME_BUDGET = 3
 
 
 def get_full_config(config=None):

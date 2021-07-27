@@ -1,8 +1,8 @@
 benchmarking:
   random_state: 42
   estimators:
-    KNeighborsClassifier:
-      name: KNeighborsClassifier
+    KNeighborsClassifier_brute_force:
+      name: KNeighborsClassifier_brute_force
       estimator: sklearn.neighbors.KNeighborsClassifier
       hyperparameters:
         init:
@@ -25,7 +25,7 @@ benchmarking:
             random_state: 42
           n_features: 1e2
           n_samples_train:
-            - 1e6
+            - 1e5
           n_samples_test:
             - 1
             - 1e3
@@ -36,13 +36,13 @@ benchmarking:
             random_state: 42
           n_features: 2
           n_samples_train:
-            - 1e6
+            - 1e5
           n_samples_test:
             - 1
             - 1e3
 
-    sklearnex_KNeighborsClassifier:
-      inherit: KNeighborsClassifier
+    sklearnex_KNeighborsClassifier_brute_force:
+      inherit: KNeighborsClassifier_brute_force
       estimator: sklearnex.neighbors.KNeighborsClassifier
 
     KNeighborsClassifier_kd_tree:
@@ -273,12 +273,10 @@ benchmarking:
           n_iter_no_change:
             - 10
           max_leaf_nodes:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           max_iter:
             - 300
           max_bins:
@@ -320,12 +318,10 @@ benchmarking:
             - 0.5
             - 1.
           num_leaves:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           n_estimators:
             - 300
           max_bin:
@@ -385,12 +381,10 @@ benchmarking:
             - 0.5
             - 1.
           max_leaves:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           n_estimators:
             - 300
           max_bin:
@@ -450,12 +444,10 @@ benchmarking:
             - 0.5
             - 1.
           max_leaves:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           iterations:
             - 300
           border_count:

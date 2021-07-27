@@ -37,7 +37,7 @@ from sklearn_benchmarks.utils.plotting import (
 
 def print_time_report():
     df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
-    df = df.sort_values(by=["hour", "min", "sec"])
+    df = df.sort_values(by=["lib", "hour", "min", "sec"])
 
     display(Markdown("## Time report"))
     for index, row in df.iterrows():
@@ -64,7 +64,7 @@ def display_links_to_notebooks():
     file_extension = "html" if os.environ.get("RESULTS_BASE_URL") else "ipynb"
     display(Markdown("## Notebooks"))
     for file, title in notebook_titles.items():
-        display(Markdown(f"[{title}]({base_url}{file}.{file_extension})"))
+        display(Markdown(f"### [{title}]({base_url}{file}.{file_extension})"))
 
 
 class Reporting:

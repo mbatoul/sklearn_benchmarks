@@ -16,10 +16,11 @@ from viztracer import VizTracer
 
 from sklearn_benchmarks.config import (
     BENCHMARK_MAX_ITER,
-    BENCHMARK_TIME_BUDGET,
     BENCHMARKING_RESULTS_PATH,
     FUNC_TIME_BUDGET,
     PROFILING_RESULTS_PATH,
+    HPO_BENCHMARK_TIME_BUDGET,
+    BENCHMARK_PREDICTIONS_TIME_BUDGET,
 )
 from sklearn_benchmarks.utils.misc import gen_data, predict_or_transform
 
@@ -237,6 +238,7 @@ class Benchmark:
 
                     self.results_.append(row)
 
+                    start_predictions = time.perf_counter()
                     for i in range(len(n_samples_test)):
                         ns_test = n_samples_test[i]
                         X_test_, y_test_ = X_test[:ns_test], y_test[:ns_test]
@@ -319,9 +321,13 @@ class Benchmark:
 
                         if is_hpo_curve:
                             now = time.perf_counter()
-                            if now - start > BENCHMARK_TIME_BUDGET:
+                            if now - start > HPO_BENCHMARK_TIME_BUDGET:
                                 return
-
+                            if (
+                                now - start_predictions
+                                > BENCHMARK_PREDICTIONS_TIME_BUDGET
+                            ):
+                                break
         return self
 
     def to_csv(self):
