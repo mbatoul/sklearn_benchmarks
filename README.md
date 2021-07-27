@@ -33,6 +33,7 @@ So far, the concurrent libraries available are:
 - [lightgbm](https://lightgbm.readthedocs.io/en/latest/index.html) (gradient boosting library)
 - [XGBoost](https://xgboost.readthedocs.io/en/latest/) (gradient boosting library)
 - [Catboost](https://catboost.ai/) (gradient boosting library)
+- [ONNX Runtime](https://github.com/microsoft/onnxruntime) (inferencing and training accelerator)
 
 The estimators available are:
 
@@ -71,7 +72,7 @@ Options:
   --config, --c TEXT              Path to config file. By default, `config.yml` is selected.
 
   --profiling, --p [html|json.gz]
-                                  Profiling files type. By default, both `html` and `json.gz` files 
+                                  Profiling files type. By default, both `html` and `json.gz` files
                                   are generated.
 
   --estimator, --e TEXT           Estimator to benchmark. By default, all estimators in the config

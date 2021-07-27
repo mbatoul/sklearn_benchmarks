@@ -1,20 +1,23 @@
+import glob
 import importlib
-import random
+import os
 import time
 from pprint import pprint
 
 import joblib
 import numpy as np
+import onnxruntime as rt
 import pandas as pd
-from scipy.sparse import data
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import ParameterGrid, train_test_split
 from sklearn.utils._testing import set_random_state
 from viztracer import VizTracer
 
 from sklearn_benchmarks.config import (
     BENCHMARK_MAX_ITER,
-    FUNC_TIME_BUDGET,
     BENCHMARKING_RESULTS_PATH,
+    FUNC_TIME_BUDGET,
     PROFILING_RESULTS_PATH,
     HPO_BENCHMARK_TIME_BUDGET,
     BENCHMARK_PREDICTIONS_TIME_BUDGET,
@@ -36,6 +39,7 @@ class BenchFuncExecutor:
         X,
         y=None,
         max_iter=BENCHMARK_MAX_ITER,
+        onnx_model_filename=None,
         **kwargs,
     ):
         if max_iter > 1:
@@ -60,7 +64,16 @@ class BenchFuncExecutor:
             if y is not None:
                 self.func_result_ = func(X, y, **kwargs)
             else:
-                self.func_result_ = func(X, **kwargs)
+                if onnx_model_filename is not None:
+                    sess = rt.InferenceSession(onnx_model_filename)
+                    input_name = sess.get_inputs()[0].name
+                    label_name = sess.get_outputs()[0].name
+
+                    self.func_result_ = sess.run(
+                        [label_name], {input_name: X.astype(np.float32)}
+                    )[0]
+                else:
+                    self.func_result_ = func(X, **kwargs)
 
             end = time.perf_counter()
             times.append(end - start)
@@ -102,6 +115,8 @@ class Benchmark:
         metrics=[],
         hyperparameters={},
         datasets=[],
+        use_onnx_runtime=False,
+        onnx_params={},
         random_state=None,
         profiling_file_type="",
         profiling_output_extensions=[],
@@ -112,6 +127,8 @@ class Benchmark:
         self.metrics = metrics
         self.hyperparameters = hyperparameters
         self.datasets = datasets
+        self.use_onnx_runtime = use_onnx_runtime
+        self.onnx_params = onnx_params
         self.random_state = random_state
         self.profiling_file_type = profiling_file_type
         self.profiling_output_extensions = profiling_output_extensions
@@ -196,6 +213,17 @@ class Benchmark:
                         **fit_params,
                     )
 
+                    if self.use_onnx_runtime:
+                        initial_type = [
+                            ("float_input", FloatTensorType([None, X_train.shape[1]]))
+                        ]
+                        onnx_model_filename = f"{self.lib_}_{self.name}_{hyperparams_digest}_{dataset_digest}.onnx"
+
+                        onx = convert_sklearn(estimator, initial_types=initial_type)
+
+                        with open(onnx_model_filename, "wb") as f:
+                            f.write(onx.SerializeToString())
+
                     row = dict(
                         estimator=self.name,
                         function=bench_func.__name__,
@@ -223,6 +251,40 @@ class Benchmark:
                             if bench_func.__name__ in self.hyperparameters
                             else {}
                         )
+
+                        if self.use_onnx_runtime:
+                            benchmark_info = executor.run(
+                                bench_func,
+                                estimator,
+                                profiling_output_path,
+                                self.profiling_output_extensions,
+                                X_test_,
+                                max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
+                                onnx_model_filename=onnx_model_filename,
+                                **bench_func_params,
+                            )
+
+                            row = dict(
+                                estimator=self.name,
+                                use_onnx_runtime=self.use_onnx_runtime,
+                                function=bench_func.__name__,
+                                n_samples_train=ns_train,
+                                n_samples=ns_test,
+                                n_features=n_features,
+                                hyperparams_digest=hyperparams_digest,
+                                dataset_digest=dataset_digest,
+                                **benchmark_info,
+                                **params,
+                            )
+
+                            for metric_func in metrics_funcs:
+                                y_pred = executor.func_result_
+                                score = metric_func(y_test_, y_pred)
+                                row[metric_func.__name__] = score
+
+                            pprint(row)
+                            self.results_.append(row)
+
                         benchmark_info = executor.run(
                             bench_func,
                             estimator,
@@ -232,6 +294,7 @@ class Benchmark:
                             max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
                             **bench_func_params,
                         )
+
                         row = dict(
                             estimator=self.name,
                             function=bench_func.__name__,
@@ -252,6 +315,9 @@ class Benchmark:
                         pprint(row)
                         self.results_.append(row)
                         self.to_csv()
+
+                        if self.use_onnx_runtime:
+                            os.remove(onnx_model_filename)
 
                         if is_hpo_curve:
                             now = time.perf_counter()

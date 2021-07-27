@@ -18,6 +18,8 @@ dependencies:
   - lightgbm
   - xgboost
   - catboost
+  - skl2onnx
+  - onnxruntime
   - pip
   - pip:
       - --pre
