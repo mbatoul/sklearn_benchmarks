@@ -485,8 +485,8 @@ reporting:
   version_aliases:
     sklearnex: scikit-learn-intelex
   estimators:
-    KNeighborsClassifier:
-      name: KNeighborsClassifier
+    KNeighborsClassifier_brute_force:
+      name: KNeighborsClassifier_brute_force
       against_lib: sklearnex
       split_bars:
         - n_jobs
