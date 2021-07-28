@@ -37,11 +37,11 @@ from sklearn_benchmarks.utils.plotting import (
 
 def print_time_report():
     df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
-    df = df.sort_values(by=["hour", "min", "sec"])
+    df = df.sort_values(by=["lib", "hour", "min", "sec"])
 
     display(Markdown("## Time report"))
     for index, row in df.iterrows():
-        display(Markdown("**%s**: %ih %im %is" % (index, *row.values)))
+        display(Markdown("**%s** (%s): %ih %im %is" % (index, *row.values)))
 
 
 def print_env_info():
@@ -64,7 +64,7 @@ def display_links_to_notebooks():
     file_extension = "html" if os.environ.get("RESULTS_BASE_URL") else "ipynb"
     display(Markdown("## Notebooks"))
     for file, title in notebook_titles.items():
-        display(Markdown(f"[{title}]({base_url}{file}.{file_extension})"))
+        display(Markdown(f"### [{title}]({base_url}{file}.{file_extension})"))
 
 
 class Reporting:
@@ -72,7 +72,8 @@ class Reporting:
     Runs reporting for specified estimators.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, against_lib, config=None):
+        self.against_lib = against_lib
         self.config = config
 
     def _get_estimator_default_hyperparameters(self, estimator):
@@ -101,6 +102,8 @@ class Reporting:
             versions = json.load(json_file)
 
         for name, params in reporting_estimators.items():
+            if params["against_lib"] != self.against_lib:
+                continue
             params["n_cols"] = reporting_config["n_cols"]
             params["estimator_hyperparameters"] = self._get_estimator_hyperparameters(
                 benchmarking_estimators[name]
@@ -147,7 +150,7 @@ class SingleEstimatorReport:
     def _get_compare_cols(self):
         return [*self.compare, *DEFAULT_COMPARE_COLS]
 
-    def _make_reporting_df(self):
+    def _make_reporting_df_sklearnex(self):
         base_lib_df = self._get_benchmark_df(lib=self.base_lib)
         base_lib_time = base_lib_df[MEAN_RUNTIME]
         base_lib_std = base_lib_df[STD_RUNTIME]
@@ -177,7 +180,42 @@ class SingleEstimatorReport:
 
         return merged_df
 
-    def _make_profiling_link(self, components, lib):
+    def _make_reporting_df_onnx(self):
+        df = self._get_benchmark_df()
+        df = df.query("function == 'predict'")
+        df = df.fillna(value={"use_onnx_runtime": False})
+        merged_df = df.query("use_onnx_runtime == True").merge(
+            df.query("use_onnx_runtime == False"),
+            on=["hyperparams_digest", "dataset_digest"],
+            how="inner",
+            suffixes=["", "_onnx"],
+        )
+        merged_df = merged_df.dropna(axis=1)
+        columns_to_drop = merged_df.filter(regex="_onnx$").columns.tolist()
+        columns_to_drop = filter(
+            lambda col: "mean" not in col and "stdev" not in col, columns_to_drop
+        )
+        merged_df.drop(
+            columns_to_drop,
+            axis=1,
+            inplace=True,
+        )
+        merged_df["speedup"] = merged_df["mean"] / merged_df["mean_onnx"]
+        merged_df["stdev_speedup"] = merged_df["speedup"] * (
+            np.sqrt(
+                (merged_df["stdev"] / merged_df["mean"]) ** 2
+                + (merged_df["stdev_onnx"] / merged_df["mean_onnx"]) ** 2
+            )
+        )
+        return merged_df
+
+    def _make_reporting_df(self):
+        if self.against_lib == "sklearnex":
+            return self._make_reporting_df_sklearnex()
+        else:
+            return self._make_reporting_df_onnx()
+
+    def _make_profiling_link(self, components, lib=BASE_LIB):
         function, hyperparams_digest, dataset_digest = components
         path = f"profiling/{lib}_{function}_{hyperparams_digest}_{dataset_digest}.html"
         if os.environ.get("RESULTS_BASE_URL") is not None:
@@ -362,15 +400,18 @@ class ReportingHpo:
         for index, params in enumerate(self._config["estimators"]):
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
+            df = df.fillna(value={"use_onnx_runtime": False})
 
             legend = params.get("lib")
             legend = params.get("legend", legend)
-
             key_lib_version = params["lib"]
             key_lib_version = self._config["version_aliases"].get(
                 key_lib_version, key_lib_version
             )
             legend += f" ({self._versions[key_lib_version]})"
+
+            if "use_onnx_runtime" in df.columns:
+                df = df.query("use_onnx_runtime == False")
 
             df_merged = df.query("function == 'fit'").merge(
                 df.query("function == 'predict'"),
@@ -432,6 +473,52 @@ class ReportingHpo:
                 )
             )
 
+            if "use_onnx_runtime" in df.columns and func == "predict":
+                # Add ONNX points
+                legend = f"ONNX ({self._versions['onnx']})"
+                color = HPO_CURVES_COLORS[len(self._config["estimators"])]
+
+                df = pd.read_csv(file)
+                df = df.fillna(value={"use_onnx_runtime": False})
+                df_merged = df.query("function == 'predict' & use_onnx_runtime == True")
+
+                df_hover = df_merged.copy()
+                df_hover = df_hover[
+                    df_hover.columns.drop(list(df_hover.filter(regex="digest")))
+                ]
+                df_hover = df_hover.round(3)
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_merged[f"mean"],
+                        y=df_merged["accuracy_score"],
+                        mode="markers",
+                        name=legend,
+                        hovertemplate=make_hover_template(df_hover),
+                        customdata=df_hover[order_columns(df_hover)].values,
+                        marker=dict(color=color),
+                        legendgroup=len(self._config["estimators"]),
+                    )
+                )
+
+                data = df_merged[[f"mean", "accuracy_score"]].values
+                pareto_indices = identify_pareto(data)
+                pareto_front = data[pareto_indices]
+                pareto_front_df = pd.DataFrame(pareto_front)
+                pareto_front_df.sort_values(0, inplace=True)
+                pareto_front = pareto_front_df.values
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=pareto_front[:, 0],
+                        y=pareto_front[:, 1],
+                        mode="lines",
+                        showlegend=False,
+                        marker=dict(color=color),
+                        legendgroup=index,
+                    )
+                )
+
         fig.update_xaxes(showspikes=True)
         fig.update_yaxes(showspikes=True)
         fig["layout"]["xaxis{}".format(1)][
@@ -481,8 +568,12 @@ class ReportingHpo:
         for params in self._config["estimators"]:
             file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
             df = pd.read_csv(file)
+
             if params["lib"] == BASE_LIB:
                 base_lib_df = df
+                base_lib_df = base_lib_df.fillna(value={"use_onnx_runtime": False})
+                base_lib_df = base_lib_df.query("use_onnx_runtime == False")
+
             key = "".join(params.get("legend", params.get("lib")))
             other_lib_dfs[key] = df
 
@@ -499,6 +590,10 @@ class ReportingHpo:
             for lib, df in other_lib_dfs.items():
                 if lib not in columns:
                     columns.append(lib)
+
+                if "use_onnx_runtime" in df.columns:
+                    df = df.fillna(value={"use_onnx_runtime": False})
+                    df = df.query("use_onnx_runtime == False")
 
                 fit_times = df[df["function"] == "fit"]["mean"]
                 scores = df[df["function"] == "predict"]["accuracy_score"]

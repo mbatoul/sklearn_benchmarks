@@ -68,7 +68,7 @@ def main(append, config, profiling, estimator):
     if estimator:
         selected_estimators = {k: all_estimators[k] for k in estimator}
 
-    time_report = pd.DataFrame(columns=["algo", "hour", "min", "sec"])
+    time_report = pd.DataFrame(columns=["algo", "lib", "hour", "min", "sec"])
     t0 = time.perf_counter()
 
     for name, params in selected_estimators.items():
@@ -76,6 +76,9 @@ def main(append, config, profiling, estimator):
         if "inherit" in params:
             curr_estimator = params["estimator"]
             params = all_estimators[params["inherit"]]
+            # ONNX predictions are run on scikit-learn's estimators only
+            if "use_onnx_runtime" in params:
+                params.pop("use_onnx_runtime")
             params["estimator"] = curr_estimator
 
         params = parse_parameters(params)
@@ -88,11 +91,15 @@ def main(append, config, profiling, estimator):
         benchmark_estimator.run()
         t1_ = time.perf_counter()
 
-        time_report.loc[len(time_report)] = [name, *convert(t1_ - t0_)]
+        time_report.loc[len(time_report)] = [
+            name,
+            benchmark_estimator.estimator.split(".")[0],
+            *convert(t1_ - t0_),
+        ]
 
     # Store bench time report
     t1 = time.perf_counter()
-    time_report.loc[len(time_report)] = ["total", *convert(t1 - t0)]
+    time_report.loc[len(time_report)] = ["total", None, *convert(t1 - t0)]
     time_report.to_csv(
         str(TIME_REPORT_PATH),
         mode="w+",

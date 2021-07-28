@@ -18,13 +18,20 @@ STD_RUNTIME = "stdev"
 PLOT_HEIGHT_IN_PX = 350
 REPORTING_FONT_SIZE = 12
 DEFAULT_COMPARE_COLS = [MEAN_RUNTIME, STD_RUNTIME]
-BENCHMARK_TIME_BUDGET = 300
-BENCHMARK_PREDICTIONS_TIME_BUDGET = 3
-BENCH_LIBS = ["scikit-learn", "scikit-learn-intelex", "xgboost", "lightgbm", "catboost"]
-HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange"]
 # TODO: Probably use a dict here to map library to color and vice versa, e.g:
 # BENCH_LIBS_TO_COLORS = dict(zip(BENCH_LIBS, HPO_CURVES_COLORS))
 # COLORS_TO_BENCH_LIBS = dict(zip(HPO_CURVES_COLORS, BENCH_LIBS))
+BENCH_LIBS = [
+    "scikit-learn",
+    "scikit-learn-intelex",
+    "xgboost",
+    "lightgbm",
+    "catboost",
+    "onnx",
+]
+HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange", "lightgray"]
+HPO_BENCHMARK_TIME_BUDGET = 600
+BENCHMARK_PREDICTIONS_TIME_BUDGET = 3
 
 
 def get_full_config(config=None):
@@ -36,7 +43,7 @@ def get_full_config(config=None):
 
 
 def parse_parameters(params):
-    """ Parse the parameters to get a proper representation.
+    """Parse the parameters to get a proper representation.
 
     Motives: pyyaml does not support YAML 1.2 yet, hence
     numbers stored using scientific notations might be loaded
