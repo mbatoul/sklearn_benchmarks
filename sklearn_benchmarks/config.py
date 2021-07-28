@@ -26,7 +26,7 @@ BENCH_LIBS = [
     "catboost",
     "onnx",
 ]
-HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange", "grey"]
+HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange", "lightgray"]
 HPO_BENCHMARK_TIME_BUDGET = 600
 BENCHMARK_PREDICTIONS_TIME_BUDGET = 3
 
