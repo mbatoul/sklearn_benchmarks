@@ -63,17 +63,17 @@ benchmarking:
       metrics:
         - accuracy_score
       datasets:
-        # - sample_generator: sklearn.datasets.make_classification
-        #   params:
-        #     n_classes: 2
-        #     n_redundant: 0
-        #     random_state: 42
-        #   n_features: 10
-        #   n_samples_train:
-        #     - 1e6
-        #   n_samples_test:
-        #     - 1
-        #     - 1e3
+        - sample_generator: sklearn.datasets.make_classification
+          params:
+            n_classes: 2
+            n_redundant: 0
+            random_state: 42
+          n_features: 10
+          n_samples_train:
+            - 1e6
+          n_samples_test:
+            - 1
+            - 1e3
         - sample_generator: sklearn.datasets.make_classification
           params:
             n_classes: 2
