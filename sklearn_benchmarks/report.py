@@ -181,7 +181,7 @@ class SingleEstimatorReport:
         return merged_df
 
     def _make_reporting_df_onnx(self):
-        df = self._get_benchmark_df()
+        df = self._get_benchmark_df(lib=self.base_lib)
         df = df.query("function == 'predict'")
         df = df.fillna(value={"use_onnx_runtime": False})
         merged_df = df.query("use_onnx_runtime == True").merge(
