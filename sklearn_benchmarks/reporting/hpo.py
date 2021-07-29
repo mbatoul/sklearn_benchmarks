@@ -25,7 +25,7 @@ from sklearn_benchmarks.utils.plotting import (
 
 @dataclass
 class HPOBenchmarkResult:
-    """Class for store formatted data of HPO results."""
+    """Class to store formatted data of HPO benchmark results."""
 
     lib: str
     legend: str

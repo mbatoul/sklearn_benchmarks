@@ -44,7 +44,16 @@ def get_full_config(config=None):
     return config
 
 
-def prepare_params(params):
+def parse_parameters(params):
+    """Parse the parameters to get a proper representation.
+
+    Motives: pyyaml does not support YAML 1.2 yet, hence
+    numbers stored using scientific notations might be loaded
+    as strings.
+
+    PR to track: https://github.com/yaml/pyyaml/issues/486
+
+    """
     from sklearn_benchmarks.utils.misc import is_scientific_notation
 
     init_params = params.get("hyperparameters", {}).get("init", {})
@@ -53,10 +62,7 @@ def prepare_params(params):
             continue
         for i, el in enumerate(value):
             if is_scientific_notation(el):
-                if "-" in el:
-                    init_params[key][i] = float(el)
-                else:
-                    init_params[key][i] = int(float(el))
+                init_params[key][i] = float(el) if "-" in el else int(float(el))
 
     datasets = params.get("datasets", [])
     for dataset in datasets:

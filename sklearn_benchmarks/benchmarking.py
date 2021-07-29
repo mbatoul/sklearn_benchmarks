@@ -10,6 +10,7 @@ import pandas as pd
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import ParameterGrid, train_test_split
+from sklearn.utils import check_random_state
 from sklearn.utils._testing import set_random_state
 from viztracer import VizTracer
 
@@ -57,9 +58,9 @@ class BenchFuncExecutor:
 
         # Next runs: at most n_executions runs or 30 sec total execution time
         times = []
-        start = time.perf_counter()
+        start_global = time.perf_counter()
         for _ in range(n_executions):
-            start = time.perf_counter()
+            start_iter = time.perf_counter()
 
             if y is not None:
                 self.func_result_ = func(X, y, **kwargs)
@@ -75,32 +76,30 @@ class BenchFuncExecutor:
                 else:
                     self.func_result_ = func(X, **kwargs)
 
-            end = time.perf_counter()
-            times.append(end - start)
+            end_iter = time.perf_counter()
+            times.append(end_iter - start_iter)
 
-            if end - start > FUNC_TIME_BUDGET:
+            if end_iter - start_global > FUNC_TIME_BUDGET:
                 break
 
         benchmark_info = {}
         mean = np.mean(times)
 
-        n_iter = None
-        if hasattr(estimator, "n_iter_"):
-            benchmark_info["n_iter"] = estimator.n_iter_
-            n_iter = estimator.n_iter_
-        elif hasattr(estimator, "best_iteration_"):
-            n_iter = estimator.best_iteration_
-        elif hasattr(estimator, "get_best_iteration"):
-            n_iter = estimator.get_best_iteration()
-        elif hasattr(estimator, "get_booster"):
-            n_iter = estimator.get_booster().best_iteration
+        benchmark_info["n_iter"] = (
+            estimator.n_iter_ if hasattr(estimator, "n_iter_") else None
+        )
+        benchmark_info["best_iteration"] = None
 
-        benchmark_info["n_iter"] = n_iter
-        n_iter = 1 if n_iter is None else n_iter
+        if hasattr(estimator, "best_iteration_"):
+            benchmark_info["best_iteration"] = estimator.best_iteration_
+        elif hasattr(estimator, "get_best_iteration"):
+            benchmark_info["best_iteration"] = estimator.get_best_iteration()
+        elif hasattr(estimator, "get_booster"):
+            benchmark_info["best_iteration"] = estimator.get_booster().best_iteration
 
         benchmark_info["mean_duration"] = mean
         benchmark_info["std_duration"] = np.std(times)
-        benchmark_info["throughput"] = X.nbytes * n_iter / mean / 1e9
+        benchmark_info["iteration_throughput"] = X.nbytes / mean / 1e9
         benchmark_info["latency"] = mean / X.shape[0]
 
         return benchmark_info
@@ -116,7 +115,6 @@ class Benchmark:
         hyperparameters={},
         datasets=[],
         predict_with_onnx=False,
-        onnx_params={},
         random_state=None,
         benchmarking_method="",
         profiling_file_type="",
@@ -128,9 +126,8 @@ class Benchmark:
         self.metrics = metrics
         self.hyperparameters = hyperparameters
         self.datasets = datasets
+        self.random_state = check_random_state(random_state)
         self.predict_with_onnx = predict_with_onnx
-        self.onnx_params = onnx_params
-        self.random_state = random_state
         self.benchmarking_method = benchmarking_method
         self.profiling_file_type = profiling_file_type
         self.profiling_output_extensions = profiling_output_extensions
@@ -143,11 +140,8 @@ class Benchmark:
             # Parameters grid should have list values
             params = {k: [v] for k, v in estimator.__dict__.items()}
         grid = list(ParameterGrid(params))
-        np.random.shuffle(grid)
+        self.random_state.shuffle(grid)
         return grid
-
-    def _set_lib(self):
-        self.lib_ = self.estimator.split(".")[0]
 
     def _load_estimator_class(self):
         split_path = self.estimator.split(".")
@@ -159,16 +153,16 @@ class Benchmark:
         return [getattr(module, m) for m in self.metrics]
 
     def run(self):
-        self._set_lib()
+        library = self.estimator.split(".")[0]
         estimator_class = self._load_estimator_class()
         metrics_funcs = self._load_metrics_funcs()
         params_grid = self._make_params_grid()
-        self.results_ = []
+        benchmark_results = []
         start = time.perf_counter()
         for dataset in self.datasets:
             n_features = dataset["n_features"]
             n_samples_train = dataset["n_samples_train"]
-            n_samples_test = list(reversed(sorted(dataset["n_samples_test"])))
+            n_samples_test = sorted(dataset["n_samples_test"], reverse=True)
             for ns_train in n_samples_train:
                 n_samples = ns_train + max(n_samples_test)
                 X, y = gen_data(
@@ -188,7 +182,7 @@ class Benchmark:
                     # Use digests to identify results later in reporting
                     hyperparams_digest = joblib.hash(params)
                     dataset_digest = joblib.hash(dataset)
-                    profiling_output_path = f"{PROFILING_RESULTS_PATH}/{self.lib_}_fit_{hyperparams_digest}_{dataset_digest}"
+                    profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_fit_{hyperparams_digest}_{dataset_digest}"
 
                     benchmark_info = BenchFuncExecutor().run(
                         bench_func,
@@ -204,7 +198,7 @@ class Benchmark:
                         initial_type = [
                             ("float_input", FloatTensorType([None, X_train.shape[1]]))
                         ]
-                        onnx_model_filepath = f"{RESULTS_PATH}/{self.lib_}_{self.name}_{hyperparams_digest}_{dataset_digest}.onnx"
+                        onnx_model_filepath = f"{RESULTS_PATH}/{library}_{self.name}_{hyperparams_digest}_{dataset_digest}.onnx"
 
                         onx = convert_sklearn(estimator, initial_types=initial_type)
 
@@ -223,7 +217,7 @@ class Benchmark:
                         **params,
                     )
 
-                    self.results_.append(row)
+                    benchmark_results.append(row)
 
                     start_predictions = time.perf_counter()
                     for i in range(len(n_samples_test)):
@@ -231,7 +225,7 @@ class Benchmark:
                         X_test_, y_test_ = X_test[:ns_test], y_test[:ns_test]
                         bench_func = estimator.predict
 
-                        profiling_output_path = f"{PROFILING_RESULTS_PATH}/{self.lib_}_{bench_func.__name__}_{hyperparams_digest}_{dataset_digest}"
+                        profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_{bench_func.__name__}_{hyperparams_digest}_{dataset_digest}"
                         executor = BenchFuncExecutor()
                         predict_params = (
                             self.hyperparameters[bench_func.__name__]
@@ -273,7 +267,7 @@ class Benchmark:
                                 row[metric_func.__name__] = score
 
                             pprint(row)
-                            self.results_.append(row)
+                            benchmark_results.append(row)
 
                         benchmark_info = executor.run(
                             bench_func,
@@ -304,8 +298,15 @@ class Benchmark:
                             row[metric_func.__name__] = score
 
                         pprint(row)
-                        self.results_.append(row)
-                        self.to_csv()
+                        benchmark_results.append(row)
+                        csv_path = (
+                            f"{BENCHMARKING_RESULTS_PATH}/{library}_{self.name}.csv"
+                        )
+                        pd.DataFrame(benchmark_results).to_csv(
+                            csv_path,
+                            mode="w+",
+                            index=False,
+                        )
 
                         if self.benchmarking_method == "hpo":
                             now = time.perf_counter()
@@ -319,11 +320,3 @@ class Benchmark:
                     if self.predict_with_onnx:
                         os.remove(onnx_model_filepath)
         return self
-
-    def to_csv(self):
-        csv_path = f"{BENCHMARKING_RESULTS_PATH}/{self.lib_}_{self.name}.csv"
-        pd.DataFrame(self.results_).to_csv(
-            csv_path,
-            mode="w+",
-            index=False,
-        )
