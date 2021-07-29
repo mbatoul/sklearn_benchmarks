@@ -240,57 +240,17 @@ class HPOReporting:
         plt.figure(figsize=(15, 10))
 
         fit_times_for_max_scores = []
-        for name, params in self.config["estimators"].items():
-            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{name}.csv"
-            df = pd.read_csv(file)
 
-            if "is_onnx" in df.columns:
-                df = df.fillna(value={"is_onnx": False})
-                df = df.query("is_onnx == False")
-
-            legend = params.get("lib")
-            legend = params.get("legend", legend)
-
-            lib = params["lib"]
-            lib = get_lib_alias(lib)
-            legend += f" ({self._versions[lib]})"
-
-            fit_times = df[df["function"] == "fit"]["mean"]
-            scores = df[df["function"] == "predict"]["accuracy_score"]
-
-            ### DEBUG
-            for threshold in self.config["speedup_thresholds"]:
-                if params["lib"] == "sklearn":
-                    idx_closest, _ = find_nearest(scores, threshold)
-                    base_time = fit_times.iloc[idx_closest]
-                idx_closest, closest_score = find_nearest(scores, threshold)
-                lib_time = fit_times.iloc[idx_closest]
-                # DEBUG
-                speedup = base_time / lib_time
-
-                color = params["color"]
-                lib = params["lib"]
-                legend = params.get("legend", lib)
-
-                data = dict(
-                    threshold=threshold,
-                    speedup=speedup,
-                    base_time=base_time,
-                    lib_time=lib_time,
-                    score=closest_score,
-                    lib=lib,
-                    legend=legend,
-                    color=color,
-                )
-                # DEBUG
-
-            color = params["color"]
-
-            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
-            idx_max_score = np.argmax(grid_scores, axis=0)
-            fit_time_for_max_score = mean_grid_times[idx_max_score]
+        for hpo_result in self.data:
+            idx_max_score = np.argmax(hpo_result.grid_scores, axis=0)
+            fit_time_for_max_score = hpo_result.mean_grid_times[idx_max_score]
             fit_times_for_max_scores.append(fit_time_for_max_score)
-            plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
+            plt.plot(
+                hpo_result.mean_grid_times,
+                hpo_result.grid_scores,
+                c=f"tab:{hpo_result.color}",
+                label=hpo_result.legend,
+            )
 
         min_fit_time_all_constant = min(fit_times_for_max_scores)
         plt.xlim(right=min_fit_time_all_constant)
@@ -300,79 +260,36 @@ class HPOReporting:
         plt.show()
 
     def display_speedup_barplots(self):
-        other_lib_dfs = []
-        for name, params in self.config["estimators"].items():
-            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{name}.csv"
-            df = pd.read_csv(file)
-
-            if params["lib"] == BASE_LIB:
-                base_lib_df = df
-                base_lib_df = base_lib_df.fillna(value={"is_onnx": False})
-                base_lib_df = base_lib_df.query("is_onnx == False")
-
-            params["df"] = df
-            other_lib_dfs.append(params)
-
-        base_fit_times = base_lib_df[base_lib_df["function"] == "fit"]["mean"]
-        base_scores = base_lib_df[base_lib_df["function"] == "predict"][
-            "accuracy_score"
-        ]
-
-        data = []
         thresholds = self.config["speedup_thresholds"]
-        for threshold in thresholds:
-            idx_closest, _ = find_nearest(base_scores, threshold)
-            base_time = base_fit_times.iloc[idx_closest]
+        _, axes = plt.subplots(len(thresholds), figsize=(12, 20))
 
-            for foo in other_lib_dfs:
-                df = foo["df"]
-                if "is_onnx" in df.columns:
-                    df = df.fillna(value={"is_onnx": False})
-                    df = df.query("is_onnx == False")
+        base_hpo_result = list(
+            filter(lambda result: result.lib == BASE_LIB, self.data)
+        )[0]
 
-                fit_times = df[df["function"] == "fit"]["mean"]
-                scores = df[df["function"] == "predict"]["accuracy_score"]
+        for ax, threshold in zip(axes, thresholds):
+            base_scores = base_hpo_result.scores
+            base_fit_times = base_hpo_result.fit_times
 
-                idx_closest, closest_score = find_nearest(scores, threshold)
-                lib_time = fit_times.iloc[idx_closest]
+            base_idx_closest, _ = find_nearest(base_scores, threshold)
+            base_time = base_fit_times.iloc[base_idx_closest]
 
+            df_threshold = pd.DataFrame(columns=["speedup", "legend", "color"])
+            for hpo_result in self.data:
+                idx_closest, _ = find_nearest(hpo_result.scores, threshold)
+                lib_time = hpo_result.fit_times.iloc[idx_closest]
                 speedup = base_time / lib_time
+                row = dict(
+                    speedup=speedup, legend=hpo_result.legend, color=hpo_result.color
+                )
+                df_threshold = df_threshold.append(row, ignore_index=True)
 
-                color = foo["color"]
-                lib = foo["lib"]
-                legend = foo.get("legend", lib)
-
-                row = [
-                    threshold,
-                    speedup,
-                    base_time,
-                    lib_time,
-                    closest_score,
-                    lib,
-                    legend,
-                    color,
-                ]
-                data.append(row)
-
-        speedup_df = pd.DataFrame(
-            columns=[
-                "threshold",
-                "speedup",
-                "base_time",
-                "lib_time",
-                "score",
-                "lib",
-                "legend",
-                "color",
-            ],
-            data=data,
-        )
-
-        _, axes = plt.subplots(3, figsize=(12, 20))
-
-        for ax, (threshold, df) in zip(axes, speedup_df.groupby(["threshold"])):
-            display(df)
-            ax.bar(x=df["legend"], height=df["speedup"], width=0.3, color=df["color"])
+            ax.bar(
+                x=df_threshold["legend"],
+                height=df_threshold["speedup"],
+                width=0.3,
+                color=df_threshold["color"],
+            )
             ax.set_xlabel("Library")
             ax.set_ylabel(f"Speedup")
             ax.set_title(f"At score {threshold}")
@@ -465,18 +382,20 @@ class HPOReporting:
 
         self._prepare_data()
 
-        display(Markdown("## Raw fit times vs. accuracy scores"))
+        display(Markdown("## Benchmark results for `fit`"))
+        display(Markdown("### Raw fit times vs. accuracy scores"))
         self._display_scatter(func="fit")
 
-        display(Markdown("## Raw predict times vs. accuracy scores"))
-        self._display_scatter(func="predict")
-
-        display(Markdown("## Smoothed HPO Curves"))
+        display(Markdown("### Smoothed HPO Curves"))
         display(Markdown("> The shaded areas represent boostrapped quartiles."))
         self.display_smoothed_curves()
 
-        display(Markdown("## Speedup barplots"))
+        display(Markdown("### Speedup barplots"))
         self.display_speedup_barplots()
 
-        display(Markdown("## Speedup curves"))
+        display(Markdown("### Speedup curves"))
         self.display_speedup_curves()
+
+        display(Markdown("## Benchmark results for `predict`"))
+        display(Markdown("### Raw predict times vs. accuracy scores"))
+        self._display_scatter(func="predict")
