@@ -33,7 +33,7 @@ HPO_CURVES_COLORS = [
     "orange",
     "lightgray",
 ]
-HPO_TIME_BUDGET = 300
+HPO_TIME_BUDGET = 600
 
 
 def get_full_config(config=None):

@@ -298,6 +298,7 @@ benchmarking:
       estimator: sklearn.ensemble.HistGradientBoostingClassifier
       predict_with_onnx: True
       benchmarking_method: hpo
+      time_budget: 600
       metrics:
         - accuracy_score
       hyperparameters:
@@ -348,6 +349,7 @@ benchmarking:
       name: LGBMClassifier
       estimator: lightgbm.LGBMClassifier
       benchmarking_method: hpo
+      time_budget: 600
       metrics:
         - accuracy_score
       hyperparameters:
@@ -405,6 +407,7 @@ benchmarking:
       name: XGBClassifier
       estimator: xgboost.XGBClassifier
       benchmarking_method: hpo
+      time_budget: 600
       metrics:
         - accuracy_score
       hyperparameters:
@@ -468,6 +471,7 @@ benchmarking:
       name: CatBoostClassifier_lossguide
       estimator: catboost.CatBoostClassifier
       benchmarking_method: hpo
+      time_budget: 600
       metrics:
         - accuracy_score
       hyperparameters:
@@ -542,6 +546,7 @@ benchmarking:
       name: CatBoostClassifier_symmetric
       estimator: catboost.CatBoostClassifier
       benchmarking_method: hpo
+      time_budget: 600
       metrics:
         - accuracy_score
       hyperparameters:

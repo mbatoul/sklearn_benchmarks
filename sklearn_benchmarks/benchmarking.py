@@ -15,13 +15,13 @@ from sklearn.utils._testing import set_random_state
 from viztracer import VizTracer
 
 from sklearn_benchmarks.config import (
+    BENCHMARKING_METHODS_N_EXECUTIONS,
     BENCHMARKING_RESULTS_PATH,
     FUNC_TIME_BUDGET,
+    HPO_PREDICTIONS_TIME_BUDGET,
+    HPO_TIME_BUDGET,
     PROFILING_RESULTS_PATH,
     RESULTS_PATH,
-    HPO_TIME_BUDGET,
-    HPO_PREDICTIONS_TIME_BUDGET,
-    BENCHMARKING_METHODS_N_EXECUTIONS,
 )
 from sklearn_benchmarks.utils.misc import gen_data
 
@@ -117,6 +117,7 @@ class Benchmark:
         predict_with_onnx=False,
         random_state=None,
         benchmarking_method="",
+        time_budget=HPO_TIME_BUDGET,
         profiling_file_type="",
         profiling_output_extensions=[],
     ):
@@ -129,6 +130,7 @@ class Benchmark:
         self.random_state = check_random_state(random_state)
         self.predict_with_onnx = predict_with_onnx
         self.benchmarking_method = benchmarking_method
+        self.time_budget = time_budget
         self.profiling_file_type = profiling_file_type
         self.profiling_output_extensions = profiling_output_extensions
 
@@ -310,7 +312,7 @@ class Benchmark:
 
                         if self.benchmarking_method == "hpo":
                             now = time.perf_counter()
-                            if now - start > HPO_TIME_BUDGET:
+                            if now - start > self.time_budget:
                                 if self.predict_with_onnx:
                                     os.remove(onnx_model_filepath)
                                 return
