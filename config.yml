@@ -4,6 +4,7 @@ benchmarking:
     KNeighborsClassifier_brute_force:
       name: KNeighborsClassifier_brute_force
       estimator: sklearn.neighbors.KNeighborsClassifier
+      benchmarking_method: hp_match
       hyperparameters:
         init:
           n_neighbors:
@@ -48,6 +49,7 @@ benchmarking:
     KNeighborsClassifier_kd_tree:
       name: KNeighborsClassifier_kd_tree
       estimator: sklearn.neighbors.KNeighborsClassifier
+      benchmarking_method: hp_match
       use_onnx_runtime: True
       hyperparameters:
         init:
@@ -93,6 +95,7 @@ benchmarking:
     KMeans_tall:
       name: KMeans_tall
       estimator: sklearn.cluster.KMeans
+      benchmarking_method: hp_match
       hyperparameters:
         init:
           init:
@@ -141,6 +144,7 @@ benchmarking:
     KMeans_short:
       name: KMeans_short
       estimator: sklearn.cluster.KMeans
+      benchmarking_method: hp_match
       hyperparameters:
         init:
           init:
@@ -189,6 +193,7 @@ benchmarking:
     LogisticRegression:
       name: LogisticRegression
       estimator: sklearn.linear_model.LogisticRegression
+      benchmarking_method: hp_match
       metrics:
         - accuracy_score
       datasets:
@@ -224,6 +229,7 @@ benchmarking:
     Ridge:
       name: Ridge
       estimator: sklearn.linear_model.Ridge
+      benchmarking_method: hp_match
       metrics:
         - r2_score
       datasets:
@@ -256,6 +262,7 @@ benchmarking:
       name: HistGradientBoostingClassifier
       estimator: sklearn.ensemble.HistGradientBoostingClassifier
       use_onnx_runtime: True
+      benchmarking_method: hpo
       metrics:
         - accuracy_score
       hyperparameters:
@@ -292,7 +299,6 @@ benchmarking:
             - 200
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
             n_classes: 5
             n_informative: 5
@@ -307,6 +313,7 @@ benchmarking:
     lightgbm:
       name: LGBMClassifier
       estimator: lightgbm.LGBMClassifier
+      benchmarking_method: hpo
       metrics:
         - accuracy_score
       hyperparameters:
@@ -348,7 +355,6 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
             n_classes: 5
             n_informative: 5
@@ -364,6 +370,7 @@ benchmarking:
     xgboost:
       name: XGBClassifier
       estimator: xgboost.XGBClassifier
+      benchmarking_method: hpo
       metrics:
         - accuracy_score
       hyperparameters:
@@ -411,7 +418,6 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
             n_classes: 5
             n_informative: 5
@@ -427,6 +433,7 @@ benchmarking:
     catboost_lossguide:
       name: CatBoostClassifier_lossguide
       estimator: catboost.CatBoostClassifier
+      benchmarking_method: hpo
       metrics:
         - accuracy_score
       hyperparameters:
@@ -474,7 +481,6 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
             n_classes: 5
             n_informative: 5
@@ -490,6 +496,7 @@ benchmarking:
     catboost_symmetric:
       name: CatBoostClassifier_symmetric
       estimator: catboost.CatBoostClassifier
+      benchmarking_method: hpo
       metrics:
         - accuracy_score
       hyperparameters:
@@ -532,7 +539,6 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
             n_classes: 5
             n_informative: 5
@@ -545,7 +551,7 @@ benchmarking:
           n_samples_test:
             - 1e3
 
-reporting:
+hp_match_reporting:
   n_cols: 2
   version_aliases:
     sklearnex: scikit-learn-intelex
@@ -553,6 +559,14 @@ reporting:
     KNeighborsClassifier_brute_force:
       name: KNeighborsClassifier_brute_force
       against_lib: sklearnex
+      split_bars:
+        - n_jobs
+      compare:
+        - accuracy_score
+
+    KNeighborsClassifier_brute_force:
+      name: KNeighborsClassifier_brute_force
+      against_lib: onnx
       split_bars:
         - n_jobs
       compare:

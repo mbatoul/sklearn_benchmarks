@@ -12,7 +12,6 @@ VERSIONS_PATH = RESULTS_PATH / "versions.txt"
 DEFAULT_CONFIG = "config.yml"
 BASE_LIB = "sklearn"
 FUNC_TIME_BUDGET = 30
-BENCHMARK_MAX_ITER = 10
 SPEEDUP_COL = "mean"
 STDEV_SPEEDUP_COL = "stdev"
 PLOT_HEIGHT_IN_PX = 350
@@ -26,9 +25,18 @@ BENCH_LIBS = [
     "catboost",
     "onnx",
 ]
-HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange", "lightgray"]
-HPO_BENCHMARK_TIME_BUDGET = 600
 BENCHMARK_PREDICTIONS_TIME_BUDGET = 3
+BENCHMARKING_METHODS_N_EXECUTIONS = {"hp_match": 10, "hpo": 1}
+
+HPO_CURVES_COLORS = [
+    "blue",
+    "red",
+    "green",
+    "purple",
+    "orange",
+    "lightgray",
+]
+HPO_BENCHMARK_TIME_BUDGET = 5
 
 
 def get_full_config(config=None):

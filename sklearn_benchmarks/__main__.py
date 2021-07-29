@@ -68,7 +68,9 @@ def main(append, config, profiling, estimator):
     if estimator:
         selected_estimators = {k: all_estimators[k] for k in estimator}
 
-    time_report = pd.DataFrame(columns=["algo", "lib", "hour", "min", "sec"])
+    time_report = pd.DataFrame(
+        columns=["estimator", "benchmarking_method", "hour", "min", "sec"]
+    )
     t0 = time.perf_counter()
 
     for name, params in selected_estimators.items():
@@ -86,17 +88,17 @@ def main(append, config, profiling, estimator):
         params["random_state"] = config.get("random_state", None)
         params["profiling_output_extensions"] = profiling
 
-        benchmark_estimator = Benchmark(**params)
-        t0_ = time.perf_counter()
-        benchmark_estimator.run()
-        t1_ = time.perf_counter()
+        benchmark = Benchmark(**params)
+        start_benchmark = time.perf_counter()
+        benchmark.run()
+        end_benchmark = time.perf_counter()
 
         time_report.loc[len(time_report)] = [
             name,
-            benchmark_estimator.lib_,
-            *convert(t1_ - t0_),
+            params["benchmarking_method"],
+            *convert(end_benchmark - start_benchmark),
         ]
-        benchmark_estimator.to_csv()
+        benchmark.to_csv()
 
     # Store bench time report
     t1 = time.perf_counter()

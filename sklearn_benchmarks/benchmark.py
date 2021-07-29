@@ -15,13 +15,13 @@ from sklearn.utils._testing import set_random_state
 from viztracer import VizTracer
 
 from sklearn_benchmarks.config import (
-    BENCHMARK_MAX_ITER,
     BENCHMARKING_RESULTS_PATH,
     FUNC_TIME_BUDGET,
     PROFILING_RESULTS_PATH,
     RESULTS_PATH,
     HPO_BENCHMARK_TIME_BUDGET,
     BENCHMARK_PREDICTIONS_TIME_BUDGET,
+    BENCHMARKING_METHODS_N_EXECUTIONS,
 )
 from sklearn_benchmarks.utils.misc import gen_data, predict_or_transform
 
@@ -39,11 +39,11 @@ class BenchFuncExecutor:
         profiling_output_extensions,
         X,
         y=None,
-        max_iter=BENCHMARK_MAX_ITER,
+        n_executions=10,
         onnx_model_filepath=None,
         **kwargs,
     ):
-        if max_iter > 1:
+        if n_executions > 1:
             # First run with a profiler (not timed)
             with VizTracer(verbose=0) as tracer:
                 tracer.start()
@@ -56,23 +56,16 @@ class BenchFuncExecutor:
                     output_file = f"{profiling_output_path}.{extension}"
                     tracer.save(output_file=output_file)
 
-        # Next runs: at most 10 runs or 30 sec
+        # Next runs: at most n_executions runs or 30 sec total execution time
         times = []
         start = time.perf_counter()
-        for _ in range(max_iter):
+        for _ in range(n_executions):
             start = time.perf_counter()
 
             if y is not None:
                 self.func_result_ = func(X, y, **kwargs)
             else:
                 if onnx_model_filepath is not None:
-                    print(
-                        f"file {onnx_model_filepath} exists: ",
-                        os.path.exists(onnx_model_filepath),
-                    )
-                    print(
-                        f"starting prediction for model in file {onnx_model_filepath}..."
-                    )
                     sess = rt.InferenceSession(onnx_model_filepath)
                     input_name = sess.get_inputs()[0].name
                     label_name = sess.get_outputs()[0].name
@@ -126,6 +119,7 @@ class Benchmark:
         use_onnx_runtime=False,
         onnx_params={},
         random_state=None,
+        benchmarking_method="",
         profiling_file_type="",
         profiling_output_extensions=[],
     ):
@@ -138,6 +132,7 @@ class Benchmark:
         self.use_onnx_runtime = use_onnx_runtime
         self.onnx_params = onnx_params
         self.random_state = random_state
+        self.benchmarking_method = benchmarking_method
         self.profiling_file_type = profiling_file_type
         self.profiling_output_extensions = profiling_output_extensions
 
@@ -176,7 +171,6 @@ class Benchmark:
             n_samples_train = dataset["n_samples_train"]
             n_samples_test = list(reversed(sorted(dataset["n_samples_test"])))
             n_samples_valid = dataset.get("n_samples_valid", None)
-            is_hpo_curve = dataset.get("hpo_curve", False)
             for ns_train in n_samples_train:
                 n_samples = ns_train + max(n_samples_test)
                 if n_samples_valid is not None:
@@ -217,7 +211,7 @@ class Benchmark:
                         self.profiling_output_extensions,
                         X_train,
                         y=y_train,
-                        max_iter=1,
+                        n_executions=1,
                         **fit_params,
                     )
 
@@ -260,6 +254,9 @@ class Benchmark:
                             else {}
                         )
 
+                        n_executions = BENCHMARKING_METHODS_N_EXECUTIONS[
+                            self.benchmarking_method
+                        ]
                         if self.use_onnx_runtime:
                             benchmark_info = executor.run(
                                 bench_func,
@@ -267,7 +264,7 @@ class Benchmark:
                                 profiling_output_path,
                                 self.profiling_output_extensions,
                                 X_test_,
-                                max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
+                                n_executions=n_executions,
                                 onnx_model_filepath=onnx_model_filepath,
                                 **bench_func_params,
                             )
@@ -299,7 +296,7 @@ class Benchmark:
                             profiling_output_path,
                             self.profiling_output_extensions,
                             X_test_,
-                            max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
+                            n_executions=n_executions,
                             **bench_func_params,
                         )
 
@@ -327,7 +324,7 @@ class Benchmark:
                         if self.use_onnx_runtime:
                             os.remove(onnx_model_filepath)
 
-                        if is_hpo_curve:
+                        if self.benchmarking_method == "hpo":
                             now = time.perf_counter()
                             if now - start > HPO_BENCHMARK_TIME_BUDGET:
                                 return

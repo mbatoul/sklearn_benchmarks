@@ -36,12 +36,25 @@ from sklearn_benchmarks.utils.plotting import (
 
 
 def print_time_report():
-    df = pd.read_csv(str(TIME_REPORT_PATH), index_col="algo")
-    df = df.sort_values(by=["lib", "hour", "min", "sec"])
+    df = pd.read_csv(str(TIME_REPORT_PATH), index_col="estimator")
+    df = df.sort_values(by=["hour", "min", "sec"])
+
+    df["sec"] = df["sec"].round(0)
+    df[["hour", "min", "sec"]] = df[["hour", "min", "sec"]].astype(int)
+
+    row_total, df = df.iloc[-1], df.iloc[:-1]
+    total_hour, total_min, total_sec = row_total[["hour", "min", "sec"]].values
+    subtitle = f"Total time elapsed: {total_hour}h {total_min}m {total_sec}s"
 
     display(Markdown("## Time report"))
-    for index, row in df.iterrows():
-        display(Markdown("**%s** (%s): %ih %im %is" % (index, *row.values)))
+    display(Markdown(f"{subtitle}"))
+    for benchmarking_method, df in df.groupby(["benchmarking_method"]):
+        benchmarking_method = benchmarking_method.replace("_", " ")
+        benchmarking_method = benchmarking_method.capitalize()
+        display(Markdown(f"### {benchmarking_method}"))
+
+        df = df.drop(columns=["benchmarking_method"])
+        display(df)
 
 
 def print_env_info():

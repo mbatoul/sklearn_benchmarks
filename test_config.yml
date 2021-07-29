@@ -4,6 +4,7 @@ benchmarking:
     KNeighborsClassifier_brute_force:
       name: KNeighborsClassifier_brute_force
       estimator: sklearn.neighbors.KNeighborsClassifier
+      benchmarking_method: hp_match
       hyperparameters:
         init:
           n_neighbors:
@@ -36,6 +37,7 @@ benchmarking:
     KNeighborsClassifier_kd_tree:
       name: KNeighborsClassifier_kd_tree
       estimator: sklearn.neighbors.KNeighborsClassifier
+      benchmarking_method: hp_match
       use_onnx_runtime: True
       hyperparameters:
         init:
@@ -69,6 +71,7 @@ benchmarking:
     KMeans_tall:
       name: KMeans_tall
       estimator: sklearn.cluster.KMeans
+      benchmarking_method: hp_match
       hyperparameters:
         init:
           init:
@@ -105,6 +108,7 @@ benchmarking:
     KMeans_short:
       name: KMeans_short
       estimator: sklearn.cluster.KMeans
+      benchmarking_method: hp_match
       hyperparameters:
         init:
           init:
@@ -141,6 +145,7 @@ benchmarking:
     LogisticRegression:
       name: LogisticRegression
       estimator: sklearn.linear_model.LogisticRegression
+      benchmarking_method: hp_match
       metrics:
         - accuracy_score
       datasets:
@@ -162,6 +167,7 @@ benchmarking:
     Ridge:
       name: Ridge
       estimator: sklearn.linear_model.Ridge
+      benchmarking_method: hp_match
       metrics:
         - r2_score
       datasets:
@@ -185,6 +191,7 @@ benchmarking:
       use_onnx_runtime: True
       metrics:
         - accuracy_score
+      benchmarking_method: hpo
       hyperparameters:
         init:
           early_stopping:
@@ -221,7 +228,6 @@ benchmarking:
             - 200
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
             n_classes: 2
             n_informative: 8
@@ -238,6 +244,7 @@ benchmarking:
       estimator: lightgbm.LGBMClassifier
       metrics:
         - accuracy_score
+      benchmarking_method: hpo
       hyperparameters:
         init:
           learning_rate:
@@ -279,7 +286,6 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
             n_classes: 2
             n_informative: 8
@@ -297,6 +303,7 @@ benchmarking:
       estimator: xgboost.XGBClassifier
       metrics:
         - accuracy_score
+      benchmarking_method: hpo
       hyperparameters:
         init:
           validate_parameters:
@@ -344,7 +351,6 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
             n_classes: 2
             n_informative: 8
@@ -362,6 +368,7 @@ benchmarking:
       estimator: catboost.CatBoostClassifier
       metrics:
         - accuracy_score
+      benchmarking_method: hpo
       hyperparameters:
         init:
           allow_writing_files:
@@ -409,7 +416,6 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
             n_classes: 2
             n_informative: 8
@@ -427,6 +433,7 @@ benchmarking:
       estimator: catboost.CatBoostClassifier
       metrics:
         - accuracy_score
+      benchmarking_method: hpo
       hyperparameters:
         init:
           allow_writing_files:
@@ -467,7 +474,6 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
             n_classes: 2
             n_informative: 8
