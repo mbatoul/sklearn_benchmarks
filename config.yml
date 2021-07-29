@@ -5,6 +5,7 @@ benchmarking:
       name: KNeighborsClassifier_brute_force
       estimator: sklearn.neighbors.KNeighborsClassifier
       benchmarking_method: hp_match
+      predict_with_onnx: True
       hyperparameters:
         init:
           n_neighbors:
