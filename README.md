@@ -1,8 +1,4 @@
 <p align="center">
-  <a href="https://github.com/mbatoul/sklearn_benchmarks">
-    <img src="logo.png" alt="Logo" >
-  </a>
-
   <h3 align="center">scikit-learn benchmarks</h3>
 
   <p align="center">
