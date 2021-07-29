@@ -268,10 +268,6 @@ benchmarking:
         - accuracy_score
       hyperparameters:
         init:
-          early_stopping:
-            - True
-          validation_fraction:
-            - 0.05
           learning_rate:
             - 0.01
             - 0.05
@@ -285,8 +281,6 @@ benchmarking:
             - 10
             - 30
             - 100
-          max_iter:
-            - 300
           max_bins:
             - 32
             - 64
@@ -298,6 +292,11 @@ benchmarking:
             - 20
             - 100
             - 200
+          max_iter:
+            - 10
+            - 30
+            - 100
+            - 300
       datasets:
         - sample_generator: sklearn.datasets.make_classification
           params:
@@ -330,8 +329,6 @@ benchmarking:
             - 10
             - 30
             - 100
-          n_estimators:
-            - 300
           max_bin:
             - 32
             - 64
@@ -351,9 +348,11 @@ benchmarking:
             - 0.5
             - 0.8
             - 1
-        fit:
-          eval_set: (X_valid, y_valid)
-          early_stopping_rounds: 10
+          n_estimators:
+            - 10
+            - 30
+            - 100
+            - 300
       datasets:
         - sample_generator: sklearn.datasets.make_classification
           params:
@@ -393,8 +392,6 @@ benchmarking:
             - 10
             - 30
             - 100
-          n_estimators:
-            - 300
           max_bin:
             - 32
             - 64
@@ -414,9 +411,11 @@ benchmarking:
             - 0.5
             - 0.8
             - 1
-        fit:
-          eval_set: "[(X_valid, y_valid)]"
-          early_stopping_rounds: 10
+          max_iter:
+            - 10
+            - 30
+            - 100
+            - 300
       datasets:
         - sample_generator: sklearn.datasets.make_classification
           params:
@@ -456,8 +455,6 @@ benchmarking:
             - 10
             - 30
             - 100
-          iterations:
-            - 300
           border_count:
             - 32
             - 64
@@ -485,6 +482,11 @@ benchmarking:
             - 8
             - 9
             - 10
+          iterations:
+            - 10
+            - 30
+            - 100
+            - 300
         fit:
           eval_set: (X_valid, y_valid)
           early_stopping_rounds: 10
@@ -522,8 +524,6 @@ benchmarking:
             - 0.1
             - 0.5
             - 1.
-          iterations:
-            - 300
           border_count:
             - 32
             - 64
@@ -551,6 +551,11 @@ benchmarking:
             - 8
             - 9
             - 10
+          iterations:
+            - 10
+            - 30
+            - 100
+            - 300
         fit:
           eval_set: (X_valid, y_valid)
           early_stopping_rounds: 10

@@ -170,11 +170,8 @@ class Benchmark:
             n_features = dataset["n_features"]
             n_samples_train = dataset["n_samples_train"]
             n_samples_test = list(reversed(sorted(dataset["n_samples_test"])))
-            n_samples_valid = dataset.get("n_samples_valid", None)
             for ns_train in n_samples_train:
                 n_samples = ns_train + max(n_samples_test)
-                if n_samples_valid is not None:
-                    n_samples += n_samples_valid
                 X, y = gen_data(
                     dataset["sample_generator"],
                     n_samples=n_samples,
@@ -184,16 +181,6 @@ class Benchmark:
                 X_train, X_test, y_train, y_test = train_test_split(
                     X, y, train_size=ns_train, random_state=self.random_state
                 )
-                if n_samples_valid is not None:
-                    X_train, X_valid, y_train, y_valid = train_test_split(
-                        X_train,
-                        y_train,
-                        test_size=n_samples_valid,
-                        random_state=self.random_state,
-                    )
-                fit_params = {}
-                for k, v in self.hyperparameters.get("fit", {}).items():
-                    fit_params[k] = eval(str(v))
 
                 for params in params_grid:
                     estimator = estimator_class(**params)
@@ -212,7 +199,6 @@ class Benchmark:
                         X_train,
                         y=y_train,
                         n_executions=1,
-                        **fit_params,
                     )
 
                     if self.predict_with_onnx:
@@ -244,11 +230,11 @@ class Benchmark:
                     for i in range(len(n_samples_test)):
                         ns_test = n_samples_test[i]
                         X_test_, y_test_ = X_test[:ns_test], y_test[:ns_test]
-                        bench_func = predict_or_transform(estimator)
+                        bench_func = estimator.predict
 
                         profiling_output_path = f"{PROFILING_RESULTS_PATH}/{self.lib_}_{bench_func.__name__}_{hyperparams_digest}_{dataset_digest}"
                         executor = BenchFuncExecutor()
-                        bench_func_params = (
+                        predict_params = (
                             self.hyperparameters[bench_func.__name__]
                             if bench_func.__name__ in self.hyperparameters
                             else {}
@@ -266,7 +252,7 @@ class Benchmark:
                                 X_test_,
                                 n_executions=n_executions,
                                 onnx_model_filepath=onnx_model_filepath,
-                                **bench_func_params,
+                                **predict_params,
                             )
 
                             row = dict(
@@ -297,7 +283,7 @@ class Benchmark:
                             self.profiling_output_extensions,
                             X_test_,
                             n_executions=n_executions,
-                            **bench_func_params,
+                            **predict_params,
                         )
 
                         row = dict(
