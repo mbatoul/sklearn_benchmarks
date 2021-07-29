@@ -62,3 +62,8 @@ def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return idx, array[idx]
+
+
+def get_lib_alias(lib):
+    aliases = dict(sklearn="scikit-learn", sklearnex="scikit-learn-intelex")
+    return aliases.get(lib, lib)

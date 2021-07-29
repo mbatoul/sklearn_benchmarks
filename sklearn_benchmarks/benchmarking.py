@@ -116,7 +116,7 @@ class Benchmark:
         metrics=[],
         hyperparameters={},
         datasets=[],
-        use_onnx_runtime=False,
+        predict_with_onnx=False,
         onnx_params={},
         random_state=None,
         benchmarking_method="",
@@ -129,7 +129,7 @@ class Benchmark:
         self.metrics = metrics
         self.hyperparameters = hyperparameters
         self.datasets = datasets
-        self.use_onnx_runtime = use_onnx_runtime
+        self.predict_with_onnx = predict_with_onnx
         self.onnx_params = onnx_params
         self.random_state = random_state
         self.benchmarking_method = benchmarking_method
@@ -215,7 +215,7 @@ class Benchmark:
                         **fit_params,
                     )
 
-                    if self.use_onnx_runtime:
+                    if self.predict_with_onnx:
                         initial_type = [
                             ("float_input", FloatTensorType([None, X_train.shape[1]]))
                         ]
@@ -257,7 +257,7 @@ class Benchmark:
                         n_executions = BENCHMARKING_METHODS_N_EXECUTIONS[
                             self.benchmarking_method
                         ]
-                        if self.use_onnx_runtime:
+                        if self.predict_with_onnx:
                             benchmark_info = executor.run(
                                 bench_func,
                                 estimator,
@@ -271,7 +271,7 @@ class Benchmark:
 
                             row = dict(
                                 estimator=self.name,
-                                use_onnx_runtime=self.use_onnx_runtime,
+                                is_onnx=True,
                                 function=bench_func.__name__,
                                 n_samples_train=ns_train,
                                 n_samples=ns_test,
@@ -302,6 +302,7 @@ class Benchmark:
 
                         row = dict(
                             estimator=self.name,
+                            is_onnx=False,
                             function=bench_func.__name__,
                             n_samples_train=ns_train,
                             n_samples=ns_test,
@@ -321,7 +322,7 @@ class Benchmark:
                         self.results_.append(row)
                         self.to_csv()
 
-                        if self.use_onnx_runtime:
+                        if self.predict_with_onnx:
                             os.remove(onnx_model_filepath)
 
                         if self.benchmarking_method == "hpo":

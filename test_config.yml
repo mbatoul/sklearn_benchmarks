@@ -5,7 +5,7 @@ benchmarking:
       name: KNeighborsClassifier_brute_force
       estimator: sklearn.neighbors.KNeighborsClassifier
       benchmarking_method: hp_match
-      use_onnx_runtime: True
+      predict_with_onnx: True
       hyperparameters:
         init:
           n_neighbors:
@@ -39,7 +39,7 @@ benchmarking:
       name: KNeighborsClassifier_kd_tree
       estimator: sklearn.neighbors.KNeighborsClassifier
       benchmarking_method: hp_match
-      use_onnx_runtime: True
+      predict_with_onnx: True
       hyperparameters:
         init:
           n_neighbors:
@@ -189,7 +189,7 @@ benchmarking:
     HistGradientBoostingClassifier:
       name: HistGradientBoostingClassifier
       estimator: sklearn.ensemble.HistGradientBoostingClassifier
-      use_onnx_runtime: True
+      predict_with_onnx: True
       metrics:
         - accuracy_score
       benchmarking_method: hpo
@@ -489,8 +489,6 @@ benchmarking:
 
 reporting:
   n_cols: 2
-  version_aliases:
-    sklearnex: scikit-learn-intelex
   estimators:
     KNeighborsClassifier_brute_force:
       name: KNeighborsClassifier_brute_force
@@ -552,8 +550,6 @@ hpo_reporting:
       - 0.735
       - 0.77
       - 0.805
-  version_aliases:
-    sklearn: scikit-learn
   estimators:
     - lib: sklearn
       name: HistGradientBoostingClassifier

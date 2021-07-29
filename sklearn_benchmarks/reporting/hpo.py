@@ -1,4 +1,5 @@
 import json
+from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,7 +13,7 @@ from sklearn_benchmarks.config import (
     VERSIONS_PATH,
     get_full_config,
 )
-from sklearn_benchmarks.utils.misc import find_nearest
+from sklearn_benchmarks.utils.misc import find_nearest, get_lib_alias
 from sklearn_benchmarks.utils.plotting import (
     identify_pareto,
     make_hover_template,
@@ -20,6 +21,20 @@ from sklearn_benchmarks.utils.plotting import (
     order_columns,
     quartile_bootstrapped_curve,
 )
+
+
+@dataclass
+class HPOBenchmarkResult:
+    """Class for store formatted data of HPO results."""
+
+    lib: str
+    legend: str
+    color: str
+    df: pd.DataFrame
+    fit_times: np.ndarray
+    scores: np.ndarray
+    mean_grid_times: np.ndarray
+    grid_scores: np.ndarray
 
 
 class HPOReporting:
@@ -30,24 +45,82 @@ class HPOReporting:
         with open(VERSIONS_PATH) as json_file:
             self._versions = json.load(json_file)
 
+    def _prepare_data(self):
+        all_data = []
+        estimators = self.config["estimators"]
+
+        for estimator, params in estimators.items():
+            lib = params["lib"]
+
+            df = pd.read_csv(f"{BENCHMARKING_RESULTS_PATH}/{lib}_{estimator}.csv")
+
+            legend = params.get("legend", lib)
+            legend += f" ({self._versions[get_lib_alias(lib)]})"
+
+            color = params["color"]
+
+            fit_times = df.query("function == 'fit'")["mean"]
+            scores = df.query("function == 'predict' & is_onnx == False")[
+                "accuracy_score"
+            ]
+            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
+
+            result = HPOBenchmarkResult(
+                lib,
+                legend,
+                color,
+                df,
+                fit_times,
+                scores,
+                mean_grid_times,
+                grid_scores,
+            )
+
+            all_data.append(result)
+
+            contains_onnx_predictions = df[["is_onnx"]].any(axis=None, bool_only=True)
+            if contains_onnx_predictions:
+                lib = "onnx"
+                legend = f"ONNX ({self._versions['onnx']})"
+                color = "lightgray"
+                scores = df.query("function == 'predict' & is_onnx == True")[
+                    "accuracy_score"
+                ]
+                mean_grid_times, grid_scores = mean_bootstrapped_curve(
+                    fit_times, scores
+                )
+                df["accuracy_score"] = df.query("is_onnx == True")["accuracy_score"]
+
+                result_onnx = HPOBenchmarkResult(
+                    lib,
+                    legend,
+                    color,
+                    df,
+                    fit_times,
+                    scores,
+                    mean_grid_times,
+                    grid_scores,
+                )
+
+                all_data.append(result_onnx)
+
+        self.data = all_data
+
     def _display_scatter(self, func="fit"):
         fig = go.Figure()
 
-        for index, params in enumerate(self._config["estimators"]):
-            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
+        for index, (name, params) in enumerate(self.config["estimators"].items()):
+            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{name}.csv"
             df = pd.read_csv(file)
-            df = df.fillna(value={"use_onnx_runtime": False})
+            df = df.fillna(value={"is_onnx": False})
 
-            legend = params.get("lib")
-            legend = params.get("legend", legend)
-            key_lib_version = params["lib"]
-            key_lib_version = self._config["version_aliases"].get(
-                key_lib_version, key_lib_version
-            )
-            legend += f" ({self._versions[key_lib_version]})"
+            lib = params.get("lib")
+            legend = params.get("legend", lib)
+            lib = get_lib_alias(lib)
+            legend += f" ({self._versions[lib]})"
 
-            if "use_onnx_runtime" in df.columns:
-                df = df.query("use_onnx_runtime == False")
+            if "is_onnx" in df.columns:
+                df = df.query("is_onnx == False")
 
             df_merged = df.query("function == 'fit'").merge(
                 df.query("function == 'predict'"),
@@ -66,7 +139,7 @@ class HPOReporting:
                 inplace=True,
             )
 
-            color = HPO_CURVES_COLORS[index]
+            color = params["color"]
 
             df_hover = df_merged.copy()
             df_hover.columns = df_hover.columns.str.replace(f"_{func}", "")
@@ -109,14 +182,14 @@ class HPOReporting:
                 )
             )
 
-            if "use_onnx_runtime" in df.columns and func == "predict":
+            if "is_onnx" in df.columns and func == "predict":
                 # Add ONNX points
                 legend = f"ONNX ({self._versions['onnx']})"
-                color = HPO_CURVES_COLORS[len(self._config["estimators"])]
+                color = "lightgray"
 
                 df = pd.read_csv(file)
-                df = df.fillna(value={"use_onnx_runtime": False})
-                df_merged = df.query("function == 'predict' & use_onnx_runtime == True")
+                df = df.fillna(value={"is_onnx": False})
+                df_merged = df.query("function == 'predict' & is_onnx == True")
 
                 df_hover = df_merged.copy()
                 df_hover = df_hover[
@@ -133,7 +206,7 @@ class HPOReporting:
                         hovertemplate=make_hover_template(df_hover),
                         customdata=df_hover[order_columns(df_hover)].values,
                         marker=dict(color=color),
-                        legendgroup=len(self._config["estimators"]),
+                        legendgroup=len(self.config["estimators"]),
                     )
                 )
 
@@ -167,29 +240,56 @@ class HPOReporting:
         plt.figure(figsize=(15, 10))
 
         fit_times_for_max_scores = []
-        for index, params in enumerate(self._config["estimators"]):
-            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
+        for name, params in self.config["estimators"].items():
+            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{name}.csv"
             df = pd.read_csv(file)
+
+            if "is_onnx" in df.columns:
+                df = df.fillna(value={"is_onnx": False})
+                df = df.query("is_onnx == False")
 
             legend = params.get("lib")
             legend = params.get("legend", legend)
 
-            key_lib_version = params["lib"]
-            key_lib_version = self._config["version_aliases"].get(
-                key_lib_version, key_lib_version
-            )
-            legend += f" ({self._versions[key_lib_version]})"
+            lib = params["lib"]
+            lib = get_lib_alias(lib)
+            legend += f" ({self._versions[lib]})"
 
             fit_times = df[df["function"] == "fit"]["mean"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
 
-            color = HPO_CURVES_COLORS[index]
+            ### DEBUG
+            for threshold in self.config["speedup_thresholds"]:
+                if params["lib"] == "sklearn":
+                    idx_closest, _ = find_nearest(scores, threshold)
+                    base_time = fit_times.iloc[idx_closest]
+                idx_closest, closest_score = find_nearest(scores, threshold)
+                lib_time = fit_times.iloc[idx_closest]
+                # DEBUG
+                speedup = base_time / lib_time
+
+                color = params["color"]
+                lib = params["lib"]
+                legend = params.get("legend", lib)
+
+                data = dict(
+                    threshold=threshold,
+                    speedup=speedup,
+                    base_time=base_time,
+                    lib_time=lib_time,
+                    score=closest_score,
+                    lib=lib,
+                    legend=legend,
+                    color=color,
+                )
+                # DEBUG
+
+            color = params["color"]
 
             mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
             idx_max_score = np.argmax(grid_scores, axis=0)
             fit_time_for_max_score = mean_grid_times[idx_max_score]
             fit_times_for_max_scores.append(fit_time_for_max_score)
-
             plt.plot(mean_grid_times, grid_scores, c=f"tab:{color}", label=legend)
 
         min_fit_time_all_constant = min(fit_times_for_max_scores)
@@ -200,79 +300,90 @@ class HPOReporting:
         plt.show()
 
     def display_speedup_barplots(self):
-        other_lib_dfs = {}
-        for params in self._config["estimators"]:
-            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
+        other_lib_dfs = []
+        for name, params in self.config["estimators"].items():
+            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{name}.csv"
             df = pd.read_csv(file)
 
             if params["lib"] == BASE_LIB:
                 base_lib_df = df
-                base_lib_df = base_lib_df.fillna(value={"use_onnx_runtime": False})
-                base_lib_df = base_lib_df.query("use_onnx_runtime == False")
+                base_lib_df = base_lib_df.fillna(value={"is_onnx": False})
+                base_lib_df = base_lib_df.query("is_onnx == False")
 
-            key = "".join(params.get("legend", params.get("lib")))
-            other_lib_dfs[key] = df
-
-        data = []
-        columns = ["score"]
+            params["df"] = df
+            other_lib_dfs.append(params)
 
         base_fit_times = base_lib_df[base_lib_df["function"] == "fit"]["mean"]
         base_scores = base_lib_df[base_lib_df["function"] == "predict"][
             "accuracy_score"
         ]
 
-        for val in self._config["speedup"]["scores"]:
-            row = [val]
-            for lib, df in other_lib_dfs.items():
-                if lib not in columns:
-                    columns.append(lib)
+        data = []
+        thresholds = self.config["speedup_thresholds"]
+        for threshold in thresholds:
+            idx_closest, _ = find_nearest(base_scores, threshold)
+            base_time = base_fit_times.iloc[idx_closest]
 
-                if "use_onnx_runtime" in df.columns:
-                    df = df.fillna(value={"use_onnx_runtime": False})
-                    df = df.query("use_onnx_runtime == False")
+            for foo in other_lib_dfs:
+                df = foo["df"]
+                if "is_onnx" in df.columns:
+                    df = df.fillna(value={"is_onnx": False})
+                    df = df.query("is_onnx == False")
 
                 fit_times = df[df["function"] == "fit"]["mean"]
                 scores = df[df["function"] == "predict"]["accuracy_score"]
 
-                assert fit_times.shape == scores.shape
+                idx_closest, closest_score = find_nearest(scores, threshold)
+                lib_time = fit_times.iloc[idx_closest]
 
-                idx, _ = find_nearest(scores, val)
-                other_lib_time = fit_times.iloc[idx]
+                speedup = base_time / lib_time
 
-                idx, _ = find_nearest(base_scores, val)
-                base_time = base_fit_times.iloc[idx]
+                color = foo["color"]
+                lib = foo["lib"]
+                legend = foo.get("legend", lib)
 
-                speedup = base_time / other_lib_time
+                row = [
+                    threshold,
+                    speedup,
+                    base_time,
+                    lib_time,
+                    closest_score,
+                    lib,
+                    legend,
+                    color,
+                ]
+                data.append(row)
 
-                row.append(speedup)
-            data.append(row)
+        speedup_df = pd.DataFrame(
+            columns=[
+                "threshold",
+                "speedup",
+                "base_time",
+                "lib_time",
+                "score",
+                "lib",
+                "legend",
+                "color",
+            ],
+            data=data,
+        )
 
-        speedup_df = pd.DataFrame(columns=columns, data=data)
-        speedup_df = speedup_df.set_index("score")
         _, axes = plt.subplots(3, figsize=(12, 20))
 
-        libs = list(speedup_df.columns)
-        for i in range(len(libs)):
-            key_lib_version = libs[i].split(" ")[0]
-            key_lib_version = self._config["version_aliases"].get(
-                key_lib_version, key_lib_version
-            )
-            libs[i] = f"{libs[i]} ({self._versions[key_lib_version]})"
-
-        for ax, score in zip(axes, speedup_df.index.unique()):
-            speedups = speedup_df.loc[score].values
-            ax.bar(x=libs, height=speedups, width=0.3, color=HPO_CURVES_COLORS)
-            ax.set_xlabel("Lib")
-            ax.set_ylabel(f"Speedup (time sklearn / time lib)")
-            ax.set_title(f"At score {score}")
+        for ax, (threshold, df) in zip(axes, speedup_df.groupby(["threshold"])):
+            display(df)
+            ax.bar(x=df["legend"], height=df["speedup"], width=0.3, color=df["color"])
+            ax.set_xlabel("Library")
+            ax.set_ylabel(f"Speedup")
+            ax.set_title(f"At score {threshold}")
 
         plt.tight_layout()
         plt.show()
 
     def display_speedup_curves(self):
         other_lib_dfs = {}
-        for params in self._config["estimators"]:
-            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{params['name']}.csv"
+        for name, params in self.config["estimators"].items():
+            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{name}.csv"
             df = pd.read_csv(file)
             if params["lib"] == BASE_LIB:
                 base_lib_df = df
@@ -295,8 +406,8 @@ class HPOReporting:
         )
         plt.figure(figsize=(15, 10))
 
-        base_lib_alias = self._config["version_aliases"][BASE_LIB]
-        label = f"{base_lib_alias} ({self._versions[base_lib_alias]})"
+        base_lib = get_lib_alias(BASE_LIB)
+        label = f"{base_lib} ({self._versions[base_lib]})"
         plt.plot(
             base_grid_scores,
             base_mean_grid_times / base_mean_grid_times,
@@ -313,11 +424,9 @@ class HPOReporting:
 
             color = HPO_CURVES_COLORS[index + 1]
 
-            key_lib_version = lib.split(" ")[0]
-            key_lib_version = self._config["version_aliases"].get(
-                key_lib_version, key_lib_version
-            )
-            label = f"{lib} ({self._versions[key_lib_version]})"
+            lib = lib.split(" ")[0]
+            lib = get_lib_alias(lib)
+            label = f"{lib} ({self._versions[lib]})"
 
             plt.plot(grid_scores, speedup_mean, c=f"tab:{color}", label=label)
 
@@ -350,9 +459,11 @@ class HPOReporting:
 
     def run(self):
         config = get_full_config(config=self.config)
-        self._config = config["hpo_reporting"]
+        self.config = config["hpo_reporting"]
 
         self._set_versions()
+
+        self._prepare_data()
 
         display(Markdown("## Raw fit times vs. accuracy scores"))
         self._display_scatter(func="fit")

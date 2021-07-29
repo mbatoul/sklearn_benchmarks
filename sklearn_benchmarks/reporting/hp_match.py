@@ -27,6 +27,8 @@ from sklearn_benchmarks.utils.plotting import (
     order_columns,
 )
 
+from sklearn_benchmarks.utils.misc import get_lib_alias
+
 
 class HPMatchReporting:
     """
@@ -69,11 +71,9 @@ class HPMatchReporting:
             params["estimator_hyperparameters"] = self._get_estimator_hyperparameters(
                 benchmarking_estimators[name]
             )
-            key_lib_version = params["against_lib"]
-            key_lib_version = reporting_config["version_aliases"].get(
-                key_lib_version, key_lib_version
-            )
-            title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{key_lib_version}` (`{versions[key_lib_version]}`)"
+            against_lib = params["against_lib"]
+            against_lib = get_lib_alias(against_lib)
+            title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{against_lib}` (`{versions[against_lib]}`)"
             display(Markdown(title))
 
             report = SingleEstimatorReport(**params)
@@ -141,10 +141,11 @@ class SingleEstimatorReport:
 
     def _make_reporting_df_onnx(self):
         df = self._get_benchmark_df()
+
         df = df.query("function == 'predict'")
-        df = df.fillna(value={"use_onnx_runtime": False})
-        merged_df = df.query("use_onnx_runtime == True").merge(
-            df.query("use_onnx_runtime == False"),
+        df = df.fillna(value={"predict_with_onnx": False})
+        merged_df = df.query("predict_with_onnx == True").merge(
+            df.query("predict_with_onnx == False"),
             on=["hyperparams_digest", "dataset_digest"],
             how="inner",
             suffixes=["", "_onnx"],

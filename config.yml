@@ -50,7 +50,7 @@ benchmarking:
       name: KNeighborsClassifier_kd_tree
       estimator: sklearn.neighbors.KNeighborsClassifier
       benchmarking_method: hp_match
-      use_onnx_runtime: True
+      predict_with_onnx: True
       hyperparameters:
         init:
           n_neighbors:
@@ -261,7 +261,7 @@ benchmarking:
     HistGradientBoostingClassifier:
       name: HistGradientBoostingClassifier
       estimator: sklearn.ensemble.HistGradientBoostingClassifier
-      use_onnx_runtime: True
+      predict_with_onnx: True
       benchmarking_method: hpo
       metrics:
         - accuracy_score
@@ -553,8 +553,6 @@ benchmarking:
 
 hp_match_reporting:
   n_cols: 2
-  version_aliases:
-    sklearnex: scikit-learn-intelex
   estimators:
     KNeighborsClassifier_brute_force:
       name: KNeighborsClassifier_brute_force
@@ -611,28 +609,30 @@ hp_match_reporting:
       against_lib: sklearnex
 
 hpo_reporting:
-  speedup:
-    scores:
-      - 0.735
-      - 0.77
-      - 0.805
-  version_aliases:
-    sklearn: scikit-learn
+  speedup_thresholds:
+    - 0.74
+    - 0.76
+    - 0.78
   estimators:
-    HistGradientBoostingClassifier:    
+    HistGradientBoostingClassifier:
       lib: sklearn
       legend: scikit-learn
+      color: blue
 
-    LGBMClassifier:      
+    LGBMClassifier:
       lib: lightgbm
+      color: red
 
-    XGBClassifier:      
+    XGBClassifier:
       lib: xgboost
+      color: green
 
-    CatBoostClassifier_lossguide:      
+    CatBoostClassifier_lossguide:
       lib: catboost
       legend: catboost lossguide
+      color: purple
 
-    CatBoostClassifier_symmetric:      
+    CatBoostClassifier_symmetric:
       lib: catboost
       legend: catboost symmetric
+      color: orange
