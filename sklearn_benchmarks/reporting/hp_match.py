@@ -73,8 +73,10 @@ class HPMatchReporting:
             )
             against_lib = params["against_lib"]
             against_lib = get_lib_alias(against_lib)
-            title = f"## `{name}`: `scikit-learn` (`{versions['scikit-learn']}`) vs. `{against_lib}` (`{versions[against_lib]}`)"
+            title = f"## `{name}`"
+            subtitle = f"### {against_lib} ({versions[against_lib]}) vs. scikit-learn ({versions['scikit-learn']})"
             display(Markdown(title))
+            display(Markdown(subtitle))
 
             report = SingleEstimatorReport(**params)
             report.run()
