@@ -27,7 +27,6 @@ BENCH_LIBS = [
 ]
 BENCHMARK_PREDICTIONS_TIME_BUDGET = 3
 BENCHMARKING_METHODS_N_EXECUTIONS = {"hp_match": 10, "hpo": 1}
-
 HPO_CURVES_COLORS = [
     "blue",
     "red",
@@ -36,7 +35,7 @@ HPO_CURVES_COLORS = [
     "orange",
     "lightgray",
 ]
-HPO_BENCHMARK_TIME_BUDGET = 5
+HPO_BENCHMARK_TIME_BUDGET = 300
 
 
 def get_full_config(config=None):

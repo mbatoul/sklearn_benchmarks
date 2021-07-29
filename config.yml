@@ -87,7 +87,7 @@ benchmarking:
             - 1e3
           n_samples_test:
             - 1
-            # - 1e3
+            - 1e3
 
     sklearnex_KNeighborsClassifier_kd_tree:
       inherit: KNeighborsClassifier_kd_tree

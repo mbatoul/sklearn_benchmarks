@@ -322,18 +322,20 @@ class Benchmark:
                         self.results_.append(row)
                         self.to_csv()
 
-                        if self.predict_with_onnx:
-                            os.remove(onnx_model_filepath)
-
                         if self.benchmarking_method == "hpo":
                             now = time.perf_counter()
                             if now - start > HPO_BENCHMARK_TIME_BUDGET:
+                                if self.predict_with_onnx:
+                                    os.remove(onnx_model_filepath)
                                 return
                             if (
                                 now - start_predictions
                                 > BENCHMARK_PREDICTIONS_TIME_BUDGET
                             ):
                                 break
+
+                    if self.predict_with_onnx:
+                        os.remove(onnx_model_filepath)
         return self
 
     def to_csv(self):
