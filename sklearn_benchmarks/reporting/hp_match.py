@@ -143,9 +143,9 @@ class SingleEstimatorReport:
         df = self._get_benchmark_df()
 
         df = df.query("function == 'predict'")
-        df = df.fillna(value={"predict_with_onnx": False})
-        merged_df = df.query("predict_with_onnx == True").merge(
-            df.query("predict_with_onnx == False"),
+        df = df.fillna(value={"is_onnx": False})
+        merged_df = df.query("is_onnx == True").merge(
+            df.query("is_onnx == False"),
             on=["hyperparams_digest", "dataset_digest"],
             how="inner",
             suffixes=["", "_onnx"],
@@ -161,11 +161,14 @@ class SingleEstimatorReport:
             axis=1,
             inplace=True,
         )
-        merged_df["speedup"] = merged_df["mean_duration"] / merged_df["mean_onnx"]
+        merged_df["speedup"] = (
+            merged_df["mean_duration"] / merged_df["mean_duration_onnx"]
+        )
         merged_df["std_speedup"] = merged_df["speedup"] * (
             np.sqrt(
                 (merged_df["std_duration"] / merged_df["mean_duration"]) ** 2
-                + (merged_df["std_onnx"] / merged_df["mean_onnx"]) ** 2
+                + (merged_df["std_duration_onnx"] / merged_df["mean_duration_onnx"])
+                ** 2
             )
         )
         return merged_df
