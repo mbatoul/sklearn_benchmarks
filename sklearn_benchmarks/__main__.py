@@ -11,7 +11,7 @@ import pandas as pd
 from sklearn.utils._show_versions import _get_deps_info, _get_sys_info
 from threadpoolctl import threadpool_info
 
-from sklearn_benchmarks.benchmark import Benchmark
+from sklearn_benchmarks.benchmarking import Benchmark
 from sklearn_benchmarks.config import (
     BENCH_LIBS,
     DEFAULT_CONFIG,

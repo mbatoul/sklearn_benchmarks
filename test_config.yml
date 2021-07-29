@@ -5,6 +5,7 @@ benchmarking:
       name: KNeighborsClassifier_brute_force
       estimator: sklearn.neighbors.KNeighborsClassifier
       benchmarking_method: hp_match
+      use_onnx_runtime: True
       hyperparameters:
         init:
           n_neighbors:
@@ -494,6 +495,14 @@ reporting:
     KNeighborsClassifier_brute_force:
       name: KNeighborsClassifier_brute_force
       against_lib: sklearnex
+      split_bars:
+        - n_jobs
+      compare:
+        - accuracy_score
+
+    KNeighborsClassifier_brute_force:
+      name: KNeighborsClassifier_brute_force
+      against_lib: onnx
       split_bars:
         - n_jobs
       compare:

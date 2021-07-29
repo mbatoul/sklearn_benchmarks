@@ -619,25 +619,20 @@ hpo_reporting:
   version_aliases:
     sklearn: scikit-learn
   estimators:
-    - lib: sklearn
-      name: HistGradientBoostingClassifier
+    HistGradientBoostingClassifier:    
+      lib: sklearn
       legend: scikit-learn
-      color: blue
 
-    - lib: lightgbm
-      name: LGBMClassifier
-      color: red
+    LGBMClassifier:      
+      lib: lightgbm
 
-    - lib: xgboost
-      name: XGBClassifier
-      color: green
+    XGBClassifier:      
+      lib: xgboost
 
-    - lib: catboost
-      name: CatBoostClassifier_lossguide
+    CatBoostClassifier_lossguide:      
+      lib: catboost
       legend: catboost lossguide
-      color: purple
 
-    - lib: catboost
-      name: CatBoostClassifier_symmetric
+    CatBoostClassifier_symmetric:      
+      lib: catboost
       legend: catboost symmetric
-      color: orange
