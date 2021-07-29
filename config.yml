@@ -291,6 +291,7 @@ benchmarking:
           n_samples_train:
             - 1e5
           n_samples_test:
+            - 1
             - 1e3
 
     HistGradientBoostingClassifier:
