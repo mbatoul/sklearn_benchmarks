@@ -28,14 +28,6 @@ def is_scientific_notation(string):
     return isinstance(string, str) and bool(re.match(r"1[eE](\-)*\d{1,}", string))
 
 
-def predict_or_transform(estimator):
-    if hasattr(estimator, "predict"):
-        bench_func = estimator.predict
-    else:
-        bench_func = estimator.transform
-    return bench_func
-
-
 def clean_results():
     extensions = [".csv", ".html", ".json.gz", ".txt"]
     files = []

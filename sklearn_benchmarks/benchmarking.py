@@ -1,4 +1,3 @@
-import glob
 import importlib
 import os
 import time
@@ -23,7 +22,7 @@ from sklearn_benchmarks.config import (
     HPO_PREDICTIONS_TIME_BUDGET,
     BENCHMARKING_METHODS_N_EXECUTIONS,
 )
-from sklearn_benchmarks.utils.misc import gen_data, predict_or_transform
+from sklearn_benchmarks.utils.misc import gen_data
 
 
 class BenchFuncExecutor:
