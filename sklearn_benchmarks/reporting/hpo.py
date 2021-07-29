@@ -145,8 +145,8 @@ class HPOReporting:
             df_hover.columns = df_hover.columns.str.replace(f"_{func}", "")
             df_hover = df_hover.rename(
                 columns={
-                    "mean_duration": f"mean_{func}_duration",
-                    "std_duration": f"std_{func}_duration",
+                    "mean_duration": f"mean_duration_{func}",
+                    "std_duration": f"std_duration_{func}",
                 }
             )
             df_hover = df_hover[
@@ -156,7 +156,7 @@ class HPOReporting:
 
             fig.add_trace(
                 go.Scatter(
-                    x=df_merged[f"mean_{func}"],
+                    x=df_merged[f"mean_duration_{func}"],
                     y=df_merged["accuracy_score"],
                     mode="markers",
                     name=legend,
@@ -167,7 +167,7 @@ class HPOReporting:
                 )
             )
 
-            data = df_merged[[f"mean_{func}", "accuracy_score"]].values
+            data = df_merged[[f"mean_duration_{func}", "accuracy_score"]].values
             pareto_indices = identify_pareto(data)
             pareto_front = data[pareto_indices]
             pareto_front_df = pd.DataFrame(pareto_front)
