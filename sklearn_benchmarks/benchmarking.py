@@ -19,8 +19,8 @@ from sklearn_benchmarks.config import (
     FUNC_TIME_BUDGET,
     PROFILING_RESULTS_PATH,
     RESULTS_PATH,
-    HPO_BENCHMARK_TIME_BUDGET,
-    BENCHMARK_PREDICTIONS_TIME_BUDGET,
+    HPO_TIME_BUDGET,
+    HPO_PREDICTIONS_TIME_BUDGET,
     BENCHMARKING_METHODS_N_EXECUTIONS,
 )
 from sklearn_benchmarks.utils.misc import gen_data, predict_or_transform
@@ -324,14 +324,11 @@ class Benchmark:
 
                         if self.benchmarking_method == "hpo":
                             now = time.perf_counter()
-                            if now - start > HPO_BENCHMARK_TIME_BUDGET:
+                            if now - start > HPO_TIME_BUDGET:
                                 if self.predict_with_onnx:
                                     os.remove(onnx_model_filepath)
                                 return
-                            if (
-                                now - start_predictions
-                                > BENCHMARK_PREDICTIONS_TIME_BUDGET
-                            ):
+                            if now - start_predictions > HPO_PREDICTIONS_TIME_BUDGET:
                                 break
 
                     if self.predict_with_onnx:
