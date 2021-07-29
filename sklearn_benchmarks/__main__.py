@@ -11,7 +11,7 @@ import pandas as pd
 from sklearn.utils._show_versions import _get_deps_info, _get_sys_info
 from threadpoolctl import threadpool_info
 
-from sklearn_benchmarks.benchmark import Benchmark
+from sklearn_benchmarks.benchmarking import Benchmark
 from sklearn_benchmarks.config import (
     BENCH_LIBS,
     DEFAULT_CONFIG,
@@ -68,7 +68,9 @@ def main(append, config, profiling, estimator):
     if estimator:
         selected_estimators = {k: all_estimators[k] for k in estimator}
 
-    time_report = pd.DataFrame(columns=["algo", "lib", "hour", "min", "sec"])
+    time_report = pd.DataFrame(
+        columns=["estimator", "benchmarking_method", "hour", "min", "sec"]
+    )
     t0 = time.perf_counter()
 
     for name, params in selected_estimators.items():
@@ -77,8 +79,8 @@ def main(append, config, profiling, estimator):
             curr_estimator = params["estimator"]
             params = all_estimators[params["inherit"]]
             # ONNX predictions are run on scikit-learn's estimators only
-            if "use_onnx_runtime" in params:
-                params.pop("use_onnx_runtime")
+            if "predict_with_onnx" in params:
+                params.pop("predict_with_onnx")
             params["estimator"] = curr_estimator
 
         params = parse_parameters(params)
@@ -86,15 +88,15 @@ def main(append, config, profiling, estimator):
         params["random_state"] = config.get("random_state", None)
         params["profiling_output_extensions"] = profiling
 
-        benchmark_estimator = Benchmark(**params)
-        t0_ = time.perf_counter()
-        benchmark_estimator.run()
-        t1_ = time.perf_counter()
+        benchmark = Benchmark(**params)
+        start_benchmark = time.perf_counter()
+        benchmark.run()
+        end_benchmark = time.perf_counter()
 
         time_report.loc[len(time_report)] = [
             name,
-            benchmark_estimator.estimator.split(".")[0],
-            *convert(t1_ - t0_),
+            params["benchmarking_method"],
+            *convert(end_benchmark - start_benchmark),
         ]
 
     # Store bench time report

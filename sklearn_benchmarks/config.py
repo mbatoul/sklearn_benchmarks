@@ -12,15 +12,9 @@ VERSIONS_PATH = RESULTS_PATH / "versions.txt"
 DEFAULT_CONFIG = "config.yml"
 BASE_LIB = "sklearn"
 FUNC_TIME_BUDGET = 30
-BENCHMARK_MAX_ITER = 10
-MEAN_RUNTIME = "mean"
-STD_RUNTIME = "stdev"
 PLOT_HEIGHT_IN_PX = 350
 REPORTING_FONT_SIZE = 12
-DEFAULT_COMPARE_COLS = [MEAN_RUNTIME, STD_RUNTIME]
-# TODO: Probably use a dict here to map library to color and vice versa, e.g:
-# BENCH_LIBS_TO_COLORS = dict(zip(BENCH_LIBS, HPO_CURVES_COLORS))
-# COLORS_TO_BENCH_LIBS = dict(zip(HPO_CURVES_COLORS, BENCH_LIBS))
+DEFAULT_COMPARE_COLS = ["mean_duration", "std_duration"]
 BENCH_LIBS = [
     "scikit-learn",
     "scikit-learn-intelex",
@@ -29,9 +23,17 @@ BENCH_LIBS = [
     "catboost",
     "onnx",
 ]
-HPO_CURVES_COLORS = ["blue", "red", "green", "purple", "orange", "lightgray"]
-HPO_BENCHMARK_TIME_BUDGET = 600
-BENCHMARK_PREDICTIONS_TIME_BUDGET = 3
+HPO_PREDICTIONS_TIME_BUDGET = 3
+BENCHMARKING_METHODS_N_EXECUTIONS = {"hp_match": 10, "hpo": 1}
+HPO_CURVES_COLORS = [
+    "blue",
+    "red",
+    "green",
+    "purple",
+    "orange",
+    "lightgray",
+]
+HPO_TIME_BUDGET = 300
 
 
 def get_full_config(config=None):

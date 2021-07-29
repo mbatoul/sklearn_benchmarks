@@ -1,4 +1,3 @@
-import glob
 import importlib
 import os
 import time
@@ -16,17 +15,15 @@ from sklearn.utils._testing import set_random_state
 from viztracer import VizTracer
 
 from sklearn_benchmarks.config import (
-    BENCHMARK_MAX_ITER,
     BENCHMARKING_RESULTS_PATH,
     FUNC_TIME_BUDGET,
     PROFILING_RESULTS_PATH,
     RESULTS_PATH,
-    HPO_BENCHMARK_TIME_BUDGET,
-    BENCHMARK_PREDICTIONS_TIME_BUDGET,
-    MEAN_RUNTIME,
-    STD_RUNTIME,
+    HPO_TIME_BUDGET,
+    HPO_PREDICTIONS_TIME_BUDGET,
+    BENCHMARKING_METHODS_N_EXECUTIONS,
 )
-from sklearn_benchmarks.utils.misc import gen_data, predict_or_transform
+from sklearn_benchmarks.utils.misc import gen_data
 
 
 class BenchFuncExecutor:
@@ -42,11 +39,11 @@ class BenchFuncExecutor:
         profiling_output_extensions,
         X,
         y=None,
-        max_iter=BENCHMARK_MAX_ITER,
+        n_executions=10,
         onnx_model_filepath=None,
         **kwargs,
     ):
-        if max_iter > 1:
+        if n_executions > 1:
             # First run with a profiler (not timed)
             with VizTracer(verbose=0) as tracer:
                 tracer.start()
@@ -59,10 +56,10 @@ class BenchFuncExecutor:
                     output_file = f"{profiling_output_path}.{extension}"
                     tracer.save(output_file=output_file)
 
-        # Next runs: at most 10 runs or 30 sec
+        # Next runs: at most n_executions runs or 30 sec total execution time
         times = []
         start_global = time.perf_counter()
-        for _ in range(max_iter):
+        for _ in range(n_executions):
             start_iter = time.perf_counter()
 
             if y is not None:
@@ -100,8 +97,8 @@ class BenchFuncExecutor:
         elif hasattr(estimator, "get_booster"):
             benchmark_info["best_iteration"] = estimator.get_booster().best_iteration
 
-        benchmark_info[MEAN_RUNTIME] = mean
-        benchmark_info[STD_RUNTIME] = np.std(times)
+        benchmark_info["mean_duration"] = mean
+        benchmark_info["std_duration"] = np.std(times)
         benchmark_info["iteration_throughput"] = X.nbytes / mean / 1e9
         benchmark_info["latency"] = mean / X.shape[0]
 
@@ -117,9 +114,9 @@ class Benchmark:
         metrics=[],
         hyperparameters={},
         datasets=[],
-        use_onnx_runtime=False,
-        onnx_params={},
+        predict_with_onnx=False,
         random_state=None,
+        benchmarking_method="",
         profiling_file_type="",
         profiling_output_extensions=[],
     ):
@@ -130,8 +127,8 @@ class Benchmark:
         self.hyperparameters = hyperparameters
         self.datasets = datasets
         self.random_state = check_random_state(random_state)
-        self.use_onnx_runtime = use_onnx_runtime
-        self.onnx_params = onnx_params
+        self.predict_with_onnx = predict_with_onnx
+        self.benchmarking_method = benchmarking_method
         self.profiling_file_type = profiling_file_type
         self.profiling_output_extensions = profiling_output_extensions
 
@@ -166,12 +163,8 @@ class Benchmark:
             n_features = dataset["n_features"]
             n_samples_train = dataset["n_samples_train"]
             n_samples_test = sorted(dataset["n_samples_test"], reverse=True)
-            n_samples_valid = dataset.get("n_samples_valid", None)
-            is_hpo_curve = dataset.get("hpo_curve", False)
             for ns_train in n_samples_train:
                 n_samples = ns_train + max(n_samples_test)
-                if n_samples_valid is not None:
-                    n_samples += n_samples_valid
                 X, y = gen_data(
                     dataset["sample_generator"],
                     n_samples=n_samples,
@@ -181,16 +174,6 @@ class Benchmark:
                 X_train, X_test, y_train, y_test = train_test_split(
                     X, y, train_size=ns_train, random_state=self.random_state
                 )
-                if n_samples_valid is not None:
-                    X_train, X_valid, y_train, y_valid = train_test_split(
-                        X_train,
-                        y_train,
-                        test_size=n_samples_valid,
-                        random_state=self.random_state,
-                    )
-                fit_params = {}
-                for k, v in self.hyperparameters.get("fit", {}).items():
-                    fit_params[k] = eval(str(v))
 
                 for params in params_grid:
                     estimator = estimator_class(**params)
@@ -208,11 +191,10 @@ class Benchmark:
                         self.profiling_output_extensions,
                         X_train,
                         y=y_train,
-                        max_iter=1,
-                        **fit_params,
+                        n_executions=1,
                     )
 
-                    if self.use_onnx_runtime:
+                    if self.predict_with_onnx:
                         initial_type = [
                             ("float_input", FloatTensorType([None, X_train.shape[1]]))
                         ]
@@ -241,31 +223,34 @@ class Benchmark:
                     for i in range(len(n_samples_test)):
                         ns_test = n_samples_test[i]
                         X_test_, y_test_ = X_test[:ns_test], y_test[:ns_test]
-                        bench_func = predict_or_transform(estimator)
+                        bench_func = estimator.predict
 
                         profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_{bench_func.__name__}_{hyperparams_digest}_{dataset_digest}"
                         executor = BenchFuncExecutor()
-                        bench_func_params = (
+                        predict_params = (
                             self.hyperparameters[bench_func.__name__]
                             if bench_func.__name__ in self.hyperparameters
                             else {}
                         )
 
-                        if self.use_onnx_runtime:
+                        n_executions = BENCHMARKING_METHODS_N_EXECUTIONS[
+                            self.benchmarking_method
+                        ]
+                        if self.predict_with_onnx:
                             benchmark_info = executor.run(
                                 bench_func,
                                 estimator,
                                 profiling_output_path,
                                 self.profiling_output_extensions,
                                 X_test_,
-                                max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
+                                n_executions=n_executions,
                                 onnx_model_filepath=onnx_model_filepath,
-                                **bench_func_params,
+                                **predict_params,
                             )
 
                             row = dict(
                                 estimator=self.name,
-                                use_onnx_runtime=self.use_onnx_runtime,
+                                is_onnx=True,
                                 function=bench_func.__name__,
                                 n_samples_train=ns_train,
                                 n_samples=ns_test,
@@ -290,12 +275,13 @@ class Benchmark:
                             profiling_output_path,
                             self.profiling_output_extensions,
                             X_test_,
-                            max_iter=1 if is_hpo_curve else BENCHMARK_MAX_ITER,
-                            **bench_func_params,
+                            n_executions=n_executions,
+                            **predict_params,
                         )
 
                         row = dict(
                             estimator=self.name,
+                            is_onnx=False,
                             function=bench_func.__name__,
                             n_samples_train=ns_train,
                             n_samples=ns_test,
@@ -322,16 +308,15 @@ class Benchmark:
                             index=False,
                         )
 
-                        if self.use_onnx_runtime:
-                            os.remove(onnx_model_filepath)
-
-                        if is_hpo_curve:
+                        if self.benchmarking_method == "hpo":
                             now = time.perf_counter()
-                            if now - start > HPO_BENCHMARK_TIME_BUDGET:
+                            if now - start > HPO_TIME_BUDGET:
+                                if self.predict_with_onnx:
+                                    os.remove(onnx_model_filepath)
                                 return
-                            if (
-                                now - start_predictions
-                                > BENCHMARK_PREDICTIONS_TIME_BUDGET
-                            ):
+                            if now - start_predictions > HPO_PREDICTIONS_TIME_BUDGET:
                                 break
+
+                    if self.predict_with_onnx:
+                        os.remove(onnx_model_filepath)
         return self

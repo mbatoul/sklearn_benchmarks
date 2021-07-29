@@ -4,6 +4,8 @@ benchmarking:
     KNeighborsClassifier_brute_force:
       name: KNeighborsClassifier_brute_force
       estimator: sklearn.neighbors.KNeighborsClassifier
+      benchmarking_method: hp_match
+      predict_with_onnx: True
       hyperparameters:
         init:
           n_neighbors:
@@ -23,11 +25,23 @@ benchmarking:
             n_classes: 2
             n_redundant: 0
             random_state: 42
-          n_features: 10
+          n_features: 1e2
           n_samples_train:
-            - 100
+            - 1e5
           n_samples_test:
             - 1
+            - 1e3
+        - sample_generator: sklearn.datasets.make_classification
+          params:
+            n_classes: 2
+            n_redundant: 0
+            random_state: 42
+          n_features: 2
+          n_samples_train:
+            - 1e5
+          n_samples_test:
+            - 1
+            - 1e3
 
     sklearnex_KNeighborsClassifier_brute_force:
       inherit: KNeighborsClassifier_brute_force
@@ -36,7 +50,8 @@ benchmarking:
     KNeighborsClassifier_kd_tree:
       name: KNeighborsClassifier_kd_tree
       estimator: sklearn.neighbors.KNeighborsClassifier
-      use_onnx_runtime: True
+      benchmarking_method: hp_match
+      predict_with_onnx: True
       hyperparameters:
         init:
           n_neighbors:
@@ -58,9 +73,19 @@ benchmarking:
             random_state: 42
           n_features: 10
           n_samples_train:
-            - 100
+            - 1e3
           n_samples_test:
-            - 1
+            - 10
+        - sample_generator: sklearn.datasets.make_classification
+          params:
+            n_classes: 2
+            n_redundant: 0
+            random_state: 42
+          n_features: 10
+          n_samples_train:
+            - 1e2
+          n_samples_test:
+            - 10
 
     sklearnex_KNeighborsClassifier_kd_tree:
       inherit: KNeighborsClassifier_kd_tree
@@ -69,6 +94,7 @@ benchmarking:
     KMeans_tall:
       name: KMeans_tall
       estimator: sklearn.cluster.KMeans
+      benchmarking_method: hp_match
       hyperparameters:
         init:
           init:
@@ -92,11 +118,23 @@ benchmarking:
             random_state: 42
             cluster_std: 20.0
             centers: 200
-          n_features: 10
+          n_features: 2
           n_samples_train:
-            - 100
+            - 1e6
           n_samples_test:
             - 1
+            - 1e3
+        - sample_generator: sklearn.datasets.make_blobs
+          params:
+            random_state: 42
+            cluster_std: 20.0
+            centers: 200
+          n_features: 1e2
+          n_samples_train:
+            - 1e6
+          n_samples_test:
+            - 1
+            - 1e3
 
     sklearnex_KMeans_tall:
       inherit: KMeans_tall
@@ -105,6 +143,7 @@ benchmarking:
     KMeans_short:
       name: KMeans_short
       estimator: sklearn.cluster.KMeans
+      benchmarking_method: hp_match
       hyperparameters:
         init:
           init:
@@ -113,7 +152,7 @@ benchmarking:
           algorithm:
             - full
           n_clusters:
-            - 50
+            - 300
           max_iter:
             - 20
           n_init:
@@ -128,11 +167,23 @@ benchmarking:
             random_state: 42
             cluster_std: 20.0
             centers: 200
-          n_features: 10
+          n_features: 2
           n_samples_train:
-            - 100
+            - 1e4
           n_samples_test:
             - 1
+            - 1e3
+        - sample_generator: sklearn.datasets.make_blobs
+          params:
+            random_state: 42
+            cluster_std: 13.0
+            centers: 200
+          n_features: 1e2
+          n_samples_train:
+            - 1e4
+          n_samples_test:
+            - 1
+            - 1e3
 
     sklearnex_KMeans_short:
       inherit: KMeans_short
@@ -141,19 +192,34 @@ benchmarking:
     LogisticRegression:
       name: LogisticRegression
       estimator: sklearn.linear_model.LogisticRegression
+      benchmarking_method: hp_match
       metrics:
         - accuracy_score
       datasets:
         - sample_generator: sklearn.datasets.make_classification
           params:
-            n_classes: 2
+            n_classes: 5
+            n_informative: 5
             n_redundant: 0
             random_state: 42
-          n_features: 10
+          n_features: 1e2
           n_samples_train:
-            - 100
+            - 1e6
           n_samples_test:
             - 1
+            - 1e3
+        - sample_generator: sklearn.datasets.make_classification
+          params:
+            n_classes: 5
+            n_informative: 5
+            n_redundant: 0
+            random_state: 42
+          n_features: 1e4
+          n_samples_train:
+            - 1e3
+          n_samples_test:
+            - 1
+            - 1e2
 
     sklearnex_LogisticRegression:
       inherit: LogisticRegression
@@ -162,18 +228,30 @@ benchmarking:
     Ridge:
       name: Ridge
       estimator: sklearn.linear_model.Ridge
+      benchmarking_method: hp_match
       metrics:
         - r2_score
       datasets:
         - sample_generator: sklearn.datasets.make_regression
           params:
-            n_informative: 1
+            n_informative: 10
             random_state: 42
-          n_features: 10
+          n_features: 1e4
           n_samples_train:
-            - 100
+            - 1e3
           n_samples_test:
             - 1
+            - 1e3
+        - sample_generator: sklearn.datasets.make_regression
+          params:
+            n_informative: 10
+            random_state: 42
+          n_features: 1e2
+          n_samples_train:
+            - 1e6
+          n_samples_test:
+            - 1
+            - 1e3
 
     sklearnex_Ridge:
       inherit: Ridge
@@ -182,7 +260,8 @@ benchmarking:
     HistGradientBoostingClassifier:
       name: HistGradientBoostingClassifier
       estimator: sklearn.ensemble.HistGradientBoostingClassifier
-      use_onnx_runtime: True
+      predict_with_onnx: True
+      benchmarking_method: hpo
       metrics:
         - accuracy_score
       hyperparameters:
@@ -200,12 +279,10 @@ benchmarking:
           n_iter_no_change:
             - 10
           max_leaf_nodes:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           max_iter:
             - 300
           max_bins:
@@ -221,21 +298,21 @@ benchmarking:
             - 200
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
-            n_classes: 2
-            n_informative: 8
+            n_classes: 5
+            n_informative: 5
             n_redundant: 0
             random_state: 42
-          n_features: 10
+          n_features: 1e2
           n_samples_train:
-            - 1000
+            - 1e5
           n_samples_test:
-            - 1
+            - 1e3
 
     lightgbm:
       name: LGBMClassifier
       estimator: lightgbm.LGBMClassifier
+      benchmarking_method: hpo
       metrics:
         - accuracy_score
       hyperparameters:
@@ -247,12 +324,10 @@ benchmarking:
             - 0.5
             - 1.
           num_leaves:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           n_estimators:
             - 300
           max_bin:
@@ -279,22 +354,22 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
-            n_classes: 2
-            n_informative: 8
+            n_classes: 5
+            n_informative: 5
             n_redundant: 0
             random_state: 42
-          n_features: 10
-          n_samples_valid: 50
+          n_features: 1e2
+          n_samples_valid: 50000
           n_samples_train:
-            - 1000
+            - 1e5
           n_samples_test:
-            - 1
+            - 1e3
 
     xgboost:
       name: XGBClassifier
       estimator: xgboost.XGBClassifier
+      benchmarking_method: hpo
       metrics:
         - accuracy_score
       hyperparameters:
@@ -312,12 +387,10 @@ benchmarking:
             - 0.5
             - 1.
           max_leaves:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           n_estimators:
             - 300
           max_bin:
@@ -344,22 +417,22 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
-            n_classes: 2
-            n_informative: 8
+            n_classes: 5
+            n_informative: 5
             n_redundant: 0
             random_state: 42
-          n_features: 10
-          n_samples_valid: 50
+          n_features: 1e2
+          n_samples_valid: 10_000
           n_samples_train:
-            - 1000
+            - 1e5
           n_samples_test:
-            - 1
+            - 1e3
 
     catboost_lossguide:
       name: CatBoostClassifier_lossguide
       estimator: catboost.CatBoostClassifier
+      benchmarking_method: hpo
       metrics:
         - accuracy_score
       hyperparameters:
@@ -377,12 +450,10 @@ benchmarking:
             - 0.5
             - 1.
           max_leaves:
-            - 2
             - 3
-            - 5
-            - 20
+            - 10
             - 30
-            - 50
+            - 100
           iterations:
             - 300
           border_count:
@@ -409,22 +480,22 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
-            n_classes: 2
-            n_informative: 8
+            n_classes: 5
+            n_informative: 5
             n_redundant: 0
             random_state: 42
-          n_features: 10
-          n_samples_valid: 50
+          n_features: 1e2
+          n_samples_valid: 50000
           n_samples_train:
-            - 1000
+            - 1e5
           n_samples_test:
-            - 1
+            - 1e3
 
     catboost_symmetric:
       name: CatBoostClassifier_symmetric
       estimator: catboost.CatBoostClassifier
+      benchmarking_method: hpo
       metrics:
         - accuracy_score
       hyperparameters:
@@ -467,27 +538,32 @@ benchmarking:
           early_stopping_rounds: 10
       datasets:
         - sample_generator: sklearn.datasets.make_classification
-          hpo_curve: True
           params:
-            n_classes: 2
-            n_informative: 8
+            n_classes: 5
+            n_informative: 5
             n_redundant: 0
             random_state: 42
-          n_features: 10
-          n_samples_valid: 50
+          n_features: 1e2
+          n_samples_valid: 50000
           n_samples_train:
-            - 1000
+            - 1e5
           n_samples_test:
-            - 1
+            - 1e3
 
-reporting:
+hp_match_reporting:
   n_cols: 2
-  version_aliases:
-    sklearnex: scikit-learn-intelex
   estimators:
     KNeighborsClassifier_brute_force:
       name: KNeighborsClassifier_brute_force
       against_lib: sklearnex
+      split_bars:
+        - n_jobs
+      compare:
+        - accuracy_score
+
+    KNeighborsClassifier_brute_force:
+      name: KNeighborsClassifier_brute_force
+      against_lib: onnx
       split_bars:
         - n_jobs
       compare:
@@ -532,33 +608,30 @@ reporting:
       against_lib: sklearnex
 
 hpo_reporting:
-  speedup:
-    scores:
-      - 0.735
-      - 0.77
-      - 0.805
-  version_aliases:
-    sklearn: scikit-learn
+  speedup_thresholds:
+    - 0.74
+    - 0.76
+    - 0.78
   estimators:
-    - lib: sklearn
-      name: HistGradientBoostingClassifier
+    HistGradientBoostingClassifier:
+      lib: sklearn
       legend: scikit-learn
       color: blue
 
-    - lib: lightgbm
-      name: LGBMClassifier
+    LGBMClassifier:
+      lib: lightgbm
       color: red
 
-    - lib: xgboost
-      name: XGBClassifier
+    XGBClassifier:
+      lib: xgboost
       color: green
 
-    - lib: catboost
-      name: CatBoostClassifier_lossguide
+    CatBoostClassifier_lossguide:
+      lib: catboost
       legend: catboost lossguide
       color: purple
 
-    - lib: catboost
-      name: CatBoostClassifier_symmetric
+    CatBoostClassifier_symmetric:
+      lib: catboost
       legend: catboost symmetric
       color: orange

@@ -28,14 +28,6 @@ def is_scientific_notation(string):
     return isinstance(string, str) and bool(re.match(r"1[eE](\-)*\d{1,}", string))
 
 
-def predict_or_transform(estimator):
-    if hasattr(estimator, "predict"):
-        bench_func = estimator.predict
-    else:
-        bench_func = estimator.transform
-    return bench_func
-
-
 def clean_results():
     extensions = [".csv", ".html", ".json.gz", ".txt"]
     files = []
@@ -62,3 +54,8 @@ def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return idx, array[idx]
+
+
+def get_lib_alias(lib):
+    aliases = dict(sklearn="scikit-learn", sklearnex="scikit-learn-intelex")
+    return aliases.get(lib, lib)

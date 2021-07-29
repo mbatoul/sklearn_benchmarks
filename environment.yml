@@ -4,6 +4,7 @@ channels:
   - intel
 dependencies:
   - black
+  - autoflake
   - pandas
   - pyyaml
   - plotly
