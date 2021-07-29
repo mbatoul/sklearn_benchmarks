@@ -59,7 +59,7 @@ class HPOReporting:
 
             color = params["color"]
 
-            fit_times = df.query("function == 'fit'")["mean"]
+            fit_times = df.query("function == 'fit'")["mean_duration"]
             scores = df.query("function == 'predict' & is_onnx == False")[
                 "accuracy_score"
             ]
@@ -144,7 +144,10 @@ class HPOReporting:
             df_hover = df_merged.copy()
             df_hover.columns = df_hover.columns.str.replace(f"_{func}", "")
             df_hover = df_hover.rename(
-                columns={"mean": f"mean_{func}_time", "stdev": f"stdev_{func}_time"}
+                columns={
+                    "mean_duration": f"mean_{func}_duration",
+                    "std_duration": f"std_{func}_duration",
+                }
             )
             df_hover = df_hover[
                 df_hover.columns.drop(list(df_hover.filter(regex="digest")))
@@ -199,7 +202,7 @@ class HPOReporting:
 
                 fig.add_trace(
                     go.Scatter(
-                        x=df_merged[f"mean"],
+                        x=df_merged[f"mean_duration"],
                         y=df_merged["accuracy_score"],
                         mode="markers",
                         name=legend,
@@ -210,7 +213,7 @@ class HPOReporting:
                     )
                 )
 
-                data = df_merged[[f"mean", "accuracy_score"]].values
+                data = df_merged[[f"mean_duration", "accuracy_score"]].values
                 pareto_indices = identify_pareto(data)
                 pareto_front = data[pareto_indices]
                 pareto_front_df = pd.DataFrame(pareto_front)
@@ -308,7 +311,7 @@ class HPOReporting:
                 key = "".join(params.get("legend", params.get("lib")))
                 other_lib_dfs[key] = df
 
-        base_fit_times = base_lib_df[base_lib_df["function"] == "fit"]["mean"]
+        base_fit_times = base_lib_df[base_lib_df["function"] == "fit"]["mean_duration"]
         base_scores = base_lib_df[base_lib_df["function"] == "predict"][
             "accuracy_score"
         ]
@@ -333,7 +336,7 @@ class HPOReporting:
         )
 
         for index, (lib, df) in enumerate(other_lib_dfs.items()):
-            fit_times = df[df["function"] == "fit"]["mean"]
+            fit_times = df[df["function"] == "fit"]["mean_duration"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
 
             mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)

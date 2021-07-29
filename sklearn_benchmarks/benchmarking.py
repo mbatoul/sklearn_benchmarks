@@ -99,8 +99,8 @@ class BenchFuncExecutor:
         benchmark_info["n_iter"] = n_iter
         n_iter = 1 if n_iter is None else n_iter
 
-        benchmark_info["mean"] = mean
-        benchmark_info["stdev"] = np.std(times)
+        benchmark_info["mean_duration"] = mean
+        benchmark_info["std_duration"] = np.std(times)
         benchmark_info["throughput"] = X.nbytes * n_iter / mean / 1e9
         benchmark_info["latency"] = mean / X.shape[0]
 

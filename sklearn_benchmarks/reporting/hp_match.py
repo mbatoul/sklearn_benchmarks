@@ -15,8 +15,6 @@ from sklearn_benchmarks.config import (
     DEFAULT_COMPARE_COLS,
     PLOT_HEIGHT_IN_PX,
     REPORTING_FONT_SIZE,
-    SPEEDUP_COL,
-    STDEV_SPEEDUP_COL,
     VERSIONS_PATH,
     get_full_config,
 )
@@ -113,12 +111,12 @@ class SingleEstimatorReport:
 
     def _make_reporting_df_sklearnex(self):
         base_lib_df = self._get_benchmark_df()
-        base_lib_time = base_lib_df[SPEEDUP_COL]
-        base_lib_std = base_lib_df[STDEV_SPEEDUP_COL]
+        base_lib_time = base_lib_df["mean_duration"]
+        base_lib_std = base_lib_df["mean_duration"]
 
         against_lib_df = self._get_benchmark_df(lib=self.against_lib)
-        against_lib_time = against_lib_df[SPEEDUP_COL]
-        against_lib_std = against_lib_df[STDEV_SPEEDUP_COL]
+        against_lib_time = against_lib_df["mean_duration"]
+        against_lib_std = against_lib_df["std_duration"]
 
         compare_cols = self._get_compare_cols()
 
@@ -132,7 +130,7 @@ class SingleEstimatorReport:
         )
 
         merged_df["speedup"] = base_lib_time / against_lib_time
-        merged_df["stdev_speedup"] = merged_df["speedup"] * (
+        merged_df["std_speedup"] = merged_df["speedup"] * (
             np.sqrt(
                 (base_lib_std / base_lib_time) ** 2
                 + (against_lib_std / against_lib_time) ** 2
@@ -155,18 +153,19 @@ class SingleEstimatorReport:
         merged_df = merged_df.dropna(axis=1)
         columns_to_drop = merged_df.filter(regex="_onnx$").columns.tolist()
         columns_to_drop = filter(
-            lambda col: "mean" not in col and "stdev" not in col, columns_to_drop
+            lambda col: "mean_duration" not in col and "std_duration" not in col,
+            columns_to_drop,
         )
         merged_df.drop(
             columns_to_drop,
             axis=1,
             inplace=True,
         )
-        merged_df["speedup"] = merged_df["mean"] / merged_df["mean_onnx"]
-        merged_df["stdev_speedup"] = merged_df["speedup"] * (
+        merged_df["speedup"] = merged_df["mean_duration"] / merged_df["mean_onnx"]
+        merged_df["std_speedup"] = merged_df["speedup"] * (
             np.sqrt(
-                (merged_df["stdev"] / merged_df["mean"]) ** 2
-                + (merged_df["stdev_onnx"] / merged_df["mean_onnx"]) ** 2
+                (merged_df["std_duration"] / merged_df["mean_duration"]) ** 2
+                + (merged_df["std_onnx"] / merged_df["mean_onnx"]) ** 2
             )
         )
         return merged_df

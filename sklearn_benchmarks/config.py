@@ -12,11 +12,9 @@ VERSIONS_PATH = RESULTS_PATH / "versions.txt"
 DEFAULT_CONFIG = "config.yml"
 BASE_LIB = "sklearn"
 FUNC_TIME_BUDGET = 30
-SPEEDUP_COL = "mean"
-STDEV_SPEEDUP_COL = "stdev"
 PLOT_HEIGHT_IN_PX = 350
 REPORTING_FONT_SIZE = 12
-DEFAULT_COMPARE_COLS = [SPEEDUP_COL, STDEV_SPEEDUP_COL]
+DEFAULT_COMPARE_COLS = ["mean_duration", "std_duration"]
 BENCH_LIBS = [
     "scikit-learn",
     "scikit-learn-intelex",
