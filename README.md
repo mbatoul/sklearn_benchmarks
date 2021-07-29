@@ -1,5 +1,5 @@
 <p align="center">
-  <h3 align="center">scikit-learn benchmarks</h3>
+  <h3 align="center">sklearn_benchmarks</h3>
 
   <p align="center">
     A comparative benchmarking tool for scikit-learn's estimators
@@ -31,7 +31,7 @@ So far, the concurrent libraries available are:
 - [Catboost](https://catboost.ai/) (gradient boosting library)
 - [ONNX Runtime](https://github.com/microsoft/onnxruntime) (inferencing and training accelerator)
 
-The estimators available are:
+Available scikit-learn's estimators are:
 
 - [KNeighborsClassifier - Brute force and KD Tree](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html)
 - [KMeans](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html)
