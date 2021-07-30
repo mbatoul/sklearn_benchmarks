@@ -678,9 +678,9 @@ hp_match_reporting:
 
 hpo_reporting:
   speedup_thresholds:
-    - 0.74
-    - 0.76
-    - 0.78
+    - 0.735
+    - 0.77
+    - 0.805
   estimators:
     HistGradientBoostingClassifier:
       lib: sklearn
