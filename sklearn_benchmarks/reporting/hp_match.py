@@ -72,7 +72,7 @@ class HPMatchReporting:
             against_lib = params["against_lib"]
             against_lib = get_lib_alias(against_lib)
             title = f"## `{name}`"
-            subtitle = f"### {against_lib} ({versions[against_lib]}) vs. scikit-learn ({versions['scikit-learn']})"
+            subtitle = f"**{against_lib} ({versions[against_lib]}) vs. scikit-learn ({versions['scikit-learn']})**"
             display(Markdown(title))
             display(Markdown(subtitle))
 
