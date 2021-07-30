@@ -69,7 +69,7 @@ def boostrap_fit_times(
     return all_fit_times, grid_scores
 
 
-def quartile_bootstrapped_curve(
+def percentile_bootstrapped_curve(
     fit_times,
     cum_scores,
     q,

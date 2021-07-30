@@ -9,7 +9,6 @@ from IPython.display import Markdown, display
 from sklearn_benchmarks.config import (
     BASE_LIB,
     BENCHMARKING_RESULTS_PATH,
-    HPO_CURVES_COLORS,
     VERSIONS_PATH,
     get_full_config,
 )
@@ -19,12 +18,12 @@ from sklearn_benchmarks.utils.plotting import (
     make_hover_template,
     mean_bootstrapped_curve,
     order_columns,
-    quartile_bootstrapped_curve,
+    percentile_bootstrapped_curve,
 )
 
 
 @dataclass
-class HPOBenchmarkResult:
+class BenchResult:
     """Class to store formatted data of HPO benchmark results."""
 
     lib: str
@@ -34,7 +33,21 @@ class HPOBenchmarkResult:
     fit_times: np.ndarray
     scores: np.ndarray
     mean_bootstrapped_grid_times: np.ndarray
+    first_quartile_bootstrapped_grid_times: np.ndarray
+    third_quartile_bootstrapped_grid_times: np.ndarray
     grid_scores: np.ndarray
+
+
+@dataclass
+class BenchResults:
+    results: list[BenchResult]
+
+    def __iter__(self):
+        return iter(self.results)
+
+    @property
+    def base(self):
+        return next(result for result in self.results if result.lib == BASE_LIB)
 
 
 class HPOReporting:
@@ -66,8 +79,16 @@ class HPOReporting:
             mean_bootstrapped_grid_times, grid_scores = mean_bootstrapped_curve(
                 fit_times, scores
             )
+            (
+                first_quartile_bootstrapped_grid_times,
+                _,
+            ) = percentile_bootstrapped_curve(fit_times, scores, 25)
+            (
+                third_quartile_bootstrapped_grid_times,
+                _,
+            ) = percentile_bootstrapped_curve(fit_times, scores, 75)
 
-            result = HPOBenchmarkResult(
+            result = BenchResult(
                 lib,
                 legend,
                 color,
@@ -75,6 +96,8 @@ class HPOReporting:
                 fit_times,
                 scores,
                 mean_bootstrapped_grid_times,
+                first_quartile_bootstrapped_grid_times,
+                third_quartile_bootstrapped_grid_times,
                 grid_scores,
             )
 
@@ -93,7 +116,7 @@ class HPOReporting:
                 )
                 df["accuracy_score"] = df.query("is_onnx == True")["accuracy_score"]
 
-                result_onnx = HPOBenchmarkResult(
+                result_onnx = BenchResult(
                     lib,
                     legend,
                     color,
@@ -106,9 +129,9 @@ class HPOReporting:
 
                 all_data.append(result_onnx)
 
-        self.data = all_data
+        self.bench_results = BenchResults(all_data)
 
-    def _display_scatter(self, func="fit"):
+    def scatter(self, func="fit"):
         fig = go.Figure()
 
         for index, (name, params) in enumerate(self.config["estimators"].items()):
@@ -241,22 +264,22 @@ class HPOReporting:
         fig["layout"]["yaxis{}".format(1)]["title"] = "Accuracy score"
         fig.show()
 
-    def display_smoothed_curves(self):
+    def smoothed_curves(self):
         plt.figure(figsize=(15, 10))
 
         fit_times_for_max_scores = []
 
-        for hpo_result in self.data:
-            idx_max_score = np.argmax(hpo_result.grid_scores, axis=0)
-            fit_time_for_max_score = hpo_result.mean_bootstrapped_grid_times[
+        for bench_result in self.bench_results:
+            idx_max_score = np.argmax(bench_result.grid_scores, axis=0)
+            fit_time_for_max_score = bench_result.mean_bootstrapped_grid_times[
                 idx_max_score
             ]
             fit_times_for_max_scores.append(fit_time_for_max_score)
             plt.plot(
-                hpo_result.mean_bootstrapped_grid_times,
-                hpo_result.grid_scores,
-                c=f"tab:{hpo_result.color}",
-                label=hpo_result.legend,
+                bench_result.mean_bootstrapped_grid_times,
+                bench_result.grid_scores,
+                c=f"tab:{bench_result.color}",
+                label=bench_result.legend,
             )
 
         min_fit_time_all_constant = min(fit_times_for_max_scores)
@@ -266,28 +289,30 @@ class HPOReporting:
         plt.legend()
         plt.show()
 
-    def display_speedup_barplots(self):
+    def speedup_barplots(self):
         thresholds = self.config["speedup_thresholds"]
         _, axes = plt.subplots(len(thresholds), figsize=(12, 20))
 
-        base_hpo_result = list(
-            filter(lambda result: result.lib == BASE_LIB, self.data)
+        base_bench_result = list(
+            filter(lambda result: result.lib == BASE_LIB, self.bench_results)
         )[0]
 
         for ax, threshold in zip(axes, thresholds):
-            base_scores = base_hpo_result.grid_scores
-            base_fit_times = base_hpo_result.mean_bootstrapped_grid_times
+            base_scores = base_bench_result.grid_scores
+            base_fit_times = base_bench_result.mean_bootstrapped_grid_times
 
             base_idx_closest, _ = find_nearest(base_scores, threshold)
             base_time = base_fit_times[base_idx_closest]
 
             df_threshold = pd.DataFrame(columns=["speedup", "legend", "color"])
-            for hpo_result in self.data:
-                idx_closest, _ = find_nearest(hpo_result.grid_scores, threshold)
-                lib_time = hpo_result.mean_bootstrapped_grid_times[idx_closest]
+            for bench_result in self.bench_results:
+                idx_closest, _ = find_nearest(bench_result.grid_scores, threshold)
+                lib_time = bench_result.mean_bootstrapped_grid_times[idx_closest]
                 speedup = base_time / lib_time
                 row = dict(
-                    speedup=speedup, legend=hpo_result.legend, color=hpo_result.color
+                    speedup=speedup,
+                    legend=bench_result.legend,
+                    color=bench_result.color,
                 )
                 df_threshold = df_threshold.append(row, ignore_index=True)
 
@@ -304,84 +329,27 @@ class HPOReporting:
         plt.tight_layout()
         plt.show()
 
-    def display_speedup_curves(self):
-        other_lib_dfs = {}
-        for name, params in self.config["estimators"].items():
-            file = f"{BENCHMARKING_RESULTS_PATH}/{params['lib']}_{name}.csv"
-            df = pd.read_csv(file)
-            if params["lib"] == BASE_LIB:
-                base_lib_df = df
-            else:
-                key = "".join(params.get("legend", params.get("lib")))
-                other_lib_dfs[key] = df
-
-        base_fit_times = base_lib_df[base_lib_df["function"] == "fit"]["mean_duration"]
-        base_scores = base_lib_df[base_lib_df["function"] == "predict"][
-            "accuracy_score"
-        ]
-        base_mean_bootstrapped_grid_times, base_grid_scores = mean_bootstrapped_curve(
-            base_fit_times, base_scores
-        )
-        base_first_quartile_fit_times, _ = quartile_bootstrapped_curve(
-            base_fit_times, base_scores, 25
-        )
-        base_third_quartile_fit_times, _ = quartile_bootstrapped_curve(
-            base_fit_times, base_scores, 75
-        )
+    def speedup_curves(self):
         plt.figure(figsize=(15, 10))
-
-        base_lib = get_lib_alias(BASE_LIB)
-        label = f"{base_lib} ({self._versions[base_lib]})"
-        plt.plot(
-            base_grid_scores,
-            base_mean_bootstrapped_grid_times / base_mean_bootstrapped_grid_times,
-            c=HPO_CURVES_COLORS[0],
-            label=label,
-        )
-
-        for index, (lib, df) in enumerate(other_lib_dfs.items()):
-            fit_times = df[df["function"] == "fit"]["mean_duration"]
-            scores = df[df["function"] == "predict"]["accuracy_score"]
-
-            mean_bootstrapped_grid_times, grid_scores = mean_bootstrapped_curve(
-                fit_times, scores
+        for bench_result in self.bench_results:
+            plt.plot(
+                bench_result.grid_scores,
+                self.bench_results.base.mean_bootstrapped_grid_times
+                / bench_result.mean_bootstrapped_grid_times,
+                c=f"tab:{bench_result.color}",
+                label=bench_result.legend,
             )
-            speedup_mean = (
-                base_mean_bootstrapped_grid_times / mean_bootstrapped_grid_times
-            )
-
-            color = HPO_CURVES_COLORS[index + 1]
-
-            lib = lib.split(" ")[0]
-            lib = get_lib_alias(lib)
-            label = f"{lib} ({self._versions[lib]})"
-
-            plt.plot(grid_scores, speedup_mean, c=f"tab:{color}", label=label)
-
-            first_quartile_grid_times, _ = quartile_bootstrapped_curve(
-                fit_times, scores, 25
-            )
-            speedup_first_quartile = (
-                base_first_quartile_fit_times / first_quartile_grid_times
-            )
-
-            third_quartile_grid_times, _ = quartile_bootstrapped_curve(
-                fit_times, scores, 75
-            )
-            speedup_third_quartile = (
-                base_third_quartile_fit_times / third_quartile_grid_times
-            )
-
             plt.fill_between(
-                grid_scores,
-                speedup_third_quartile,
-                speedup_first_quartile,
-                color=color,
+                bench_result.grid_scores,
+                self.bench_results.base.third_quartile_bootstrapped_grid_times
+                / bench_result.third_quartile_bootstrapped_grid_times,
+                self.bench_results.base.first_quartile_bootstrapped_grid_times
+                / bench_result.first_quartile_bootstrapped_grid_times,
+                color=bench_result.color,
                 alpha=0.1,
             )
-
         plt.xlabel("Validation scores")
-        plt.ylabel(f"Speedup vs. {BASE_LIB}")
+        plt.ylabel(f"Speedup")
         plt.legend()
         plt.show()
 
@@ -395,18 +363,18 @@ class HPOReporting:
 
         display(Markdown("## Benchmark results for `fit`"))
         display(Markdown("### Raw fit times vs. accuracy scores"))
-        self._display_scatter(func="fit")
+        self.scatter(func="fit")
 
         display(Markdown("### Smoothed HPO Curves"))
         display(Markdown("> The shaded areas represent boostrapped quartiles."))
-        self.display_smoothed_curves()
+        self.smoothed_curves()
 
         display(Markdown("### Speedup barplots"))
-        self.display_speedup_barplots()
+        self.speedup_barplots()
 
         display(Markdown("### Speedup curves"))
-        self.display_speedup_curves()
+        self.speedup_curves()
 
         display(Markdown("## Benchmark results for `predict`"))
         display(Markdown("### Raw predict times vs. accuracy scores"))
-        self._display_scatter(func="predict")
+        self.scatter(func="predict")

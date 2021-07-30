@@ -25,14 +25,6 @@ BENCH_LIBS = [
 ]
 HPO_PREDICTIONS_TIME_BUDGET = 3
 BENCHMARKING_METHODS_N_EXECUTIONS = {"hp_match": 10, "hpo": 1}
-HPO_CURVES_COLORS = [
-    "blue",
-    "red",
-    "green",
-    "purple",
-    "orange",
-    "lightgray",
-]
 HPO_TIME_BUDGET = 600
 
 
