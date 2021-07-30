@@ -33,7 +33,7 @@ class HPOBenchmarkResult:
     df: pd.DataFrame
     fit_times: np.ndarray
     scores: np.ndarray
-    mean_grid_times: np.ndarray
+    mean_bootstrapped_grid_times: np.ndarray
     grid_scores: np.ndarray
 
 
@@ -63,7 +63,9 @@ class HPOReporting:
             scores = df.query("function == 'predict' & is_onnx == False")[
                 "accuracy_score"
             ]
-            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
+            mean_bootstrapped_grid_times, grid_scores = mean_bootstrapped_curve(
+                fit_times, scores
+            )
 
             result = HPOBenchmarkResult(
                 lib,
@@ -72,7 +74,7 @@ class HPOReporting:
                 df,
                 fit_times,
                 scores,
-                mean_grid_times,
+                mean_bootstrapped_grid_times,
                 grid_scores,
             )
 
@@ -86,7 +88,7 @@ class HPOReporting:
                 scores = df.query("function == 'predict' & is_onnx == True")[
                     "accuracy_score"
                 ]
-                mean_grid_times, grid_scores = mean_bootstrapped_curve(
+                mean_bootstrapped_grid_times, grid_scores = mean_bootstrapped_curve(
                     fit_times, scores
                 )
                 df["accuracy_score"] = df.query("is_onnx == True")["accuracy_score"]
@@ -98,7 +100,7 @@ class HPOReporting:
                     df,
                     fit_times,
                     scores,
-                    mean_grid_times,
+                    mean_bootstrapped_grid_times,
                     grid_scores,
                 )
 
@@ -246,10 +248,12 @@ class HPOReporting:
 
         for hpo_result in self.data:
             idx_max_score = np.argmax(hpo_result.grid_scores, axis=0)
-            fit_time_for_max_score = hpo_result.mean_grid_times[idx_max_score]
+            fit_time_for_max_score = hpo_result.mean_bootstrapped_grid_times[
+                idx_max_score
+            ]
             fit_times_for_max_scores.append(fit_time_for_max_score)
             plt.plot(
-                hpo_result.mean_grid_times,
+                hpo_result.mean_bootstrapped_grid_times,
                 hpo_result.grid_scores,
                 c=f"tab:{hpo_result.color}",
                 label=hpo_result.legend,
@@ -271,16 +275,16 @@ class HPOReporting:
         )[0]
 
         for ax, threshold in zip(axes, thresholds):
-            base_scores = base_hpo_result.scores
-            base_fit_times = base_hpo_result.fit_times
+            base_scores = base_hpo_result.grid_scores
+            base_fit_times = base_hpo_result.mean_bootstrapped_grid_times
 
             base_idx_closest, _ = find_nearest(base_scores, threshold)
-            base_time = base_fit_times.iloc[base_idx_closest]
+            base_time = base_fit_times[base_idx_closest]
 
             df_threshold = pd.DataFrame(columns=["speedup", "legend", "color"])
             for hpo_result in self.data:
-                idx_closest, _ = find_nearest(hpo_result.scores, threshold)
-                lib_time = hpo_result.fit_times.iloc[idx_closest]
+                idx_closest, _ = find_nearest(hpo_result.grid_scores, threshold)
+                lib_time = hpo_result.mean_bootstrapped_grid_times[idx_closest]
                 speedup = base_time / lib_time
                 row = dict(
                     speedup=speedup, legend=hpo_result.legend, color=hpo_result.color
@@ -315,7 +319,7 @@ class HPOReporting:
         base_scores = base_lib_df[base_lib_df["function"] == "predict"][
             "accuracy_score"
         ]
-        base_mean_grid_times, base_grid_scores = mean_bootstrapped_curve(
+        base_mean_bootstrapped_grid_times, base_grid_scores = mean_bootstrapped_curve(
             base_fit_times, base_scores
         )
         base_first_quartile_fit_times, _ = quartile_bootstrapped_curve(
@@ -330,7 +334,7 @@ class HPOReporting:
         label = f"{base_lib} ({self._versions[base_lib]})"
         plt.plot(
             base_grid_scores,
-            base_mean_grid_times / base_mean_grid_times,
+            base_mean_bootstrapped_grid_times / base_mean_bootstrapped_grid_times,
             c=HPO_CURVES_COLORS[0],
             label=label,
         )
@@ -339,8 +343,12 @@ class HPOReporting:
             fit_times = df[df["function"] == "fit"]["mean_duration"]
             scores = df[df["function"] == "predict"]["accuracy_score"]
 
-            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
-            speedup_mean = base_mean_grid_times / mean_grid_times
+            mean_bootstrapped_grid_times, grid_scores = mean_bootstrapped_curve(
+                fit_times, scores
+            )
+            speedup_mean = (
+                base_mean_bootstrapped_grid_times / mean_bootstrapped_grid_times
+            )
 
             color = HPO_CURVES_COLORS[index + 1]
 
