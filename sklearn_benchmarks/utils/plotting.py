@@ -1,9 +1,7 @@
 import itertools
-import re
-import pandas as pd
-import numpy as np
 
-from sklearn_benchmarks.config import DEFAULT_COMPARE_COLS
+import numpy as np
+import pandas as pd
 
 
 def gen_coordinates_grid(n_rows, n_cols):
@@ -15,23 +13,9 @@ def gen_coordinates_grid(n_rows, n_cols):
     return coordinates
 
 
-def order_columns(columns):
-    bottom_cols = DEFAULT_COMPARE_COLS
-
-    def order_func(col):
-        for bottom_col in bottom_cols:
-            pattern = re.compile(f"^({bottom_col})\_.*")
-            if pattern.search(col):
-                return 1
-        return -1
-
-    return sorted(columns, key=lambda col: order_func(col))
-
-
 def make_hover_template(df):
-    columns = order_columns(df.columns)
     template = ""
-    for index, name in enumerate(columns):
+    for index, name in enumerate(df.columns):
         template += "<b>%s</b>: %%{customdata[%i]}<br>" % (name, index)
     template += "<extra></extra>"
     return template
@@ -105,10 +89,17 @@ def mean_bootstrapped_curve(
 def identify_pareto(data):
     n = data.shape[0]
     all_indices = np.arange(n)
-    pareto_front = np.ones(n, dtype=bool)
+    front_pareto = np.ones(n, dtype=bool)
     for i in range(n):
         for j in range(n):
-            if data[i][0] > data[j][0] and data[i][1] < data[j][1]:
-                pareto_front[i] = 0
+            if data.iloc[i][0] > data.iloc[j][0] and data.iloc[i][1] < data.iloc[j][1]:
+                front_pareto[i] = 0
                 break
-    return all_indices[pareto_front]
+    return all_indices[front_pareto]
+
+
+def select_front_pareto(point, data_pareto):
+    pareto_indices = identify_pareto(data_pareto)
+    front_pareto = data_pareto.iloc[pareto_indices].to_numpy()
+    point_in_front_pareto = np.any(np.all(point == front_pareto, axis=1))
+    return point_in_front_pareto

@@ -1,8 +1,9 @@
-import os
-import numpy as np
 import glob
 import importlib
+import os
 import re
+
+import numpy as np
 from joblib import Memory
 from sklearn_benchmarks.config import RESULTS_PATH
 
@@ -59,3 +60,11 @@ def find_nearest(array, value):
 def get_lib_alias(lib):
     aliases = dict(sklearn="scikit-learn", sklearnex="scikit-learn-intelex")
     return aliases.get(lib, lib)
+
+
+def string_matches_substrings(string, substrings):
+    return any(map(string.__contains__, substrings))
+
+
+def diff_between_lists(l1, l2):
+    return list(set(l1) - set(l2)) + list(set(l2) - set(l1))

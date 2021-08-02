@@ -12,7 +12,7 @@ from plotly.subplots import make_subplots
 from sklearn_benchmarks.config import (
     BASE_LIB,
     BENCHMARKING_RESULTS_PATH,
-    DEFAULT_COMPARE_COLS,
+    COMPARABLE_COLS,
     PLOT_HEIGHT_IN_PX,
     REPORTING_FONT_SIZE,
     VERSIONS_PATH,
@@ -22,7 +22,6 @@ from sklearn_benchmarks.config import (
 from sklearn_benchmarks.utils.plotting import (
     gen_coordinates_grid,
     make_hover_template,
-    order_columns,
 )
 
 from sklearn_benchmarks.utils.misc import get_lib_alias
@@ -107,7 +106,7 @@ class SingleEstimatorReport:
         return pd.read_csv(file_path)
 
     def _get_compare_cols(self):
-        return [*self.compare, *DEFAULT_COMPARE_COLS]
+        return [*self.compare, *COMPARABLE_COLS]
 
     def _make_reporting_df_sklearnex(self):
         base_lib_df = self._get_benchmark_df()
@@ -244,7 +243,7 @@ class SingleEstimatorReport:
             name=name,
             marker_color=color,
             hovertemplate=make_hover_template(df),
-            customdata=df[order_columns(df)].values,
+            customdata=df.values,
             showlegend=showlegend,
             text=df["function"],
             textposition="auto",
