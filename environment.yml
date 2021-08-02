@@ -9,6 +9,7 @@ dependencies:
   - pyyaml
   - plotly
   - jupyter
+  - jupyterlab
   - matplotlib
   - seaborn
   - qgrid
