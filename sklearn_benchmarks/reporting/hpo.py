@@ -1,5 +1,6 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -45,7 +46,7 @@ class BenchResult:
 
 @dataclass
 class BenchResults:
-    results: list[BenchResult]
+    results: List[BenchResult] = field(default_factory=list)
 
     def __iter__(self):
         return iter(self.results)
@@ -118,7 +119,7 @@ class HPOReporting:
             df = bench_result.df
             df_predictions = df.query("function == 'predict'")
 
-            comparable_cols = COMPARABLE_COLS + "accuracy_score"
+            comparable_cols = COMPARABLE_COLS + ["accuracy_score"]
 
             comparable_cols = [
                 col
@@ -346,15 +347,15 @@ class HPOReporting:
         display(Markdown("### Raw fit times vs. accuracy scores"))
         self.scatter(func="fit")
 
-        # display(Markdown("### Smoothed HPO Curves"))
-        # display(Markdown("> The shaded areas represent boostrapped quartiles."))
-        # self.smoothed_curves()
+        display(Markdown("### Smoothed HPO Curves"))
+        display(Markdown("> The shaded areas represent boostrapped quartiles."))
+        self.smoothed_curves()
 
-        # display(Markdown("### Speedup barplots"))
-        # self.speedup_barplots()
+        display(Markdown("### Speedup barplots"))
+        self.speedup_barplots()
 
-        # display(Markdown("### Speedup curves"))
-        # self.speedup_curves()
+        display(Markdown("### Speedup curves"))
+        self.speedup_curves()
 
         display(Markdown("## Benchmark results for `predict`"))
         display(Markdown("### Raw predict times vs. accuracy scores"))
