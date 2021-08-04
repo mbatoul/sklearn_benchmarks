@@ -83,9 +83,16 @@ def main(append, config, profiling, estimator):
                 params.pop("predict_with_onnx")
             params["estimator"] = curr_estimator
 
+        for i in range(len(params["datasets"])):
+            common_dataset_name = params["datasets"][i].get("name", None)
+            if common_dataset_name is not None:
+                params["datasets"][i] = benchmarking_config["common_datasets"][
+                    common_dataset_name
+                ]
+
         params = parse_parameters(params)
 
-        params["random_seed"] = config.get("random_seed", None)
+        params["random_seed"] = benchmarking_config.get("random_seed", None)
         params["profiling_output_extensions"] = profiling
 
         benchmark = Benchmark(**params)
