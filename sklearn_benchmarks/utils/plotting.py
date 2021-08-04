@@ -29,18 +29,20 @@ def _compute_cumulated(fit_times, scores):
 
 def boostrap_fit_times(
     fit_times,
-    cum_scores,
+    scores,
     n_bootstraps=10_000,
     baseline_score=0.7,
 ):
-    grid_scores = np.linspace(baseline_score, cum_scores.max(), 1000)
+    grid_scores = np.linspace(
+        baseline_score, scores.max(), 1000
+    ) # take max of max and share grid_scores
     all_fit_times = []
     rng = np.random.RandomState(0)
     n_samples = fit_times.shape[0]
     for _ in range(n_bootstraps):
         indices = rng.randint(n_samples, size=n_samples)
         cum_fit_times_p, cum_scores_p = _compute_cumulated(
-            fit_times.iloc[indices], cum_scores.iloc[indices]
+            fit_times.iloc[indices], scores.iloc[indices]
         )
         grid_fit_times = np.interp(
             grid_scores,
@@ -55,14 +57,14 @@ def boostrap_fit_times(
 
 def percentile_bootstrapped_curve(
     fit_times,
-    cum_scores,
+    scores,
     q,
     n_bootstraps=10_000,
     baseline_score=0.7,
 ):
     fit_times, grid_scores = boostrap_fit_times(
         fit_times,
-        cum_scores,
+        scores,
         n_bootstraps=n_bootstraps,
         baseline_score=baseline_score,
     )
@@ -72,13 +74,13 @@ def percentile_bootstrapped_curve(
 
 def mean_bootstrapped_curve(
     fit_times,
-    cum_scores,
+    scores,
     n_bootstraps=10_000,
     baseline_score=0.7,
 ):
     fit_times, grid_scores = boostrap_fit_times(
         fit_times,
-        cum_scores,
+        scores,
         n_bootstraps=n_bootstraps,
         baseline_score=baseline_score,
     )

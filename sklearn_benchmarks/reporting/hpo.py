@@ -54,6 +54,7 @@ class BenchResults:
     def __len__(self):
         return len(self.results)
 
+    # Returns base lib (scikit-learn) results
     @property
     def base(self):
         return next(result for result in self.results if result.lib == BASE_LIB)
@@ -85,11 +86,14 @@ class HPOReporting:
             scores = df.query("function == 'predict' & is_onnx == False")[
                 "accuracy_score"
             ]
+
             mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
+
             (
                 first_quartile_grid_times,
                 _,
             ) = percentile_bootstrapped_curve(fit_times, scores, 25)
+
             (
                 third_quartile_grid_times,
                 _,
@@ -276,13 +280,9 @@ class HPOReporting:
         thresholds = self.config["speedup_thresholds"]
         _, axes = plt.subplots(len(thresholds), figsize=(12, 20))
 
-        base_bench_result = list(
-            filter(lambda result: result.lib == BASE_LIB, self.bench_results)
-        )[0]
-
         for ax, threshold in zip(axes, thresholds):
-            base_scores = base_bench_result.grid_scores
-            base_fit_times = base_bench_result.mean_grid_times
+            base_scores = self.bench_results.base.grid_scores
+            base_fit_times = self.bench_results.base.mean_grid_times
 
             base_idx_closest, _ = find_nearest(base_scores, threshold)
             base_time = base_fit_times[base_idx_closest]
