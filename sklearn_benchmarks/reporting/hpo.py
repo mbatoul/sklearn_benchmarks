@@ -335,7 +335,7 @@ class HPOReporting:
         plt.legend()
         plt.show()
 
-    def run(self):
+    def make_report(self):
         config = get_full_config(config=self.config)
         self.config = config["hpo_reporting"]
 
