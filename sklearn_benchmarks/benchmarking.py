@@ -115,7 +115,7 @@ class Benchmark:
         hyperparameters={},
         datasets=[],
         predict_with_onnx=False,
-        random_state=None,
+        random_seed=None,
         benchmarking_method="",
         time_budget=HPO_TIME_BUDGET,
         profiling_file_type="",
@@ -127,7 +127,7 @@ class Benchmark:
         self.metrics = metrics
         self.hyperparameters = hyperparameters
         self.datasets = datasets
-        self.random_state = check_random_state(random_state)
+        self.random_state = check_random_state(random_seed)
         self.predict_with_onnx = predict_with_onnx
         self.benchmarking_method = benchmarking_method
         self.time_budget = time_budget
@@ -171,6 +171,7 @@ class Benchmark:
                     dataset["sample_generator"],
                     n_samples=n_samples,
                     n_features=n_features,
+                    random_state=self.random_state,
                     **dataset["params"],
                 )
                 X_train, X_test, y_train, y_test = train_test_split(
