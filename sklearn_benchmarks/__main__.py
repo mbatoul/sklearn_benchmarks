@@ -85,7 +85,7 @@ def main(append, config, profiling, estimator):
 
         params = parse_parameters(params)
 
-        params["random_state"] = config.get("random_state", None)
+        params["random_seed"] = config.get("random_seed", None)
         params["profiling_output_extensions"] = profiling
 
         benchmark = Benchmark(**params)
