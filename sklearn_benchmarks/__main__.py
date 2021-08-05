@@ -55,7 +55,14 @@ from sklearn_benchmarks.utils.misc import clean_results, convert
     multiple=True,
     help="Estimator to benchmark.",
 )
-def main(append, config, profiling, estimator):
+@click.option(
+    "--hpo_time_budget",
+    "--htb",
+    type=int,
+    multiple=False,
+    help="Custom time budget for HPO benchmarks.",
+)
+def main(append, config, profiling, estimator, hpo_time_budget):
     if not append:
         clean_results()
     config = get_full_config(config)
@@ -94,6 +101,8 @@ def main(append, config, profiling, estimator):
 
         params["random_seed"] = benchmarking_config.get("random_seed", None)
         params["profiling_output_extensions"] = profiling
+        if hpo_time_budget is not None:
+            params["time_budget"] = hpo_time_budget
 
         benchmark = Benchmark(**params)
         start_benchmark = time.perf_counter()
