@@ -22,10 +22,75 @@ from sklearn_benchmarks.utils.misc import (
 )
 from sklearn_benchmarks.utils.plotting import (
     make_hover_template,
-    mean_bootstrapped_curve,
-    percentile_bootstrapped_curve,
     select_front_pareto,
 )
+
+
+def _compute_cumulated(fit_times, scores):
+    cumulated_fit_times = fit_times.cumsum()
+    best_val_score_so_far = pd.Series(scores).cummax()
+    return cumulated_fit_times, best_val_score_so_far
+
+
+def boostrap_fit_times(
+    fit_times,
+    scores,
+    n_bootstraps=10_000,
+    baseline_score=0.7,
+):
+    grid_scores = np.linspace(
+        baseline_score, scores.max(), 1000
+    )  # take max of max and share grid_scores
+    all_fit_times = []
+    rng = np.random.RandomState(0)
+    n_samples = fit_times.shape[0]
+    for _ in range(n_bootstraps):
+        indices = rng.randint(n_samples, size=n_samples)
+        cum_fit_times_p, cum_scores_p = _compute_cumulated(
+            fit_times.iloc[indices], scores.iloc[indices]
+        )
+        grid_fit_times = np.interp(
+            grid_scores,
+            cum_scores_p,
+            cum_fit_times_p,
+            right=cum_fit_times_p.max(),
+        )
+        all_fit_times.append(grid_fit_times)
+
+    return all_fit_times, grid_scores
+
+
+def percentile_bootstrapped_curve(
+    fit_times,
+    scores,
+    q,
+    n_bootstraps=10_000,
+    baseline_score=0.7,
+):
+    fit_times, grid_scores = boostrap_fit_times(
+        fit_times,
+        scores,
+        n_bootstraps=n_bootstraps,
+        baseline_score=baseline_score,
+    )
+
+    return np.percentile(fit_times, q, axis=0), grid_scores
+
+
+def mean_bootstrapped_curve(
+    fit_times,
+    scores,
+    n_bootstraps=10_000,
+    baseline_score=0.7,
+):
+    fit_times, grid_scores = boostrap_fit_times(
+        fit_times,
+        scores,
+        n_bootstraps=n_bootstraps,
+        baseline_score=baseline_score,
+    )
+
+    return np.mean(fit_times, axis=0), grid_scores
 
 
 @dataclass
