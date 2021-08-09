@@ -94,7 +94,7 @@ def mean_bootstrapped_curve(
 
 
 @dataclass
-class BenchResult:
+class HpoBenchmarkResult:
     """Class to store formatted data of HPO benchmark results."""
 
     lib: str
@@ -110,8 +110,8 @@ class BenchResult:
 
 
 @dataclass
-class BenchResults:
-    results: List[BenchResult] = field(default_factory=list)
+class HpoBenchmarkResults:
+    results: List[HpoBenchmarkResult] = field(default_factory=list)
 
     def __iter__(self):
         return iter(self.results)
@@ -164,7 +164,7 @@ class HPOReporting:
                 _,
             ) = percentile_bootstrapped_curve(fit_times, scores, 75)
 
-            result = BenchResult(
+            result = HpoBenchmarkResult(
                 lib,
                 legend,
                 color,
@@ -179,13 +179,13 @@ class HPOReporting:
 
             all_results.append(result)
 
-        self.bench_results = BenchResults(all_results)
+        self.benchmark_results = HpoBenchmarkResults(all_results)
 
     def scatter(self, func="fit"):
         fig = go.Figure()
 
-        for index, bench_result in enumerate(self.bench_results):
-            df = bench_result.df
+        for index, benchmark_result in enumerate(self.benchmark_results):
+            df = benchmark_result.df
             df_predictions = df.query("function == 'predict'")
 
             comparable_cols = COMPARABLE_COLS + ["accuracy_score"]
@@ -195,7 +195,7 @@ class HPOReporting:
                 for col in df.columns
                 if string_matches_substrings(col, comparable_cols)
             ]
-            if bench_result.lib == BASE_LIB:
+            if benchmark_result.lib == BASE_LIB:
                 df_predictions = df_predictions.query("is_onnx == False").merge(
                     df_predictions.query("is_onnx == True")[
                         [
@@ -226,7 +226,7 @@ class HPOReporting:
             # Reorder columns for readability purpose in reporting
             ordered_columns = ["n_samples_train", "n_samples", "n_features"]
             for suffix in ["fit", "predict", "onnx"]:
-                if bench_result.lib != BASE_LIB and suffix == "onnx":
+                if benchmark_result.lib != BASE_LIB and suffix == "onnx":
                     continue
                 ordered_columns += [
                     f"mean_duration_{suffix}",
@@ -244,10 +244,10 @@ class HPOReporting:
                     x=df_merged[f"mean_duration_{func}"],
                     y=df_merged[f"accuracy_score_predict"],
                     mode="markers",
-                    name=bench_result.legend,
+                    name=benchmark_result.legend,
                     hovertemplate=make_hover_template(df_merged),
                     customdata=df_merged.values,
-                    marker=dict(color=bench_result.color),
+                    marker=dict(color=benchmark_result.color),
                     legendgroup=index,
                 )
             )
@@ -268,13 +268,13 @@ class HPOReporting:
                     y=df_pareto[f"accuracy_score_predict"],
                     mode="lines",
                     showlegend=False,
-                    marker=dict(color=bench_result.color),
+                    marker=dict(color=benchmark_result.color),
                     legendgroup=index,
                 )
             )
 
             # For scikit-learn, we repeat the process to add ONNX prediction results
-            if func == "predict" and bench_result.lib == BASE_LIB:
+            if func == "predict" and benchmark_result.lib == BASE_LIB:
                 data_pareto = df_merged[["mean_duration_onnx", "accuracy_score_onnx"]]
                 df_merged["is_pareto_onnx"] = data_pareto.apply(
                     select_front_pareto, args=(data_pareto,), axis=1, raw=True
@@ -289,7 +289,7 @@ class HPOReporting:
                         hovertemplate=make_hover_template(df_merged),
                         customdata=df_merged.values,
                         marker=dict(color="lightgray"),
-                        legendgroup=len(self.bench_results),
+                        legendgroup=len(self.benchmark_results),
                     )
                 )
 
@@ -303,7 +303,7 @@ class HPOReporting:
                         mode="lines",
                         showlegend=False,
                         marker=dict(color="lightgray"),
-                        legendgroup=len(self.bench_results),
+                        legendgroup=len(self.benchmark_results),
                     )
                 )
 
@@ -323,15 +323,15 @@ class HPOReporting:
 
         fit_times_for_max_scores = []
 
-        for bench_result in self.bench_results:
-            idx_max_score = np.argmax(bench_result.grid_scores, axis=0)
-            fit_time_for_max_score = bench_result.mean_grid_times[idx_max_score]
+        for benchmark_result in self.benchmark_results:
+            idx_max_score = np.argmax(benchmark_result.grid_scores, axis=0)
+            fit_time_for_max_score = benchmark_result.mean_grid_times[idx_max_score]
             fit_times_for_max_scores.append(fit_time_for_max_score)
             plt.plot(
-                bench_result.mean_grid_times,
-                bench_result.grid_scores,
-                c=f"tab:{bench_result.color}",
-                label=bench_result.legend,
+                benchmark_result.mean_grid_times,
+                benchmark_result.grid_scores,
+                c=f"tab:{benchmark_result.color}",
+                label=benchmark_result.legend,
             )
 
         min_fit_time_all_constant = min(fit_times_for_max_scores)
@@ -346,21 +346,21 @@ class HPOReporting:
         _, axes = plt.subplots(len(thresholds), figsize=(12, 20))
 
         for ax, threshold in zip(axes, thresholds):
-            base_scores = self.bench_results.base.grid_scores
-            base_fit_times = self.bench_results.base.mean_grid_times
+            base_scores = self.benchmark_results.base.grid_scores
+            base_fit_times = self.benchmark_results.base.mean_grid_times
 
             base_idx_closest, _ = find_nearest(base_scores, threshold)
             base_time = base_fit_times[base_idx_closest]
 
             df_threshold = pd.DataFrame(columns=["speedup", "legend", "color"])
-            for bench_result in self.bench_results:
-                idx_closest, _ = find_nearest(bench_result.grid_scores, threshold)
-                lib_time = bench_result.mean_grid_times[idx_closest]
+            for benchmark_result in self.benchmark_results:
+                idx_closest, _ = find_nearest(benchmark_result.grid_scores, threshold)
+                lib_time = benchmark_result.mean_grid_times[idx_closest]
                 speedup = base_time / lib_time
                 row = dict(
                     speedup=speedup,
-                    legend=bench_result.legend,
-                    color=bench_result.color,
+                    legend=benchmark_result.legend,
+                    color=benchmark_result.color,
                 )
                 df_threshold = df_threshold.append(row, ignore_index=True)
 
@@ -379,20 +379,21 @@ class HPOReporting:
 
     def speedup_curves(self):
         plt.figure(figsize=(15, 10))
-        for bench_result in self.bench_results:
+        for benchmark_result in self.benchmark_results:
             plt.plot(
-                bench_result.grid_scores,
-                self.bench_results.base.mean_grid_times / bench_result.mean_grid_times,
-                c=f"tab:{bench_result.color}",
-                label=bench_result.legend,
+                benchmark_result.grid_scores,
+                self.benchmark_results.base.mean_grid_times
+                / benchmark_result.mean_grid_times,
+                c=f"tab:{benchmark_result.color}",
+                label=benchmark_result.legend,
             )
             plt.fill_between(
-                bench_result.grid_scores,
-                self.bench_results.base.third_quartile_grid_times
-                / bench_result.third_quartile_grid_times,
-                self.bench_results.base.first_quartile_grid_times
-                / bench_result.first_quartile_grid_times,
-                color=bench_result.color,
+                benchmark_result.grid_scores,
+                self.benchmark_results.base.third_quartile_grid_times
+                / benchmark_result.third_quartile_grid_times,
+                self.benchmark_results.base.first_quartile_grid_times
+                / benchmark_result.first_quartile_grid_times,
+                color=benchmark_result.color,
                 alpha=0.1,
             )
         plt.xlabel("Validation scores")
