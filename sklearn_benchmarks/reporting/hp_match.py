@@ -56,14 +56,12 @@ class HPMatchReporting:
         config = get_full_config(config=self.config)
         reporting_config = config["hp_match_reporting"]
         benchmarking_estimators = config["benchmarking"]["estimators"]
-        reporting_estimators = reporting_config["estimators"]
+        reporting_estimators = reporting_config["estimators"][self.against_lib]
 
         with open(VERSIONS_PATH) as json_file:
             versions = json.load(json_file)
 
         for name, params in reporting_estimators.items():
-            if params["against_lib"] != self.against_lib:
-                continue
             params["n_cols"] = reporting_config["n_cols"]
             params["estimator_hyperparameters"] = self._get_estimator_hyperparameters(
                 benchmarking_estimators[name]
