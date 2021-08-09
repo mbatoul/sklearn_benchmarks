@@ -32,7 +32,6 @@ class BenchmarkMeasurements:
     mean_duration: float
     std_duration: float
     n_iter: int
-    best_iteration: int
     iteration_throughput: float
     latency: float
 
@@ -141,14 +140,6 @@ def run_benchmark_one_func(
 
     n_iter = estimator.n_iter_ if hasattr(estimator, "n_iter_") else None
 
-    best_iteration = None
-    if hasattr(estimator, "best_iteration_"):
-        best_iteration = estimator.best_iteration_
-    elif hasattr(estimator, "get_best_iteration"):
-        best_iteration = estimator.get_best_iteration()
-    elif hasattr(estimator, "get_booster"):
-        best_iteration = estimator.get_booster().best_iteration
-
     mean_duration = np.mean(times)
     std_duration = np.std(times)
     iteration_throughput = X.nbytes / mean_duration / 1e9
@@ -158,7 +149,6 @@ def run_benchmark_one_func(
         mean_duration,
         std_duration,
         n_iter,
-        best_iteration,
         iteration_throughput,
         latency,
     )
