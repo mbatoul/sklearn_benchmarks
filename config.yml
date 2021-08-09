@@ -334,6 +334,8 @@ benchmarking:
             - 30
             - 100
             - 300
+          early_stopping:
+            - False
       datasets:
         - name: gradient_boosting
 
@@ -429,7 +431,7 @@ benchmarking:
             - 0.5
             - 0.8
             - 1
-          max_iter:
+          n_estimators:
             - 10
             - 30
             - 100
@@ -495,9 +497,6 @@ benchmarking:
             - 30
             - 100
             - 300
-        fit:
-          eval_set: (X_valid, y_valid)
-          early_stopping_rounds: 10
       datasets:
         - name: gradient_boosting
 
@@ -554,9 +553,6 @@ benchmarking:
             - 30
             - 100
             - 300
-        fit:
-          eval_set: (X_valid, y_valid)
-          early_stopping_rounds: 10
       datasets:
         - name: gradient_boosting
 
