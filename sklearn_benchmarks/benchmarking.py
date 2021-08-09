@@ -1,7 +1,8 @@
 import importlib
 import os
 import time
-from pprint import pprint
+from dataclasses import asdict, dataclass, field
+from typing import List, Dict
 
 import joblib
 import numpy as np
@@ -26,83 +27,143 @@ from sklearn_benchmarks.config import (
 from sklearn_benchmarks.utils.misc import gen_data
 
 
-class BenchFuncExecutor:
-    """
-    Executes a benchmark function (fit, predict or transform)
-    """
+@dataclass
+class BenchmarkMeasurements:
+    mean_duration: float
+    std_duration: float
+    n_iter: int
+    best_iteration: int
+    iteration_throughput: float
+    latency: float
 
-    def run(
-        self,
-        func,
-        estimator,
-        profiling_output_path,
-        profiling_output_extensions,
-        X,
-        y=None,
-        n_executions=10,
-        onnx_model_filepath=None,
-        **kwargs,
-    ):
-        if n_executions > 1:
-            # First run with a profiler (not timed)
-            with VizTracer(verbose=0) as tracer:
-                tracer.start()
-                if y is not None:
-                    func(X, y, **kwargs)
-                else:
-                    func(X, **kwargs)
-                tracer.stop()
-                for extension in profiling_output_extensions:
-                    output_file = f"{profiling_output_path}.{extension}"
-                    tracer.save(output_file=output_file)
 
-        # Next runs: at most n_executions runs or 30 sec total execution time
-        times = []
-        start_global = time.perf_counter()
-        for _ in range(n_executions):
-            start_iter = time.perf_counter()
+@dataclass
+class RawBenchmarkResult:
+    estimator: str
+    is_onnx: bool
+    function: str
+    n_samples_train: int
+    n_samples: int
+    n_features: int
+    hyperparams_digest: str
+    dataset_digest: str
+    benchmark_measurements: BenchmarkMeasurements
+    parameters_batch: dict
+    scores: Dict = field(default_factory=dict)
 
-            if y is not None:
-                self.func_result_ = func(X, y, **kwargs)
-            else:
-                if onnx_model_filepath is not None:
-                    sess = rt.InferenceSession(onnx_model_filepath)
-                    input_name = sess.get_inputs()[0].name
-                    label_name = sess.get_outputs()[0].name
+    def __str__(self):
+        output = repr(self)
+        output += "\n---"
+        return output
 
-                    self.func_result_ = sess.run(
-                        [label_name], {input_name: X.astype(np.float32)}
-                    )[0]
-                else:
-                    self.func_result_ = func(X, **kwargs)
 
-            end_iter = time.perf_counter()
-            times.append(end_iter - start_iter)
+@dataclass
+class RawBenchmarkResults:
+    results: List[RawBenchmarkResult] = field(default_factory=list)
 
-            if end_iter - start_global > FUNC_TIME_BUDGET:
-                break
+    def __iter__(self):
+        return iter(self.results)
 
-        benchmark_info = {}
-        mean = np.mean(times)
+    def append(self, result):
+        self.results.append(result)
 
-        benchmark_info["n_iter"] = (
-            estimator.n_iter_ if hasattr(estimator, "n_iter_") else None
+    def to_csv(self, csv_path):
+        results = []
+        for result in self:
+            result = asdict(result)
+            result = {
+                **result,
+                **result["benchmark_measurements"],
+                **result["parameters_batch"],
+                **result["scores"],
+            }
+            del result["benchmark_measurements"]
+            del result["parameters_batch"]
+            del result["scores"]
+            results.append(result)
+
+        pd.DataFrame(results).to_csv(
+            csv_path,
+            mode="w+",
+            index=False,
         )
-        benchmark_info["best_iteration"] = None
 
-        if hasattr(estimator, "best_iteration_"):
-            benchmark_info["best_iteration"] = estimator.best_iteration_
-        elif hasattr(estimator, "get_best_iteration"):
-            benchmark_info["best_iteration"] = estimator.get_best_iteration()
-        elif hasattr(estimator, "get_booster"):
-            benchmark_info["best_iteration"] = estimator.get_booster().best_iteration
 
-        benchmark_info["mean_duration"] = mean
-        benchmark_info["std_duration"] = np.std(times)
-        benchmark_info["iteration_throughput"] = X.nbytes / mean / 1e9
-        benchmark_info["latency"] = mean / X.shape[0]
+def run_benchmark_one_func(
+    func,
+    estimator,
+    profiling_output_path,
+    profiling_output_extensions,
+    X,
+    y=None,
+    n_executions=10,
+    onnx_model_filepath=None,
+    **kwargs,
+):
+    if n_executions > 1:
+        # First run with a profiler (not timed)
+        with VizTracer(verbose=0) as tracer:
+            tracer.start()
+            if y is not None:
+                func(X, y, **kwargs)
+            else:
+                func(X, **kwargs)
+            tracer.stop()
+            for extension in profiling_output_extensions:
+                output_file = f"{profiling_output_path}.{extension}"
+                tracer.save(output_file=output_file)
 
-        return benchmark_info
+    # Next runs: at most n_executions runs or 30 sec total execution time
+    times = []
+    start_global = time.perf_counter()
+    for _ in range(n_executions):
+        start_iter = time.perf_counter()
+
+        if y is not None:
+            func_result = func(X, y, **kwargs)
+        else:
+            if onnx_model_filepath is not None:
+                sess = rt.InferenceSession(onnx_model_filepath)
+                input_name = sess.get_inputs()[0].name
+                label_name = sess.get_outputs()[0].name
+
+                func_result = sess.run(
+                    [label_name], {input_name: X.astype(np.float32)}
+                )[0]
+            else:
+                func_result = func(X, **kwargs)
+
+        end_iter = time.perf_counter()
+        times.append(end_iter - start_iter)
+
+        if end_iter - start_global > FUNC_TIME_BUDGET:
+            break
+
+    n_iter = estimator.n_iter_ if hasattr(estimator, "n_iter_") else None
+
+    best_iteration = None
+    if hasattr(estimator, "best_iteration_"):
+        best_iteration = estimator.best_iteration_
+    elif hasattr(estimator, "get_best_iteration"):
+        best_iteration = estimator.get_best_iteration()
+    elif hasattr(estimator, "get_booster"):
+        best_iteration = estimator.get_booster().best_iteration
+
+    mean_duration = np.mean(times)
+    std_duration = np.std(times)
+    iteration_throughput = X.nbytes / mean_duration / 1e9
+    latency = mean_duration / X.shape[0]
+
+    benchmark_measurements = BenchmarkMeasurements(
+        mean_duration,
+        std_duration,
+        n_iter,
+        best_iteration,
+        iteration_throughput,
+        latency,
+    )
+
+    return func_result, benchmark_measurements
 
 
 class Benchmark:
@@ -134,7 +195,7 @@ class Benchmark:
         self.profiling_file_type = profiling_file_type
         self.profiling_output_extensions = profiling_output_extensions
 
-    def _make_params_grid(self):
+    def _make_parameters_grid(self):
         params = self.hyperparameters.get("init", {})
         if not params:
             estimator_class = self._load_estimator_class()
@@ -158,8 +219,9 @@ class Benchmark:
         library = self.estimator.split(".")[0]
         estimator_class = self._load_estimator_class()
         metrics_funcs = self._load_metrics_funcs()
-        params_grid = self._make_params_grid()
-        benchmark_results = []
+        parameters_grid = self._make_parameters_grid()
+        benchmark_results = RawBenchmarkResults()
+
         start = time.perf_counter()
         for dataset in self.datasets:
             n_features = dataset["n_features"]
@@ -178,16 +240,16 @@ class Benchmark:
                     X, y, train_size=ns_train, random_state=self.random_state
                 )
 
-                for params in params_grid:
-                    estimator = estimator_class(**params)
+                for parameters_batch in parameters_grid:
+                    estimator = estimator_class(**parameters_batch)
                     set_random_state(estimator, random_state=self.random_state)
                     bench_func = estimator.fit
                     # Use digests to identify results later in reporting
-                    hyperparams_digest = joblib.hash(params)
+                    hyperparams_digest = joblib.hash(parameters_batch)
                     dataset_digest = joblib.hash(dataset)
                     profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_fit_{hyperparams_digest}_{dataset_digest}"
 
-                    benchmark_info = BenchFuncExecutor().run(
+                    func_result, benchmark_measurements = run_benchmark_one_func(
                         bench_func,
                         estimator,
                         profiling_output_path,
@@ -208,19 +270,20 @@ class Benchmark:
                         with open(onnx_model_filepath, "wb") as f:
                             f.write(onx.SerializeToString())
 
-                    row = dict(
-                        estimator=self.name,
-                        function=bench_func.__name__,
-                        n_samples_train=ns_train,
-                        n_samples=ns_train,
-                        n_features=n_features,
-                        hyperparams_digest=hyperparams_digest,
-                        dataset_digest=dataset_digest,
-                        **benchmark_info,
-                        **params,
+                    benchmark_result = RawBenchmarkResult(
+                        self.name,
+                        False,
+                        bench_func.__name__,
+                        ns_train,
+                        ns_train,
+                        n_features,
+                        hyperparams_digest,
+                        dataset_digest,
+                        benchmark_measurements,
+                        parameters_batch,
                     )
-
-                    benchmark_results.append(row)
+                    print(benchmark_result)
+                    benchmark_results.append(benchmark_result)
 
                     start_predictions = time.perf_counter()
                     for i in range(len(n_samples_test)):
@@ -229,7 +292,6 @@ class Benchmark:
                         bench_func = estimator.predict
 
                         profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_{bench_func.__name__}_{hyperparams_digest}_{dataset_digest}"
-                        executor = BenchFuncExecutor()
                         predict_params = (
                             self.hyperparameters[bench_func.__name__]
                             if bench_func.__name__ in self.hyperparameters
@@ -240,7 +302,10 @@ class Benchmark:
                             self.benchmarking_method
                         ]
                         if self.predict_with_onnx:
-                            benchmark_info = executor.run(
+                            (
+                                func_result,
+                                benchmark_measurements,
+                            ) = run_benchmark_one_func(
                                 bench_func,
                                 estimator,
                                 profiling_output_path,
@@ -251,28 +316,29 @@ class Benchmark:
                                 **predict_params,
                             )
 
-                            row = dict(
-                                estimator=self.name,
-                                is_onnx=True,
-                                function=bench_func.__name__,
-                                n_samples_train=ns_train,
-                                n_samples=ns_test,
-                                n_features=n_features,
-                                hyperparams_digest=hyperparams_digest,
-                                dataset_digest=dataset_digest,
-                                **benchmark_info,
-                                **params,
+                            scores = {}
+                            for metric_func in metrics_funcs:
+                                score = metric_func(y_test_, func_result)
+                                scores[metric_func.__name__] = score
+
+                            benchmark_result = RawBenchmarkResult(
+                                self.name,
+                                True,
+                                bench_func.__name__,
+                                ns_train,
+                                ns_test,
+                                n_features,
+                                hyperparams_digest,
+                                dataset_digest,
+                                benchmark_measurements,
+                                parameters_batch,
+                                scores,
                             )
 
-                            for metric_func in metrics_funcs:
-                                y_pred = executor.func_result_
-                                score = metric_func(y_test_, y_pred)
-                                row[metric_func.__name__] = score
+                            print(benchmark_result)
+                            benchmark_results.append(benchmark_result)
 
-                            pprint(row)
-                            benchmark_results.append(row)
-
-                        benchmark_info = executor.run(
+                        func_result, benchmark_measurements = run_benchmark_one_func(
                             bench_func,
                             estimator,
                             profiling_output_path,
@@ -282,34 +348,32 @@ class Benchmark:
                             **predict_params,
                         )
 
-                        row = dict(
-                            estimator=self.name,
-                            is_onnx=False,
-                            function=bench_func.__name__,
-                            n_samples_train=ns_train,
-                            n_samples=ns_test,
-                            n_features=n_features,
-                            hyperparams_digest=hyperparams_digest,
-                            dataset_digest=dataset_digest,
-                            **benchmark_info,
-                            **params,
+                        scores = {}
+                        for metric_func in metrics_funcs:
+                            score = metric_func(y_test_, func_result)
+                            scores[metric_func.__name__] = score
+
+                        benchmark_result = RawBenchmarkResult(
+                            self.name,
+                            False,
+                            bench_func.__name__,
+                            ns_train,
+                            ns_test,
+                            n_features,
+                            hyperparams_digest,
+                            dataset_digest,
+                            benchmark_measurements,
+                            parameters_batch,
+                            scores,
                         )
 
-                        for metric_func in metrics_funcs:
-                            y_pred = executor.func_result_
-                            score = metric_func(y_test_, y_pred)
-                            row[metric_func.__name__] = score
+                        print(benchmark_result)
+                        benchmark_results.append(benchmark_result)
 
-                        pprint(row)
-                        benchmark_results.append(row)
                         csv_path = (
                             f"{BENCHMARKING_RESULTS_PATH}/{library}_{self.name}.csv"
                         )
-                        pd.DataFrame(benchmark_results).to_csv(
-                            csv_path,
-                            mode="w+",
-                            index=False,
-                        )
+                        benchmark_results.to_csv(csv_path)
 
                         if self.benchmarking_method == "hpo":
                             now = time.perf_counter()
