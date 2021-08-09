@@ -51,10 +51,10 @@ def convert(seconds):
     return hour, min, sec
 
 
-def find_nearest(array, value):
+def find_index_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
-    return idx, array[idx]
+    return idx
 
 
 def get_lib_alias(lib):

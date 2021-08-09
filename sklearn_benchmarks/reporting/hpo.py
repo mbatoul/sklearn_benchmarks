@@ -1,4 +1,5 @@
 import json
+import warnings
 from dataclasses import dataclass, field
 from typing import List
 
@@ -16,81 +17,43 @@ from sklearn_benchmarks.config import (
 )
 from sklearn_benchmarks.utils.misc import (
     diff_between_lists,
-    find_nearest,
+    find_index_nearest,
     get_lib_alias,
     string_matches_substrings,
 )
-from sklearn_benchmarks.utils.plotting import (
-    make_hover_template,
-    select_front_pareto,
-)
+from sklearn_benchmarks.utils.plotting import make_hover_template, select_front_pareto
 
 
-def _compute_cumulated(fit_times, scores):
+def compute_cumulated(fit_times, scores):
     cumulated_fit_times = fit_times.cumsum()
     best_val_score_so_far = pd.Series(scores).cummax()
+
     return cumulated_fit_times, best_val_score_so_far
 
 
 def boostrap_fit_times(
     fit_times,
     scores,
+    grid_scores,
     n_bootstraps=10_000,
-    baseline_score=0.7,
 ):
-    grid_scores = np.linspace(
-        baseline_score, scores.max(), 1000
-    )  # take max of max and share grid_scores
     all_fit_times = []
     rng = np.random.RandomState(0)
     n_samples = fit_times.shape[0]
     for _ in range(n_bootstraps):
         indices = rng.randint(n_samples, size=n_samples)
-        cum_fit_times_p, cum_scores_p = _compute_cumulated(
+        cum_fit_times_p, cum_scores_p = compute_cumulated(
             fit_times.iloc[indices], scores.iloc[indices]
         )
         grid_fit_times = np.interp(
             grid_scores,
             cum_scores_p,
             cum_fit_times_p,
-            right=cum_fit_times_p.max(),
+            right=np.nan,
         )
         all_fit_times.append(grid_fit_times)
 
-    return all_fit_times, grid_scores
-
-
-def percentile_bootstrapped_curve(
-    fit_times,
-    scores,
-    q,
-    n_bootstraps=10_000,
-    baseline_score=0.7,
-):
-    fit_times, grid_scores = boostrap_fit_times(
-        fit_times,
-        scores,
-        n_bootstraps=n_bootstraps,
-        baseline_score=baseline_score,
-    )
-
-    return np.percentile(fit_times, q, axis=0), grid_scores
-
-
-def mean_bootstrapped_curve(
-    fit_times,
-    scores,
-    n_bootstraps=10_000,
-    baseline_score=0.7,
-):
-    fit_times, grid_scores = boostrap_fit_times(
-        fit_times,
-        scores,
-        n_bootstraps=n_bootstraps,
-        baseline_score=baseline_score,
-    )
-
-    return np.mean(fit_times, axis=0), grid_scores
+    return all_fit_times
 
 
 @dataclass
@@ -137,6 +100,9 @@ class HPOReporting:
         all_results = []
         estimators = self.config["estimators"]
 
+        baseline_score, max_score = 0.7, 1.0
+        grid_scores = np.linspace(baseline_score, max_score, 1000)
+
         for estimator, params in estimators.items():
             lib = params["lib"]
 
@@ -152,17 +118,31 @@ class HPOReporting:
                 "accuracy_score"
             ]
 
-            mean_grid_times, grid_scores = mean_bootstrapped_curve(fit_times, scores)
+            bootstrapped_fit_times = boostrap_fit_times(
+                fit_times,
+                scores,
+                grid_scores,
+            )
 
-            (
-                first_quartile_grid_times,
-                _,
-            ) = percentile_bootstrapped_curve(fit_times, scores, 25)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
 
-            (
-                third_quartile_grid_times,
-                _,
-            ) = percentile_bootstrapped_curve(fit_times, scores, 75)
+                mean_grid_times = np.nanmean(
+                    bootstrapped_fit_times,
+                    axis=0,
+                )
+
+                first_quartile_grid_times = np.nanpercentile(
+                    bootstrapped_fit_times,
+                    25,
+                    axis=0,
+                )
+
+                third_quartile_grid_times = np.nanpercentile(
+                    bootstrapped_fit_times,
+                    75,
+                    axis=0,
+                )
 
             result = HpoBenchmarkResult(
                 lib,
@@ -321,12 +301,7 @@ class HPOReporting:
     def smoothed_curves(self):
         plt.figure(figsize=(15, 10))
 
-        fit_times_for_max_scores = []
-
         for benchmark_result in self.benchmark_results:
-            idx_max_score = np.argmax(benchmark_result.grid_scores, axis=0)
-            fit_time_for_max_score = benchmark_result.mean_grid_times[idx_max_score]
-            fit_times_for_max_scores.append(fit_time_for_max_score)
             plt.plot(
                 benchmark_result.mean_grid_times,
                 benchmark_result.grid_scores,
@@ -334,8 +309,6 @@ class HPOReporting:
                 label=benchmark_result.legend,
             )
 
-        min_fit_time_all_constant = min(fit_times_for_max_scores)
-        plt.xlim(right=min_fit_time_all_constant)
         plt.xlabel("Cumulated fit times in s")
         plt.ylabel("Validation scores")
         plt.legend()
@@ -349,12 +322,14 @@ class HPOReporting:
             base_scores = self.benchmark_results.base.grid_scores
             base_fit_times = self.benchmark_results.base.mean_grid_times
 
-            base_idx_closest, _ = find_nearest(base_scores, threshold)
+            base_idx_closest = find_index_nearest(base_scores, threshold)
             base_time = base_fit_times[base_idx_closest]
 
             df_threshold = pd.DataFrame(columns=["speedup", "legend", "color"])
             for benchmark_result in self.benchmark_results:
-                idx_closest, _ = find_nearest(benchmark_result.grid_scores, threshold)
+                idx_closest = find_index_nearest(
+                    benchmark_result.grid_scores, threshold
+                )
                 lib_time = benchmark_result.mean_grid_times[idx_closest]
                 speedup = base_time / lib_time
                 row = dict(
