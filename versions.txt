@@ -1,1 +1,1 @@
-{"scikit-learn": "1.0.dev0", "scikit-learn-intelex": "2021.20210705.191215", "xgboost": "1.4.0", "lightgbm": "3.2.1", "catboost": "0.26", "onnx": "1.10.1"}
+{"scikit-learn": "1.0.dev0", "scikit-learn-intelex": "2021.20210705.191215", "xgboost": "1.4.0", "lightgbm": "3.2.1", "catboost": "0.26.1", "onnx": "1.10.1"}
