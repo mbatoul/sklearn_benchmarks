@@ -283,15 +283,6 @@ class Benchmark:
                         bench_func = estimator.predict
 
                         profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_{bench_func.__name__}_{hyperparams_digest}_{dataset_digest}"
-                        predict_params = (
-                            self.hyperparameters[bench_func.__name__]
-                            if bench_func.__name__ in self.hyperparameters
-                            else {}
-                        )
-
-                        n_executions = BENCHMARKING_METHODS_N_EXECUTIONS[
-                            self.benchmarking_method
-                        ]
 
                         if self.predict_with_onnx:
                             (
@@ -305,7 +296,6 @@ class Benchmark:
                                 X_test_,
                                 n_executions=n_executions,
                                 onnx_model_filepath=onnx_model_filepath,
-                                **predict_params,
                             )
 
                             onnx_scores = {}
@@ -337,7 +327,6 @@ class Benchmark:
                             self.profiling_output_extensions,
                             X_test_,
                             n_executions=n_executions,
-                            **predict_params,
                         )
 
                         scores = {}
