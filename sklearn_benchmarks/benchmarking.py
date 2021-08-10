@@ -14,6 +14,7 @@ from sklearn.model_selection import ParameterGrid, train_test_split
 from sklearn.utils import check_random_state
 from sklearn.utils._testing import set_random_state
 from viztracer import VizTracer
+from numpy.testing import assert_almost_equal
 
 from sklearn_benchmarks.config import (
     BENCHMARKING_METHODS_N_EXECUTIONS,
@@ -291,9 +292,10 @@ class Benchmark:
                         n_executions = BENCHMARKING_METHODS_N_EXECUTIONS[
                             self.benchmarking_method
                         ]
+
                         if self.predict_with_onnx:
                             (
-                                func_result,
+                                onnx_func_result,
                                 benchmark_measurements,
                             ) = run_benchmark_one_func(
                                 bench_func,
@@ -306,10 +308,10 @@ class Benchmark:
                                 **predict_params,
                             )
 
-                            scores = {}
+                            onnx_scores = {}
                             for metric_func in metrics_funcs:
-                                score = metric_func(y_test_, func_result)
-                                scores[metric_func.__name__] = score
+                                score = metric_func(y_test_, onnx_func_result)
+                                onnx_scores[metric_func.__name__] = score
 
                             benchmark_result = RawBenchmarkResult(
                                 self.name,
@@ -322,7 +324,7 @@ class Benchmark:
                                 dataset_digest,
                                 benchmark_measurements,
                                 parameters_batch,
-                                scores,
+                                onnx_scores,
                             )
 
                             print(benchmark_result)
@@ -342,6 +344,12 @@ class Benchmark:
                         for metric_func in metrics_funcs:
                             score = metric_func(y_test_, func_result)
                             scores[metric_func.__name__] = score
+
+                        if self.predict_with_onnx:
+                            assert onnx_func_result.shape == func_result.shape
+
+                            for score in scores.keys():
+                                assert_almost_equal(onnx_scores[score], scores[score])
 
                         benchmark_result = RawBenchmarkResult(
                             self.name,
