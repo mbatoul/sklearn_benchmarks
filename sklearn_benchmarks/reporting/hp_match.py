@@ -8,7 +8,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from IPython.display import HTML, Markdown, display
 from plotly.subplots import make_subplots
-
 from sklearn_benchmarks.config import (
     BASE_LIB,
     BENCHMARKING_RESULTS_PATH,
@@ -18,13 +17,11 @@ from sklearn_benchmarks.config import (
     VERSIONS_PATH,
     get_full_config,
 )
-
-from sklearn_benchmarks.utils.plotting import (
+from sklearn_benchmarks.utils import (
     gen_coordinates_grid,
+    get_lib_alias,
     make_hover_template,
 )
-
-from sklearn_benchmarks.utils.misc import get_lib_alias
 
 
 class HPMatchReporting:

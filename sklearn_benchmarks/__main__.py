@@ -21,7 +21,7 @@ from sklearn_benchmarks.config import (
     get_full_config,
     parse_parameters,
 )
-from sklearn_benchmarks.utils.misc import clean_results, convert
+from sklearn_benchmarks.utils import clean_results, convert
 
 
 @click.command()

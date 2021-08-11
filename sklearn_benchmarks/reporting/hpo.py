@@ -15,13 +15,14 @@ from sklearn_benchmarks.config import (
     VERSIONS_PATH,
     get_full_config,
 )
-from sklearn_benchmarks.utils.misc import (
+from sklearn_benchmarks.utils import (
     diff_between_lists,
     find_index_nearest,
     get_lib_alias,
+    make_hover_template,
+    select_front_pareto,
     string_matches_substrings,
 )
-from sklearn_benchmarks.utils.plotting import make_hover_template, select_front_pareto
 
 
 def compute_cumulated(fit_times, scores):

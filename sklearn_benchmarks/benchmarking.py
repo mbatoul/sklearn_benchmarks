@@ -25,7 +25,7 @@ from sklearn_benchmarks.config import (
     PROFILING_RESULTS_PATH,
     RESULTS_PATH,
 )
-from sklearn_benchmarks.utils.misc import gen_data
+from sklearn_benchmarks.utils import gen_data
 
 
 @dataclass

@@ -46,7 +46,7 @@ def parse_parameters(params):
     PR to track: https://github.com/yaml/pyyaml/issues/486
 
     """
-    from sklearn_benchmarks.utils.misc import is_scientific_notation
+    from sklearn_benchmarks.utils import is_scientific_notation
 
     init_parameters = params.get("parameters", {}).get("init", {})
     for key, value in init_parameters.items():
