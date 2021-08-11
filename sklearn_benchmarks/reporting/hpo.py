@@ -64,16 +64,14 @@ class HpoBenchmarkResult:
     legend: str
     color: str
     df: pd.DataFrame
-    fit_times: np.ndarray
-    scores: np.ndarray
     mean_grid_times: np.ndarray
     first_quartile_grid_times: np.ndarray
     third_quartile_grid_times: np.ndarray
-    grid_scores: np.ndarray
 
 
 @dataclass
 class HpoBenchmarkResults:
+    grid_scores: np.ndarray
     results: List[HpoBenchmarkResult] = field(default_factory=list)
 
     def __iter__(self):
@@ -149,17 +147,14 @@ class HPOReporting:
                 legend,
                 color,
                 df,
-                fit_times,
-                scores,
                 mean_grid_times,
                 first_quartile_grid_times,
                 third_quartile_grid_times,
-                grid_scores,
             )
 
             all_results.append(result)
 
-        self.benchmark_results = HpoBenchmarkResults(all_results)
+        self.benchmark_results = HpoBenchmarkResults(grid_scores, all_results)
 
     def scatter(self, func="fit"):
         fig = go.Figure()
@@ -300,26 +295,36 @@ class HPOReporting:
 
     def smoothed_curves(self):
         plt.figure(figsize=(15, 10))
+        grid_scores = self.benchmark_results.grid_scores
 
         for benchmark_result in self.benchmark_results:
             plt.plot(
                 benchmark_result.mean_grid_times,
-                benchmark_result.grid_scores,
+                grid_scores,
                 c=f"tab:{benchmark_result.color}",
                 label=benchmark_result.legend,
             )
+            plt.fill_betweenx(
+                grid_scores,
+                benchmark_result.first_quartile_grid_times,
+                benchmark_result.third_quartile_grid_times,
+                color=benchmark_result.color,
+                alpha=0.1,
+            )
 
-        plt.xlabel("Cumulated fit times in s")
+        plt.xlabel("Cumulated fit times in seconds")
         plt.ylabel("Validation scores")
         plt.legend()
         plt.show()
 
-    def speedup_barplots(self):
-        thresholds = self.config["speedup_thresholds"]
+    def speedup_barplots(self, thresholds=[]):
+        if not thresholds:
+            thresholds = self.config["speedup_thresholds"]
+            
         _, axes = plt.subplots(len(thresholds), figsize=(12, 20))
+        grid_scores = self.benchmark_results.grid_scores
 
         for ax, threshold in zip(axes, thresholds):
-            base_scores = self.benchmark_results.base.grid_scores
             base_fit_times = self.benchmark_results.base.mean_grid_times
             idx_closest_to_threshold = find_index_nearest(grid_scores, threshold)
             base_time = base_fit_times[idx_closest_to_threshold]
@@ -351,25 +356,18 @@ class HPOReporting:
 
     def speedup_curves(self):
         plt.figure(figsize=(15, 10))
+
         for benchmark_result in self.benchmark_results:
+            speedup_grid_times = self.benchmark_results.base.mean_grid_times / benchmark_result.mean_grid_times
             plt.plot(
-                benchmark_result.grid_scores,
-                self.benchmark_results.base.mean_grid_times
-                / benchmark_result.mean_grid_times,
+                self.benchmark_results.grid_scores,
+                speedup_grid_times,
                 c=f"tab:{benchmark_result.color}",
                 label=benchmark_result.legend,
             )
-            plt.fill_between(
-                benchmark_result.grid_scores,
-                self.benchmark_results.base.third_quartile_grid_times
-                / benchmark_result.third_quartile_grid_times,
-                self.benchmark_results.base.first_quartile_grid_times
-                / benchmark_result.first_quartile_grid_times,
-                color=benchmark_result.color,
-                alpha=0.1,
-            )
+
         plt.xlabel("Validation scores")
-        plt.ylabel(f"Speedup")
+        plt.ylabel(f"Speedup over scikit-learn")
         plt.legend()
         plt.show()
 
