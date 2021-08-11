@@ -44,7 +44,7 @@ class RawBenchmarkResult:
     n_samples_train: int
     n_samples: int
     n_features: int
-    hyperparams_digest: str
+    parameters_digest: str
     dataset_digest: str
     benchmark_measurements: BenchmarkMeasurements
     parameters_batch: dict
@@ -238,9 +238,9 @@ class Benchmark:
                     set_random_state(estimator, random_state=self.random_state)
                     bench_func = estimator.fit
                     # Use digests to identify results later in reporting
-                    hyperparams_digest = joblib.hash(parameters_batch)
+                    parameters_digest = joblib.hash(parameters_batch)
                     dataset_digest = joblib.hash(dataset)
-                    profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_fit_{hyperparams_digest}_{dataset_digest}"
+                    profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_fit_{parameters_digest}_{dataset_digest}"
 
                     func_result, benchmark_measurements = run_benchmark_one_func(
                         bench_func,
@@ -256,7 +256,7 @@ class Benchmark:
                         initial_type = [
                             ("float_input", FloatTensorType([None, X_train.shape[1]]))
                         ]
-                        onnx_model_filepath = f"{RESULTS_PATH}/{library}_{self.name}_{hyperparams_digest}_{dataset_digest}.onnx"
+                        onnx_model_filepath = f"{RESULTS_PATH}/{library}_{self.name}_{parameters_digest}_{dataset_digest}.onnx"
 
                         onx = convert_sklearn(estimator, initial_types=initial_type)
 
@@ -269,7 +269,7 @@ class Benchmark:
                         ns_train,
                         ns_train,
                         n_features,
-                        hyperparams_digest,
+                        parameters_digest,
                         dataset_digest,
                         benchmark_measurements,
                         parameters_batch,
@@ -283,7 +283,7 @@ class Benchmark:
                         X_test_, y_test_ = X_test[:ns_test], y_test[:ns_test]
                         bench_func = estimator.predict
 
-                        profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_{bench_func.__name__}_{hyperparams_digest}_{dataset_digest}"
+                        profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_{bench_func.__name__}_{parameters_digest}_{dataset_digest}"
 
                         if self.predict_with_onnx:
                             (
@@ -310,7 +310,7 @@ class Benchmark:
                                 ns_train,
                                 ns_test,
                                 n_features,
-                                hyperparams_digest,
+                                parameters_digest,
                                 dataset_digest,
                                 benchmark_measurements,
                                 parameters_batch,
@@ -346,7 +346,7 @@ class Benchmark:
                             ns_train,
                             ns_test,
                             n_features,
-                            hyperparams_digest,
+                            parameters_digest,
                             dataset_digest,
                             benchmark_measurements,
                             parameters_batch,

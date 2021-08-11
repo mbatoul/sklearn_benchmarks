@@ -185,28 +185,28 @@ class HPOReporting:
                 df_predictions = df_predictions.merge(
                     df_predictions_onnx[
                         [
-                            "hyperparams_digest",
+                            "parameters_digest",
                             "dataset_digest",
                             *comparable_cols,
                         ]
                     ],
-                    on=["hyperparams_digest", "dataset_digest"],
+                    on=["parameters_digest", "dataset_digest"],
                     how="inner",
                     suffixes=["", "_onnx"],
                 )
 
             df_merged = df_predictions.merge(
                 df.query("function == 'fit'")[
-                    ["hyperparams_digest", "dataset_digest", *comparable_cols]
+                    ["parameters_digest", "dataset_digest", *comparable_cols]
                 ],
-                on=["hyperparams_digest", "dataset_digest"],
+                on=["parameters_digest", "dataset_digest"],
                 how="inner",
                 suffixes=["_predict", "_fit"],
             )
 
             # Remove columns used during merges
             df_merged = df_merged.drop(
-                ["function", "hyperparams_digest", "dataset_digest"], axis=1
+                ["function", "parameters_digest", "dataset_digest"], axis=1
             )
 
             # Reorder columns for readability purpose in reporting

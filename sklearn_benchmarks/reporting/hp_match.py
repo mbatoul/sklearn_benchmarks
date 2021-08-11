@@ -132,8 +132,8 @@ class SingleEstimatorReport:
         return df_merged
 
     def _make_profiling_link(self, components, lib=BASE_LIB):
-        function, hyperparams_digest, dataset_digest = components
-        path = f"profiling/{lib}_{function}_{hyperparams_digest}_{dataset_digest}.html"
+        function, parameters_digest, dataset_digest = components
+        path = f"profiling/{lib}_{function}_{parameters_digest}_{dataset_digest}.html"
         if os.environ.get("RESULTS_BASE_URL") is not None:
             base_url = os.environ.get("RESULTS_BASE_URL")
         else:
@@ -164,9 +164,9 @@ class SingleEstimatorReport:
         df = df.drop(cols_to_drop, axis=1)
         for lib in [BASE_LIB, self.against_lib]:
             df[f"{lib}_profiling"] = df[
-                ["function", "hyperparams_digest", "dataset_digest"]
+                ["function", "parameters_digest", "dataset_digest"]
             ].apply(self._make_profiling_link, lib=lib, axis=1)
-        df = df.drop(["hyperparams_digest", "dataset_digest"], axis=1)
+        df = df.drop(["parameters_digest", "dataset_digest"], axis=1)
         splitted_dfs = [x for _, x in df.groupby(["function"])]
         for df in splitted_dfs:
             display(HTML(df.to_html(escape=False)))
@@ -213,7 +213,7 @@ class SingleEstimatorReport:
                 if param not in self.split_bars
             ]
         else:
-            group_by_params = "hyperparams_digest"
+            group_by_params = "parameters_digest"
 
         df_merged_grouped = df_merged.groupby(group_by_params)
 
@@ -232,7 +232,7 @@ class SingleEstimatorReport:
         for (row, col), (_, df) in zip(coordinates, df_merged_grouped):
             df = df.sort_values(by=["function", "n_samples", "n_features"])
             df = df.dropna(axis="columns")
-            df = df.drop(["hyperparams_digest", "dataset_digest"], axis=1)
+            df = df.drop(["parameters_digest", "dataset_digest"], axis=1)
             df = df.round(3)
 
             if self.split_bars:
