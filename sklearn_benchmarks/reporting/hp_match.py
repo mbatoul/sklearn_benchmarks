@@ -113,7 +113,7 @@ class SingleEstimatorReport:
         compare_cols = self._get_compare_cols()
 
         suffixes = map(lambda lib: f"_{lib}", [BASE_LIB, self.against_lib])
-        merged_df = pd.merge(
+        df_merged = pd.merge(
             base_lib_df,
             against_lib_df[compare_cols],
             left_index=True,
@@ -121,15 +121,15 @@ class SingleEstimatorReport:
             suffixes=suffixes,
         )
 
-        merged_df["speedup"] = base_lib_time / against_lib_time
-        merged_df["std_speedup"] = merged_df["speedup"] * (
+        df_merged["speedup"] = base_lib_time / against_lib_time
+        df_merged["std_speedup"] = df_merged["speedup"] * (
             np.sqrt(
                 (base_lib_std / base_lib_time) ** 2
                 + (against_lib_std / against_lib_time) ** 2
             )
         )
 
-        return merged_df
+        return df_merged
 
     def _make_profiling_link(self, components, lib=BASE_LIB):
         function, hyperparams_digest, dataset_digest = components
@@ -174,17 +174,6 @@ class SingleEstimatorReport:
     def _make_x_plot(self, df):
         return [f"({ns}, {nf})" for ns, nf in df[["n_samples", "n_features"]].values]
 
-    def _should_split_n_samples_train(self, df):
-        return np.any(df[["n_samples", "n_features"]].duplicated().values)
-
-    def _get_split_cols(self, df):
-        split_cols = []
-        if self.split_bars:
-            split_cols = self.split_bars
-        elif self._should_split_n_samples_train(df):
-            split_cols = ["n_samples_train"]
-        return split_cols
-
     def _add_bar_to_plotly_fig(
         self, fig, row, col, df, color="dodgerblue", name="", showlegend=False
     ):
@@ -206,16 +195,17 @@ class SingleEstimatorReport:
         )
 
     def _get_shared_hyperpameters(self):
-        merged_df = self._make_reporting_df()
+        df_merged = self._make_reporting_df()
         ret = {}
         for col in self.estimator_parameters:
-            unique_vals = merged_df[col].unique()
+            unique_vals = df_merged[col].unique()
             if unique_vals.size == 1:
                 ret[col] = unique_vals[0]
         return ret
 
     def _plot(self):
-        merged_df = self._make_reporting_df()
+        df_merged = self._make_reporting_df()
+
         if self.split_bars:
             group_by_params = [
                 param
@@ -225,13 +215,13 @@ class SingleEstimatorReport:
         else:
             group_by_params = "hyperparams_digest"
 
-        merged_df_grouped = merged_df.groupby(group_by_params)
+        df_merged_grouped = df_merged.groupby(group_by_params)
 
-        n_plots = len(merged_df_grouped)
+        n_plots = len(df_merged_grouped)
         n_rows = n_plots // self.n_cols + n_plots % self.n_cols
         coordinates = gen_coordinates_grid(n_rows, self.n_cols)
 
-        subplot_titles = [self._make_plot_title(df) for _, df in merged_df_grouped]
+        subplot_titles = [self._make_plot_title(df) for _, df in df_merged_grouped]
 
         fig = make_subplots(
             rows=n_rows,
@@ -239,15 +229,14 @@ class SingleEstimatorReport:
             subplot_titles=subplot_titles,
         )
 
-        for (row, col), (_, df) in zip(coordinates, merged_df_grouped):
+        for (row, col), (_, df) in zip(coordinates, df_merged_grouped):
             df = df.sort_values(by=["function", "n_samples", "n_features"])
             df = df.dropna(axis="columns")
             df = df.drop(["hyperparams_digest", "dataset_digest"], axis=1)
             df = df.round(3)
 
-            split_cols = self._get_split_cols(df)
-            if split_cols:
-                for split_col in split_cols:
+            if self.split_bars:
+                for split_col in self.split_bars:
                     split_col_vals = df[split_col].unique()
                     for index, split_val in enumerate(split_col_vals):
                         filtered_df = df[df[split_col] == split_val]
