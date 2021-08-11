@@ -48,13 +48,13 @@ def parse_parameters(params):
     """
     from sklearn_benchmarks.utils.misc import is_scientific_notation
 
-    init_params = params.get("hyperparameters", {}).get("init", {})
-    for key, value in init_params.items():
+    init_parameters = params.get("parameters", {}).get("init", {})
+    for key, value in init_parameters.items():
         if not isinstance(value, list):
             continue
         for i, el in enumerate(value):
             if is_scientific_notation(el):
-                init_params[key][i] = float(el) if "-" in el else int(float(el))
+                init_parameters[key][i] = float(el) if "-" in el else int(float(el))
 
     datasets = params.get("datasets", [])
     for dataset in datasets:

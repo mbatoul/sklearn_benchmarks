@@ -36,21 +36,19 @@ class HPMatchReporting:
         self.against_lib = against_lib
         self.config = config
 
-    def _get_estimator_default_hyperparameters(self, estimator):
+    def _get_estimator_default_parameters(self, estimator):
         splitted_path = estimator.split(".")
         module, class_name = ".".join(splitted_path[:-1]), splitted_path[-1]
         estimator_class = getattr(importlib.import_module(module), class_name)
         estimator_instance = estimator_class()
-        hyperparameters = estimator_instance.__dict__.keys()
-        return hyperparameters
+        parameters = estimator_instance.__dict__.keys()
+        return parameters
 
-    def _get_estimator_hyperparameters(self, estimator_config):
-        if "hyperparameters" in estimator_config:
-            return estimator_config["hyperparameters"]["init"].keys()
+    def _get_estimator_parameters(self, estimator_config):
+        if "parameters" in estimator_config:
+            return estimator_config["parameters"]["init"].keys()
         else:
-            return self._get_estimator_default_hyperparameters(
-                estimator_config["estimator"]
-            )
+            return self._get_estimator_default_parameters(estimator_config["estimator"])
 
     def run(self):
         config = get_full_config(config=self.config)
@@ -63,7 +61,7 @@ class HPMatchReporting:
 
         for name, params in reporting_estimators.items():
             params["n_cols"] = reporting_config["n_cols"]
-            params["estimator_hyperparameters"] = self._get_estimator_hyperparameters(
+            params["estimator_parameters"] = self._get_estimator_parameters(
                 benchmarking_estimators[name]
             )
             against_lib = params["against_lib"]
@@ -88,7 +86,7 @@ class SingleEstimatorReport:
         against_lib="",
         split_bars=[],
         compare=[],
-        estimator_hyperparameters={},
+        estimator_parameters={},
         n_cols=None,
     ):
         self.name = name
@@ -96,7 +94,7 @@ class SingleEstimatorReport:
         self.split_bars = split_bars
         self.compare = compare
         self.n_cols = n_cols
-        self.estimator_hyperparameters = estimator_hyperparameters
+        self.estimator_parameters = estimator_parameters
 
     def _get_benchmark_df(self, lib=BASE_LIB):
         benchmarking_results_path = str(BENCHMARKING_RESULTS_PATH)
@@ -189,7 +187,7 @@ class SingleEstimatorReport:
         title = ""
         params_cols = [
             param
-            for param in self.estimator_hyperparameters
+            for param in self.estimator_parameters
             if param not in self.split_bars
             and param not in self._get_shared_hyperpameters().keys()
         ]
@@ -205,9 +203,7 @@ class SingleEstimatorReport:
         df = df.round(3)
         nunique = df.apply(pd.Series.nunique)
         cols_to_drop = nunique[nunique == 1].index
-        cols_to_drop = [
-            col for col in cols_to_drop if col in self.estimator_hyperparameters
-        ]
+        cols_to_drop = [col for col in cols_to_drop if col in self.estimator_parameters]
         df = df.drop(cols_to_drop, axis=1)
         for lib in [BASE_LIB, self.against_lib]:
             df[f"{lib}_profiling"] = df[
@@ -255,7 +251,7 @@ class SingleEstimatorReport:
     def _get_shared_hyperpameters(self):
         merged_df = self._make_reporting_df()
         ret = {}
-        for col in self.estimator_hyperparameters:
+        for col in self.estimator_parameters:
             unique_vals = merged_df[col].unique()
             if unique_vals.size == 1:
                 ret[col] = unique_vals[0]
@@ -266,7 +262,7 @@ class SingleEstimatorReport:
         if self.split_bars:
             group_by_params = [
                 param
-                for param in self.estimator_hyperparameters
+                for param in self.estimator_parameters
                 if param not in self.split_bars
             ]
         else:
@@ -328,13 +324,13 @@ class SingleEstimatorReport:
             height=n_rows * PLOT_HEIGHT_IN_PX, barmode="group", showlegend=True
         )
 
-        text = "All estimators share the following hyperparameters: "
-        df_shared_hyperparameters = pd.DataFrame.from_dict(
+        text = "All estimators share the following parameters: "
+        df_shared_parameters = pd.DataFrame.from_dict(
             self._get_shared_hyperpameters(), orient="index", columns=["value"]
         )
-        for i, (index, row) in enumerate(df_shared_hyperparameters.iterrows()):
+        for i, (index, row) in enumerate(df_shared_parameters.iterrows()):
             text += "`%s=%s`" % (index, *row.values)
-            if i == len(df_shared_hyperparameters) - 1:
+            if i == len(df_shared_parameters) - 1:
                 text += "."
             else:
                 text += ", "

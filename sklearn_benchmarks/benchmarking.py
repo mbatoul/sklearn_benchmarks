@@ -164,7 +164,7 @@ class Benchmark:
         estimator="",
         inherit=False,
         metrics=[],
-        hyperparameters={},
+        parameters={},
         datasets=[],
         predict_with_onnx=False,
         random_seed=None,
@@ -177,7 +177,7 @@ class Benchmark:
         self.estimator = estimator
         self.inherit = inherit
         self.metrics = metrics
-        self.hyperparameters = hyperparameters
+        self.parameters = parameters
         self.datasets = datasets
         self.random_state = check_random_state(random_seed)
         self.predict_with_onnx = predict_with_onnx
@@ -187,13 +187,13 @@ class Benchmark:
         self.profiling_output_extensions = profiling_output_extensions
 
     def _make_parameters_grid(self):
-        params = self.hyperparameters.get("init", {})
-        if not params:
+        init_parameters = self.parameters.get("init", {})
+        if not init_parameters:
             estimator_class = self._load_estimator_class()
             estimator = estimator_class()
             # Parameters grid should have list values
-            params = {k: [v] for k, v in estimator.__dict__.items()}
-        grid = list(ParameterGrid(params))
+            init_parameters = {k: [v] for k, v in estimator.__dict__.items()}
+        grid = list(ParameterGrid(init_parameters))
         self.random_state.shuffle(grid)
         return grid
 
