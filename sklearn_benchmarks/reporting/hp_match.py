@@ -69,7 +69,7 @@ class HPMatchReporting:
             display(Markdown(subtitle))
 
             report = SingleEstimatorReport(**params)
-            report.run()
+            report.make_report()
 
 
 class SingleEstimatorReport:
