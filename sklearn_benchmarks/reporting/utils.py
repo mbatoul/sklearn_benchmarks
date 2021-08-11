@@ -41,8 +41,8 @@ def display_links_to_notebooks():
     else:
         base_url = "http://localhost:8888/notebooks/"
     notebook_titles = dict(
-        sklearn_vs_sklearnex="scikit-learn-intelex (Intel® oneAPI) vs. scikit-learn benchmarks",
-        sklearn_vs_onnx="ONNX Runtime (Microsoft) vs. scikit-learn benchmarks",
+        scikit_learn_intelex_vs_scikit_learn="scikit-learn-intelex (Intel® oneAPI) vs. scikit-learn benchmarks",
+        onnx_vs_scikit_learn="ONNX Runtime (Microsoft) vs. scikit-learn benchmarks",
         gradient_boosting="Gradient boosting: randomized HPO benchmarks",
     )
     file_extension = "html" if os.environ.get("RESULTS_BASE_URL") else "ipynb"

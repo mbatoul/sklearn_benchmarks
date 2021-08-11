@@ -248,7 +248,7 @@ class Benchmark:
                         self.profiling_output_extensions,
                         X_train,
                         y=y_train,
-                        n_executions=1,
+                        n_executions=n_executions,
                     )
 
                     if self.predict_with_onnx:

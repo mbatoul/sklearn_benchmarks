@@ -19,7 +19,7 @@
 
 `sklearn_benchmarks` is a framework to benchmark `scikit-learn`'s estimators against concurrent implementations.
 
-To consult benchmark results, see notebooks [sklearn_vs_sklearnex.ipynb](https://github.com/mbatoul/sklearn_benchmarks/blob/master/sklearn_vs_sklearnex.ipynb), [sklearn_vs_onnx.ipynb](https://github.com/mbatoul/sklearn_benchmarks/blob/master/sklearn_vs_onnx.ipynb) and [gradient_boosting.ipynb](https://github.com/mbatoul/sklearn_benchmarks/blob/master/gradient_boosting.ipynb).
+To consult benchmark results, see notebooks [scikit_learn_intelex_vs_scikit_learn.ipynb](https://github.com/mbatoul/sklearn_benchmarks/blob/master/scikit_learn_intelex_vs_scikit_learn.ipynb), [onnx_vs_scikit_learn.ipynb](https://github.com/mbatoul/sklearn_benchmarks/blob/master/onnx_vs_scikit_learn.ipynb) and [gradient_boosting.ipynb](https://github.com/mbatoul/sklearn_benchmarks/blob/master/gradient_boosting.ipynb).
 
 For information regarding the benchmark environment and execution, see notebook [index.ipynb](https://github.com/mbatoul/sklearn_benchmarks/blob/master/index.ipynb).
 
