@@ -39,7 +39,12 @@ from sklearn_benchmarks.utils.misc import clean_results, convert
     is_flag=True,
     required=False,
     default=False,
-    help="Activate the fast benchmark option for debugging purposes. Datasets will be small. HPO time budget will be set to 5 seconds.",
+    help=(
+        "Activate the fast benchmark option for debugging purposes. "
+        "Datasets will be small. "
+        "All benchmarks will be converted to HPO."
+        "HPO time budget will be set to 5 seconds."
+    ),
 )
 @click.option(
     "--config",
