@@ -212,6 +212,7 @@ class Benchmark:
         metrics_funcs = self._load_metrics_funcs()
         parameters_grid = self._make_parameters_grid()
         benchmark_results = RawBenchmarkResults()
+        n_executions = BENCHMARKING_METHODS_N_EXECUTIONS[self.benchmarking_method]
 
         start = time.perf_counter()
         for dataset in self.datasets:
