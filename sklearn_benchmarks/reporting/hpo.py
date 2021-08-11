@@ -61,6 +61,7 @@ def boostrap_fit_times(
 class HpoBenchmarkResult:
     """Class to store formatted data of HPO benchmark results."""
 
+    estimator: str
     lib: str
     legend: str
     color: str
@@ -115,9 +116,7 @@ class HPOReporting:
             color = params["color"]
 
             fit_times = df.query("function == 'fit'")["mean_duration"]
-            scores = df.query("function == 'predict' & is_onnx == False")[
-                "accuracy_score"
-            ]
+            scores = df.query("function == 'predict'")["accuracy_score"]
 
             best_score_worst_performer = min(best_score_worst_performer, scores.max())
 
@@ -148,6 +147,7 @@ class HPOReporting:
                 )
 
             result = HpoBenchmarkResult(
+                estimator,
                 lib,
                 legend,
                 color,
@@ -179,8 +179,11 @@ class HPOReporting:
                 if string_matches_substrings(col, comparable_cols)
             ]
             if benchmark_result.lib == BASE_LIB:
-                df_predictions = df_predictions.query("is_onnx == False").merge(
-                    df_predictions.query("is_onnx == True")[
+                df_predictions_onnx = pd.read_csv(
+                    f"{BENCHMARKING_RESULTS_PATH}/onnx_{benchmark_result.estimator}.csv"
+                )
+                df_predictions = df_predictions.merge(
+                    df_predictions_onnx[
                         [
                             "hyperparams_digest",
                             "dataset_digest",
@@ -203,7 +206,7 @@ class HPOReporting:
 
             # Remove columns used during merges
             df_merged = df_merged.drop(
-                ["function", "hyperparams_digest", "dataset_digest", "is_onnx"], axis=1
+                ["function", "hyperparams_digest", "dataset_digest"], axis=1
             )
 
             # Reorder columns for readability purpose in reporting

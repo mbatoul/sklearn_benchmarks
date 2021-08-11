@@ -2,19 +2,19 @@ import importlib
 import os
 import time
 from dataclasses import asdict, dataclass, field
-from typing import List, Dict
+from typing import Dict, List
 
 import joblib
 import numpy as np
 import onnxruntime as rt
 import pandas as pd
+from numpy.testing import assert_almost_equal
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import ParameterGrid, train_test_split
 from sklearn.utils import check_random_state
 from sklearn.utils._testing import set_random_state
 from viztracer import VizTracer
-from numpy.testing import assert_almost_equal
 
 from sklearn_benchmarks.config import (
     BENCHMARKING_METHODS_N_EXECUTIONS,
@@ -40,7 +40,6 @@ class BenchmarkMeasurements:
 @dataclass
 class RawBenchmarkResult:
     estimator: str
-    is_onnx: bool
     function: str
     n_samples_train: int
     n_samples: int
@@ -212,6 +211,8 @@ class Benchmark:
         metrics_funcs = self._load_metrics_funcs()
         parameters_grid = self._make_parameters_grid()
         benchmark_results = RawBenchmarkResults()
+        if self.predict_with_onnx:
+            onnx_benchmark_results = RawBenchmarkResults()
         n_executions = BENCHMARKING_METHODS_N_EXECUTIONS[self.benchmarking_method]
 
         start = time.perf_counter()
@@ -264,7 +265,6 @@ class Benchmark:
 
                     benchmark_result = RawBenchmarkResult(
                         self.name,
-                        False,
                         bench_func.__name__,
                         ns_train,
                         ns_train,
@@ -306,7 +306,6 @@ class Benchmark:
 
                             benchmark_result = RawBenchmarkResult(
                                 self.name,
-                                True,
                                 bench_func.__name__,
                                 ns_train,
                                 ns_test,
@@ -319,7 +318,7 @@ class Benchmark:
                             )
 
                             print(benchmark_result)
-                            benchmark_results.append(benchmark_result)
+                            onnx_benchmark_results.append(benchmark_result)
 
                         func_result, benchmark_measurements = run_benchmark_one_func(
                             bench_func,
@@ -343,7 +342,6 @@ class Benchmark:
 
                         benchmark_result = RawBenchmarkResult(
                             self.name,
-                            False,
                             bench_func.__name__,
                             ns_train,
                             ns_test,
@@ -362,6 +360,11 @@ class Benchmark:
                             f"{BENCHMARKING_RESULTS_PATH}/{library}_{self.name}.csv"
                         )
                         benchmark_results.to_csv(csv_path)
+                        if self.predict_with_onnx:
+                            csv_path = (
+                                f"{BENCHMARKING_RESULTS_PATH}/onnx_{self.name}.csv"
+                            )
+                            onnx_benchmark_results.to_csv(csv_path)
 
                         if self.benchmarking_method == "hpo":
                             now = time.perf_counter()

@@ -101,7 +101,7 @@ class SingleEstimatorReport:
     def _get_compare_cols(self):
         return [*self.compare, *COMPARABLE_COLS]
 
-    def _make_reporting_df_sklearnex(self):
+    def _make_reporting_df(self):
         base_lib_df = self._get_benchmark_df()
         base_lib_time = base_lib_df["mean_duration"]
         base_lib_std = base_lib_df["mean_duration"]
@@ -130,46 +130,6 @@ class SingleEstimatorReport:
         )
 
         return merged_df
-
-    def _make_reporting_df_onnx(self):
-        df = self._get_benchmark_df()
-
-        df = df.query("function == 'predict'")
-        df = df.fillna(value={"is_onnx": False})
-        merged_df = df.query("is_onnx == True").merge(
-            df.query("is_onnx == False"),
-            on=["hyperparams_digest", "dataset_digest"],
-            how="inner",
-            suffixes=["", "_onnx"],
-        )
-        merged_df = merged_df.dropna(axis=1)
-        columns_to_drop = merged_df.filter(regex="_onnx$").columns.tolist()
-        columns_to_drop = filter(
-            lambda col: "mean_duration" not in col and "std_duration" not in col,
-            columns_to_drop,
-        )
-        merged_df.drop(
-            columns_to_drop,
-            axis=1,
-            inplace=True,
-        )
-        merged_df["speedup"] = (
-            merged_df["mean_duration"] / merged_df["mean_duration_onnx"]
-        )
-        merged_df["std_speedup"] = merged_df["speedup"] * (
-            np.sqrt(
-                (merged_df["std_duration"] / merged_df["mean_duration"]) ** 2
-                + (merged_df["std_duration_onnx"] / merged_df["mean_duration_onnx"])
-                ** 2
-            )
-        )
-        return merged_df
-
-    def _make_reporting_df(self):
-        if self.against_lib == "sklearnex":
-            return self._make_reporting_df_sklearnex()
-        else:
-            return self._make_reporting_df_onnx()
 
     def _make_profiling_link(self, components, lib=BASE_LIB):
         function, hyperparams_digest, dataset_digest = components
