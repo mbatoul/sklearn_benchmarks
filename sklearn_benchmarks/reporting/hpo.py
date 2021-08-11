@@ -42,13 +42,13 @@ def boostrap_fit_times(
     n_samples = fit_times.shape[0]
     for _ in range(n_bootstraps):
         indices = rng.randint(n_samples, size=n_samples)
-        cum_fit_times_p, cum_scores_p = compute_cumulated(
+        cum_fit_times_permutated, cum_scores_permutated = compute_cumulated(
             fit_times.iloc[indices], scores.iloc[indices]
         )
         grid_fit_times = np.interp(
             grid_scores,
-            cum_scores_p,
-            cum_fit_times_p,
+            cum_scores_permutated,
+            cum_fit_times_permutated,
             right=np.nan,
         )
         all_fit_times.append(grid_fit_times)
@@ -291,7 +291,7 @@ class HPOReporting:
         fig.update_yaxes(showspikes=True)
 
         x_title = f"{func.capitalize()} times in seconds"
-        y_title = "Accuracy score"
+        y_title = "Validation score"
 
         fig["layout"]["xaxis{}".format(1)]["title"] = x_title
         fig["layout"]["yaxis{}".format(1)]["title"] = y_title
@@ -321,16 +321,13 @@ class HPOReporting:
         for ax, threshold in zip(axes, thresholds):
             base_scores = self.benchmark_results.base.grid_scores
             base_fit_times = self.benchmark_results.base.mean_grid_times
-
-            base_idx_closest = find_index_nearest(base_scores, threshold)
-            base_time = base_fit_times[base_idx_closest]
+            idx_closest_to_threshold = find_index_nearest(grid_scores, threshold)
+            base_time = base_fit_times[idx_closest_to_threshold]
 
             df_threshold = pd.DataFrame(columns=["speedup", "legend", "color"])
             for benchmark_result in self.benchmark_results:
-                idx_closest = find_index_nearest(
-                    benchmark_result.grid_scores, threshold
-                )
-                lib_time = benchmark_result.mean_grid_times[idx_closest]
+                idx_closest_to_threshold = find_index_nearest(grid_scores, threshold)
+                lib_time = benchmark_result.mean_grid_times[idx_closest_to_threshold]
                 speedup = base_time / lib_time
                 row = dict(
                     speedup=speedup,
@@ -346,8 +343,8 @@ class HPOReporting:
                 color=df_threshold["color"],
             )
             ax.set_xlabel("Library")
-            ax.set_ylabel(f"Speedup")
-            ax.set_title(f"At score {threshold}")
+            ax.set_ylabel(f"Speedup over scikit-learn")
+            ax.set_title(f"At validation score of {threshold}")
 
         plt.tight_layout()
         plt.show()
@@ -385,7 +382,7 @@ class HPOReporting:
         self.prepare_data()
 
         display(Markdown("## Benchmark results for `fit`"))
-        display(Markdown("### Raw fit times vs. accuracy scores"))
+        display(Markdown("### Raw fit times vs. validation scores"))
         self.scatter(func="fit")
 
         display(Markdown("### Smoothed HPO Curves"))
@@ -399,5 +396,5 @@ class HPOReporting:
         self.speedup_curves()
 
         display(Markdown("## Benchmark results for `predict`"))
-        display(Markdown("### Raw predict times vs. accuracy scores"))
+        display(Markdown("### Raw predict times vs. validation scores"))
         self.scatter(func="predict")
