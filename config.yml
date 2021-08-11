@@ -20,7 +20,7 @@ benchmarking:
       estimator: sklearn.neighbors.KNeighborsClassifier
       benchmarking_method: hp_match
       predict_with_onnx: True
-      hyperparameters:
+      parameters:
         init:
           n_neighbors:
             - 1
@@ -64,7 +64,7 @@ benchmarking:
       estimator: sklearn.neighbors.KNeighborsClassifier
       benchmarking_method: hp_match
       predict_with_onnx: True
-      hyperparameters:
+      parameters:
         init:
           n_neighbors:
             - 1
@@ -107,7 +107,7 @@ benchmarking:
       name: KMeans_tall
       estimator: sklearn.cluster.KMeans
       benchmarking_method: hp_match
-      hyperparameters:
+      parameters:
         init:
           init:
             - k-means++
@@ -154,7 +154,7 @@ benchmarking:
       name: KMeans_short
       estimator: sklearn.cluster.KMeans
       benchmarking_method: hp_match
-      hyperparameters:
+      parameters:
         init:
           init:
             - k-means++
@@ -268,7 +268,7 @@ benchmarking:
       benchmarking_method: hp_match
       metrics:
         - accuracy_score
-      hyperparameters:
+      parameters:
         init:
           learning_rate:
             - 0.01
@@ -303,7 +303,7 @@ benchmarking:
       time_budget: 600
       metrics:
         - accuracy_score
-      hyperparameters:
+      parameters:
         init:
           learning_rate:
             - 0.01
@@ -346,7 +346,7 @@ benchmarking:
       time_budget: 600
       metrics:
         - accuracy_score
-      hyperparameters:
+      parameters:
         init:
           learning_rate:
             - 0.01
@@ -393,7 +393,7 @@ benchmarking:
       time_budget: 600
       metrics:
         - accuracy_score
-      hyperparameters:
+      parameters:
         init:
           validate_parameters:
             - True
@@ -446,7 +446,7 @@ benchmarking:
       time_budget: 600
       metrics:
         - accuracy_score
-      hyperparameters:
+      parameters:
         init:
           allow_writing_files:
             - False
@@ -507,7 +507,7 @@ benchmarking:
       time_budget: 600
       metrics:
         - accuracy_score
-      hyperparameters:
+      parameters:
         init:
           allow_writing_files:
             - False
