@@ -72,6 +72,7 @@ class HpoBenchmarkResult:
 @dataclass
 class HpoBenchmarkResults:
     grid_scores: np.ndarray
+    threshold_speedup: float
     results: List[HpoBenchmarkResult] = field(default_factory=list)
 
     def __iter__(self):
@@ -101,6 +102,7 @@ class HPOReporting:
         baseline_score, max_score = 0.7, 1.0
         grid_scores = np.linspace(baseline_score, max_score, 1000)
 
+        best_score_worst_performer = 1.0
         for estimator, params in estimators.items():
             lib = params["lib"]
 
@@ -115,6 +117,8 @@ class HPOReporting:
             scores = df.query("function == 'predict' & is_onnx == False")[
                 "accuracy_score"
             ]
+
+            best_score_worst_performer = min(best_score_worst_performer, scores.max())
 
             bootstrapped_fit_times = boostrap_fit_times(
                 fit_times,
@@ -154,7 +158,10 @@ class HPOReporting:
 
             all_results.append(result)
 
-        self.benchmark_results = HpoBenchmarkResults(grid_scores, all_results)
+        threshold_speedup = round(best_score_worst_performer * 0.95, 3)
+        self.benchmark_results = HpoBenchmarkResults(
+            grid_scores, threshold_speedup, all_results
+        )
 
     def scatter(self, func="fit"):
         fig = go.Figure()
@@ -312,44 +319,51 @@ class HPOReporting:
                 alpha=0.1,
             )
 
+        threshold = self.benchmark_results.threshold_speedup
+        plt.axhline(
+            y=threshold,
+            color="black",
+            alpha=0.3,
+            linestyle="dashed",
+            label=f"Threshold of {threshold}",
+        )
         plt.xlabel("Cumulated fit times in seconds")
         plt.ylabel("Validation scores")
         plt.legend()
         plt.show()
 
-    def speedup_barplots(self, thresholds=[]):
-        if not thresholds:
-            thresholds = self.config["speedup_thresholds"]
-            
-        _, axes = plt.subplots(len(thresholds), figsize=(12, 20))
+    def speedup_barplot(self):
+        plt.figure(figsize=(15, 10))
+
         grid_scores = self.benchmark_results.grid_scores
+        threshold = self.benchmark_results.threshold_speedup
 
-        for ax, threshold in zip(axes, thresholds):
-            base_fit_times = self.benchmark_results.base.mean_grid_times
+        base_fit_times = self.benchmark_results.base.mean_grid_times
+        idx_closest_to_threshold = find_index_nearest(grid_scores, threshold)
+        base_time = base_fit_times[idx_closest_to_threshold]
+
+        df_threshold = pd.DataFrame(columns=["speedup", "legend", "color"])
+        for benchmark_result in self.benchmark_results:
             idx_closest_to_threshold = find_index_nearest(grid_scores, threshold)
-            base_time = base_fit_times[idx_closest_to_threshold]
-
-            df_threshold = pd.DataFrame(columns=["speedup", "legend", "color"])
-            for benchmark_result in self.benchmark_results:
-                idx_closest_to_threshold = find_index_nearest(grid_scores, threshold)
-                lib_time = benchmark_result.mean_grid_times[idx_closest_to_threshold]
-                speedup = base_time / lib_time
-                row = dict(
-                    speedup=speedup,
-                    legend=benchmark_result.legend,
-                    color=benchmark_result.color,
-                )
-                df_threshold = df_threshold.append(row, ignore_index=True)
-
-            ax.bar(
-                x=df_threshold["legend"],
-                height=df_threshold["speedup"],
-                width=0.3,
-                color=df_threshold["color"],
+            lib_time = benchmark_result.mean_grid_times[idx_closest_to_threshold]
+            speedup = base_time / lib_time
+            row = dict(
+                speedup=speedup,
+                legend=benchmark_result.legend,
+                color=benchmark_result.color,
             )
-            ax.set_xlabel("Library")
-            ax.set_ylabel(f"Speedup over scikit-learn")
-            ax.set_title(f"At validation score of {threshold}")
+            df_threshold = df_threshold.append(row, ignore_index=True)
+
+        plt.bar(
+            x=df_threshold["legend"],
+            height=df_threshold["speedup"],
+            width=0.3,
+            color=df_threshold["color"],
+        )
+
+        plt.xlabel("Library")
+        plt.ylabel(f"Speedup over scikit-learn")
+        plt.title(f"At validation score of {threshold}")
 
         plt.tight_layout()
         plt.show()
@@ -358,7 +372,10 @@ class HPOReporting:
         plt.figure(figsize=(15, 10))
 
         for benchmark_result in self.benchmark_results:
-            speedup_grid_times = self.benchmark_results.base.mean_grid_times / benchmark_result.mean_grid_times
+            speedup_grid_times = (
+                self.benchmark_results.base.mean_grid_times
+                / benchmark_result.mean_grid_times
+            )
             plt.plot(
                 self.benchmark_results.grid_scores,
                 speedup_grid_times,
@@ -394,8 +411,8 @@ class HPOReporting:
         display(Markdown(f"> {description}"))
         self.smoothed_curves()
 
-        display(Markdown("### Speedup barplots"))
-        self.speedup_barplots()
+        display(Markdown("### Speedup barplot"))
+        self.speedup_barplot()
 
         display(Markdown("### Speedup curves"))
         self.speedup_curves()
