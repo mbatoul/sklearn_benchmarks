@@ -34,6 +34,14 @@ from sklearn_benchmarks.utils.misc import clean_results, convert
     help="Append benchmark results to existing ones.",
 )
 @click.option(
+    "--fast",
+    "--f",
+    is_flag=True,
+    required=False,
+    default=False,
+    help="Activate the fast benchmark option for debugging purposes. Datasets will be small. HPO time budget will be set to 5 seconds.",
+)
+@click.option(
     "--config",
     "--c",
     type=str,
@@ -60,9 +68,9 @@ from sklearn_benchmarks.utils.misc import clean_results, convert
     "--htb",
     type=int,
     multiple=False,
-    help="Custom time budget for HPO benchmarks.",
+    help="Custom time budget for HPO benchmarks in seconds. Will be applied for all libraries.",
 )
-def main(append, config, profiling, estimator, hpo_time_budget):
+def main(append, fast, config, profiling, estimator, hpo_time_budget):
     if not append:
         clean_results()
     config = get_full_config(config)
@@ -97,11 +105,25 @@ def main(append, config, profiling, estimator, hpo_time_budget):
                     common_dataset_name
                 ]
 
+        if fast:
+            fast_dataset = dict(
+                n_features=10,
+                n_samples_train=[1e3],
+                n_samples_test=[1],
+                params={},
+            )
+            for i in range(len(params["datasets"])):
+                params["datasets"][i].update(fast_dataset)
+
         params = parse_parameters(params)
 
         params["random_seed"] = benchmarking_config.get("random_seed", None)
         params["profiling_output_extensions"] = profiling
-        if hpo_time_budget is not None:
+
+        if fast:
+            params["benchmarking_method"] = "hpo"
+            params["time_budget"] = 5
+        elif hpo_time_budget is not None:
             params["time_budget"] = hpo_time_budget
 
         benchmark = Benchmark(**params)
