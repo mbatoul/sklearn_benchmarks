@@ -384,7 +384,14 @@ class HPOReporting:
         self.scatter(func="fit")
 
         display(Markdown("### Smoothed HPO Curves"))
-        display(Markdown("> The shaded areas represent boostrapped quartiles."))
+        description = (
+            "We boostrap 10 000 times the hyperparameters optimization data points represented on the plot above. "
+            "Then we compute the average cumulated time to reach a specific validation score by taking "
+            "the mean across the bootstrapped samples. The shaded areas represent boostrapped quartiles. "
+            "The fastest libraries are therefore the closest to the upper left corner. The specification "
+            "of the HP grid can be found in the [configuration file]()."
+        )
+        display(Markdown(f"> {description}"))
         self.smoothed_curves()
 
         display(Markdown("### Speedup barplots"))
