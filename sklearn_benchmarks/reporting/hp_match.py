@@ -50,7 +50,7 @@ class HPMatchReporting:
         else:
             return self._get_estimator_default_parameters(estimator_config["estimator"])
 
-    def run(self):
+    def make_report(self):
         config = get_full_config(config=self.config)
         reporting_config = config["hp_match_reporting"]
         benchmarking_estimators = config["benchmarking"]["estimators"]
@@ -338,6 +338,6 @@ class SingleEstimatorReport:
 
         fig.show()
 
-    def run(self):
+    def make_report(self):
         self._plot()
         self._print_tables()
