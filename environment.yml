@@ -20,7 +20,7 @@ dependencies:
   - lightgbm
   - xgboost
   - catboost
-  - skl2onnx=1.8.0.1
+  - skl2onnx==1.8.0
   - onnxruntime
   - pip
   - pip:
