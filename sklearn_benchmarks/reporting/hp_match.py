@@ -29,7 +29,7 @@ class HPMatchReporting:
     Runs reporting for specified estimators.
     """
 
-    def __init__(self, against_lib, config=None):
+    def __init__(self, against_lib="", config=None):
         self.against_lib = against_lib
         self.config = config
 
