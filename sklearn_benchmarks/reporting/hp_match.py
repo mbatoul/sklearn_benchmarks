@@ -213,9 +213,9 @@ class SingleEstimatorReport:
                 if param not in self.split_bars_by
             ]
         else:
-            group_by_params = "parameters_digest"
+            group_by_params = ["parameters_digest"]
 
-        df_merged_grouped = df_merged.groupby(group_by_params)
+        df_merged_grouped = df_merged.groupby([*group_by_params, "function"])
 
         n_plots = len(df_merged_grouped)
         n_rows = n_plots // self.n_cols + n_plots % self.n_cols
