@@ -56,6 +56,13 @@ class HPMatchReporting:
         with open(VERSIONS_PATH) as json_file:
             versions = json.load(json_file)
 
+        description = (
+            "We assume here there is a perfect match between the hyperparameters of both librairies. "
+            f"For a given set of parameters and a given dataset, we compute the speedup `time scikit-learn / time {self.against_lib}`. "
+            f"For instance, a speedup of 2 means that {self.against_lib} is twice as fast as scikit-learn for a given set of parameters and a given dataset."
+        )
+        display(Markdown(f"> {description}"))
+
         for name, params in reporting_estimators.items():
             params["n_cols"] = reporting_config["n_cols"]
             params["estimator_parameters"] = self._get_estimator_parameters(
