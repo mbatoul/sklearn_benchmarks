@@ -34,6 +34,14 @@ from sklearn_benchmarks.utils import clean_results, convert
     help="Append benchmark results to existing ones.",
 )
 @click.option(
+    "--run_profiling",
+    "--p",
+    is_flag=True,
+    required=False,
+    default=False,
+    help="Activate profiling of functions with Viztracer.",
+)
+@click.option(
     "--fast",
     "--f",
     is_flag=True,
@@ -54,14 +62,6 @@ from sklearn_benchmarks.utils import clean_results, convert
     help="Path to config file.",
 )
 @click.option(
-    "--profiling",
-    "--p",
-    type=click.Choice(["html", "json.gz"], case_sensitive=True),
-    default=["html", "json.gz"],
-    multiple=True,
-    help="Profiling output formats.",
-)
-@click.option(
     "--estimator",
     "--e",
     type=str,
@@ -75,7 +75,14 @@ from sklearn_benchmarks.utils import clean_results, convert
     multiple=False,
     help="Custom time budget for HPO benchmarks in seconds. Will be applied for all libraries.",
 )
-def main(append, fast, config, profiling, estimator, hpo_time_budget):
+def main(
+    append,
+    run_profiling,
+    fast,
+    config,
+    estimator,
+    hpo_time_budget,
+):
     if not append:
         clean_results()
     config = get_full_config(config)
@@ -123,7 +130,7 @@ def main(append, fast, config, profiling, estimator, hpo_time_budget):
         params = parse_parameters(params)
 
         params["random_seed"] = benchmarking_config.get("random_seed", None)
-        params["profiling_output_extensions"] = profiling
+        params["run_profiling"] = run_profiling
 
         if fast:
             params["benchmarking_method"] = "hpo"

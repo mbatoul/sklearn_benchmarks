@@ -22,6 +22,7 @@ from sklearn_benchmarks.config import (
     FUNC_TIME_BUDGET,
     HPO_PREDICTIONS_TIME_BUDGET,
     HPO_TIME_BUDGET,
+    PROFILING_OUTPUT_EXTENSIONS,
     PROFILING_RESULTS_PATH,
     RESULTS_PATH,
 )
@@ -92,14 +93,14 @@ def run_benchmark_one_func(
     func,
     estimator,
     profiling_output_path,
-    profiling_output_extensions,
     X,
     y=None,
     n_executions=10,
+    run_profiling=False,
     onnx_model_filepath=None,
     **kwargs,
 ):
-    if n_executions > 1:
+    if run_profiling:
         # First run with a profiler (not timed)
         with VizTracer(verbose=0) as tracer:
             tracer.start()
@@ -108,13 +109,15 @@ def run_benchmark_one_func(
             else:
                 func(X, **kwargs)
             tracer.stop()
-            for extension in profiling_output_extensions:
+            for extension in PROFILING_OUTPUT_EXTENSIONS:
                 output_file = f"{profiling_output_path}.{extension}"
                 tracer.save(output_file=output_file)
 
     # Next runs: at most n_executions runs or 30 sec total execution time
     times = []
     start_global = time.perf_counter()
+    if run_profiling:
+        n_executions -= 1
     for _ in range(n_executions):
         start_iter = time.perf_counter()
 
@@ -170,7 +173,7 @@ class Benchmark:
         benchmarking_method="",
         time_budget=HPO_TIME_BUDGET,
         profiling_file_type="",
-        profiling_output_extensions=[],
+        run_profiling=False,
     ):
         self.name = name
         self.estimator = estimator
@@ -183,7 +186,7 @@ class Benchmark:
         self.benchmarking_method = benchmarking_method
         self.time_budget = time_budget
         self.profiling_file_type = profiling_file_type
-        self.profiling_output_extensions = profiling_output_extensions
+        self.run_profiling = run_profiling
 
     def _make_parameters_grid(self):
         init_parameters = self.parameters.get("init", {})
@@ -216,10 +219,11 @@ class Benchmark:
         n_executions = BENCHMARKING_METHODS_N_EXECUTIONS[self.benchmarking_method]
 
         start = time.perf_counter()
-        for dataset in self.datasets:
+        for index, dataset in enumerate(self.datasets):
             n_features = dataset["n_features"]
             n_samples_train = dataset["n_samples_train"]
             n_samples_test = sorted(dataset["n_samples_test"], reverse=True)
+
             for ns_train in n_samples_train:
                 n_samples = ns_train + max(n_samples_test)
                 X, y = gen_data(
@@ -239,17 +243,17 @@ class Benchmark:
                     bench_func = estimator.fit
                     # Use digests to identify results later in reporting
                     parameters_digest = joblib.hash(parameters_batch)
-                    dataset_digest = joblib.hash(dataset)
+                    dataset_digest = joblib.hash((index, dataset))
                     profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_fit_{parameters_digest}_{dataset_digest}"
 
                     func_result, benchmark_measurements = run_benchmark_one_func(
                         bench_func,
                         estimator,
                         profiling_output_path,
-                        self.profiling_output_extensions,
                         X_train,
                         y=y_train,
                         n_executions=n_executions,
+                        run_profiling=self.run_profiling,
                     )
 
                     if self.predict_with_onnx:
@@ -293,9 +297,9 @@ class Benchmark:
                                 bench_func,
                                 estimator,
                                 profiling_output_path,
-                                self.profiling_output_extensions,
                                 X_test_,
                                 n_executions=n_executions,
+                                run_profiling=self.run_profiling,
                                 onnx_model_filepath=onnx_model_filepath,
                             )
 
@@ -324,9 +328,9 @@ class Benchmark:
                             bench_func,
                             estimator,
                             profiling_output_path,
-                            self.profiling_output_extensions,
                             X_test_,
                             n_executions=n_executions,
+                            run_profiling=self.run_profiling,
                         )
 
                         scores = {}
