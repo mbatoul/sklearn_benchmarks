@@ -250,7 +250,7 @@ class SingleEstimatorReport:
 
         for i in range(1, n_plots + 1):
             fig["layout"]["xaxis{}".format(i)]["title"] = "(n_samples, n_features)"
-            fig["layout"]["yaxis{}".format(i)]["title"] = "Speedup"
+            fig["layout"]["yaxis{}".format(i)]["title"] = "Speedup in logarithmic scale"
 
         fig.for_each_xaxis(
             lambda axis: axis.title.update(font=dict(size=REPORTING_FONT_SIZE))
@@ -262,6 +262,8 @@ class SingleEstimatorReport:
         fig.update_layout(
             height=n_rows * PLOT_HEIGHT_IN_PX, barmode="group", showlegend=True
         )
+        for row, col in coordinates:
+            fig.update_yaxes(type="log", row=row, col=col)
 
         text = "All estimators share the following parameters: "
         df_shared_parameters = pd.DataFrame.from_dict(
