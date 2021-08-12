@@ -563,32 +563,22 @@ hp_match_reporting:
       KNeighborsClassifier_brute_force:
         name: KNeighborsClassifier_brute_force
         against_lib: sklearnex
-        split_bars:
+        split_bars_by:
           - n_jobs
-        compare:
-          - accuracy_score
 
       KNeighborsClassifier_kd_tree:
         name: KNeighborsClassifier_kd_tree
         against_lib: sklearnex
-        split_bars:
+        split_bars_by:
           - n_jobs
-        compare:
-          - accuracy_score
 
       KMeans_tall:
         name: KMeans_tall
         against_lib: sklearnex
-        compare:
-          - n_iter
-          - adjusted_rand_score
 
       KMeans_short:
         name: KMeans_short
         against_lib: sklearnex
-        compare:
-          - n_iter
-          - adjusted_rand_score
 
       LogisticRegression:
         name: LogisticRegression
@@ -602,24 +592,18 @@ hp_match_reporting:
       KNeighborsClassifier_brute_force:
         name: KNeighborsClassifier_brute_force
         against_lib: onnx
-        split_bars:
+        split_bars_by:
           - n_jobs
-        compare:
-          - accuracy_score
 
       KNeighborsClassifier_kd_tree:
         name: KNeighborsClassifier_kd_tree
         against_lib: onnx
-        split_bars:
+        split_bars_by:
           - n_jobs
-        compare:
-          - accuracy_score
 
       HistGradientBoostingClassifier_best:
         name: HistGradientBoostingClassifier_best
         against_lib: onnx
-        compare:
-          - accuracy_score
 
 hpo_reporting:
   speedup_thresholds:

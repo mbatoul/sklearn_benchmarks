@@ -81,15 +81,13 @@ class SingleEstimatorReport:
         self,
         name="",
         against_lib="",
-        split_bars=[],
-        compare=[],
+        split_bars_by=[],
         estimator_parameters={},
         n_cols=None,
     ):
         self.name = name
         self.against_lib = against_lib
-        self.split_bars = split_bars
-        self.compare = compare
+        self.split_bars_by = split_bars_by
         self.n_cols = n_cols
         self.estimator_parameters = estimator_parameters
 
@@ -97,9 +95,6 @@ class SingleEstimatorReport:
         benchmarking_results_path = str(BENCHMARKING_RESULTS_PATH)
         file_path = f"{benchmarking_results_path}/{lib}_{self.name}.csv"
         return pd.read_csv(file_path)
-
-    def _get_compare_cols(self):
-        return [*self.compare, *COMPARABLE_COLS]
 
     def _make_reporting_df(self):
         base_lib_df = self._get_benchmark_df()
@@ -110,12 +105,10 @@ class SingleEstimatorReport:
         against_lib_time = against_lib_df["mean_duration"]
         against_lib_std = against_lib_df["std_duration"]
 
-        compare_cols = self._get_compare_cols()
-
         suffixes = map(lambda lib: f"_{lib}", [BASE_LIB, self.against_lib])
         df_merged = pd.merge(
             base_lib_df,
-            against_lib_df[compare_cols],
+            against_lib_df[COMPARABLE_COLS],
             left_index=True,
             right_index=True,
             suffixes=suffixes,
@@ -145,7 +138,7 @@ class SingleEstimatorReport:
         params_cols = [
             param
             for param in self.estimator_parameters
-            if param not in self.split_bars
+            if param not in self.split_bars_by
             and param not in self._get_shared_hyperpameters().keys()
         ]
         values = df[params_cols].values[0]
@@ -206,11 +199,11 @@ class SingleEstimatorReport:
     def _plot(self):
         df_merged = self._make_reporting_df()
 
-        if self.split_bars:
+        if self.split_bars_by:
             group_by_params = [
                 param
                 for param in self.estimator_parameters
-                if param not in self.split_bars
+                if param not in self.split_bars_by
             ]
         else:
             group_by_params = "parameters_digest"
@@ -235,8 +228,8 @@ class SingleEstimatorReport:
             df = df.drop(["parameters_digest", "dataset_digest"], axis=1)
             df = df.round(3)
 
-            if self.split_bars:
-                for split_col in self.split_bars:
+            if self.split_bars_by:
+                for split_col in self.split_bars_by:
                     split_col_vals = df[split_col].unique()
                     for index, split_val in enumerate(split_col_vals):
                         filtered_df = df[df[split_col] == split_val]

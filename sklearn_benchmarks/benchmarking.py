@@ -240,14 +240,14 @@ class Benchmark:
                 for parameters_batch in parameters_grid:
                     estimator = estimator_class(**parameters_batch)
                     set_random_state(estimator, random_state=self.random_state)
-                    bench_func = estimator.fit
                     # Use digests to identify results later in reporting
                     parameters_digest = joblib.hash(parameters_batch)
                     dataset_digest = joblib.hash((index, dataset))
                     profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_fit_{parameters_digest}_{dataset_digest}"
 
+                    # Benchmark fit
                     func_result, benchmark_measurements = run_benchmark_one_func(
-                        bench_func,
+                        estimator.fit,
                         estimator,
                         profiling_output_path,
                         X_train,
@@ -269,7 +269,7 @@ class Benchmark:
 
                     benchmark_result = RawBenchmarkResult(
                         self.name,
-                        bench_func.__name__,
+                        "fit",
                         ns_train,
                         ns_train,
                         n_features,
@@ -287,16 +287,15 @@ class Benchmark:
                         X_test_, y_test_ = X_test[:ns_test], y_test[:ns_test]
                         bench_func = estimator.predict
 
-                        profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_{bench_func.__name__}_{parameters_digest}_{dataset_digest}"
-
                         if self.predict_with_onnx:
+                            onnx_profiling_output_path = f"{PROFILING_RESULTS_PATH}/onnx_{bench_func.__name__}_{parameters_digest}_{dataset_digest}"
                             (
                                 onnx_func_result,
-                                benchmark_measurements,
+                                onnx_benchmark_measurements,
                             ) = run_benchmark_one_func(
                                 bench_func,
                                 estimator,
-                                profiling_output_path,
+                                onnx_profiling_output_path,
                                 X_test_,
                                 n_executions=n_executions,
                                 run_profiling=self.run_profiling,
@@ -308,7 +307,7 @@ class Benchmark:
                                 score = metric_func(y_test_, onnx_func_result)
                                 onnx_scores[metric_func.__name__] = score
 
-                            benchmark_result = RawBenchmarkResult(
+                            onnx_benchmark_result = RawBenchmarkResult(
                                 self.name,
                                 bench_func.__name__,
                                 ns_train,
@@ -316,13 +315,15 @@ class Benchmark:
                                 n_features,
                                 parameters_digest,
                                 dataset_digest,
-                                benchmark_measurements,
+                                onnx_benchmark_measurements,
                                 parameters_batch,
                                 onnx_scores,
                             )
 
-                            print(benchmark_result)
-                            onnx_benchmark_results.append(benchmark_result)
+                            print(onnx_benchmark_result)
+                            onnx_benchmark_results.append(onnx_benchmark_result)
+
+                        profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_{bench_func.__name__}_{parameters_digest}_{dataset_digest}"
 
                         func_result, benchmark_measurements = run_benchmark_one_func(
                             bench_func,
@@ -364,6 +365,7 @@ class Benchmark:
                             f"{BENCHMARKING_RESULTS_PATH}/{library}_{self.name}.csv"
                         )
                         benchmark_results.to_csv(csv_path)
+
                         if self.predict_with_onnx:
                             csv_path = (
                                 f"{BENCHMARKING_RESULTS_PATH}/onnx_{self.name}.csv"
@@ -381,4 +383,3 @@ class Benchmark:
 
                     if self.predict_with_onnx:
                         os.remove(onnx_model_filepath)
-        return self
