@@ -112,10 +112,15 @@ class SingleEstimatorReport:
         against_lib_time = against_lib_df["mean_duration"]
         against_lib_std = against_lib_df["std_duration"]
 
+        comparable_cols = [
+            col for col in COMPARABLE_COLS if col in against_lib_df.columns
+        ]
+
         suffixes = map(lambda lib: f"_{lib}", [BASE_LIB, self.against_lib])
+
         df_merged = pd.merge(
             base_lib_df,
-            against_lib_df[COMPARABLE_COLS],
+            against_lib_df[comparable_cols],
             left_index=True,
             right_index=True,
             suffixes=suffixes,

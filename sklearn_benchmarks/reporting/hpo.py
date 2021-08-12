@@ -171,7 +171,7 @@ class HPOReporting:
             df = benchmark_result.df
             df_predictions = df.query("function == 'predict'")
 
-            comparable_cols = COMPARABLE_COLS + ["accuracy_score"]
+            comparable_cols = [col for col in COMPARABLE_COLS if col in df.columns]
 
             comparable_cols = [
                 col
