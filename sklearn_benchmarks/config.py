@@ -26,6 +26,7 @@ BENCH_LIBS = [
 HPO_PREDICTIONS_TIME_BUDGET = 3
 BENCHMARKING_METHODS_N_EXECUTIONS = {"hp_match": 10, "hpo": 1}
 HPO_TIME_BUDGET = 600
+PROFILING_OUTPUT_EXTENSIONS = ["html", "json.gz"]
 
 
 def get_full_config(config=None):
