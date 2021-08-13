@@ -352,7 +352,7 @@ class SingleEstimatorReporting:
 
         if not df_filtered.empty:
             n_mismatches = len(df_filtered)
-            n_total_predictions = len(df.query("function == 'predict'"))
+            n_total_predictions = len(self.df_reporting.query("function == 'predict'"))
 
             proportion_mismatch = n_mismatches / n_total_predictions * 100
             proportion_mismatch = round(proportion_mismatch, 2)
