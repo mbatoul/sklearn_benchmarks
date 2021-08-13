@@ -25,7 +25,7 @@ For information regarding the benchmark environment and execution, see notebook 
 
 These notebooks automatically deployed to `github-pages`. See current results [here](https://mbatoul.github.io/sklearn_benchmarks/).
 
-`sklearn_benchmarks` is used through a command line as described below.
+sklearn_benchmarks is used through a command line as described below.
 
 So far, the concurrent libraries available are:
 
