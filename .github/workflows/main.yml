@@ -45,7 +45,7 @@ jobs:
           export OPENBLAS_NUM_THREADS=$NUM_CORES
 
       - name: Run benchmark suite
-        run: python -m sklearn_benchmarks --config config.yml
+        run: python -m sklearn_benchmarks --config config.yml --fast
 
       - name: Run test suite
         run: pytest sklearn_benchmarks/tests
