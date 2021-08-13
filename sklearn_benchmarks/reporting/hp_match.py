@@ -12,8 +12,8 @@ from sklearn_benchmarks.config import (
     BASE_LIB,
     BENCHMARKING_RESULTS_PATH,
     COMPARABLE_COLS,
+    DIFF_SCORES_THRESHOLDS,
     PLOT_HEIGHT_IN_PX,
-    REPORTING_FONT_SIZE,
     VERSIONS_PATH,
     get_full_config,
 )
@@ -355,7 +355,7 @@ class SingleEstimatorReporting:
             )
             df_filtered = df_filtered.query("function == 'predict'")
 
-            threshold = 0.001
+            threshold = DIFF_SCORES_THRESHOLDS[score]
             df_filtered = df_filtered.query(f"diff_{score}s >= {threshold}")
 
         if not df_filtered.empty:
@@ -365,15 +365,33 @@ class SingleEstimatorReporting:
             proportion_mismatches = n_mismatches / n_total_predictions * 100
             proportion_mismatches = round(proportion_mismatches, 2)
 
-            word_prediction = "prediction"
-            if n_mismatches > 1:
-                word_prediction += "s"
+            string_observed_diffs = "The observed differences can be found in the"
+            for index, score in enumerate(scores):
+                string_observed_diffs += f" diff_{score}s"
+                if index == len(scores) - 1:
+                    string_observed_diffs += (
+                        f" column{'s' if len(scores) > 1 else ''}. "
+                    )
+                else:
+                    string_observed_diffs += ", "
+
+            string_chosen_thresholds = f"The chosen difference threshold{'s' if len(scores) > 1 else ''} {'are' if len(scores) > 1 else 'is'}"
+            for index, score in enumerate(scores):
+                threshold = DIFF_SCORES_THRESHOLDS[score]
+                string_chosen_thresholds += f" {threshold} for {score}"
+                if index == len(scores) - 1:
+                    string_chosen_thresholds += "."
+                else:
+                    string_chosen_thresholds += ", "
 
             display(
                 HTML(
                     "<div style='padding: 20px; background-color: #f44336; color: white; margin-bottom: 15px;'>"
                     "<strong>WARNING!</strong> "
-                    f"Mismatch between validation scores for {n_mismatches} {word_prediction} ({proportion_mismatches}%). See details in the dataframe below."
+                    f"Mismatch between validation scores for {n_mismatches} prediction{'s' if len(scores) > 1 else ''} ({proportion_mismatches}%). "
+                    f"{string_observed_diffs}"
+                    f"{string_chosen_thresholds}"
+                    " See details in the dataframe below. "
                     "</div>"
                 )
             )

@@ -9,11 +9,11 @@ BENCHMARKING_RESULTS_PATH = RESULTS_PATH / "benchmarking"
 TIME_REPORT_PATH = RESULTS_PATH / "time_report.csv"
 ENV_INFO_PATH = RESULTS_PATH / "env_info.txt"
 VERSIONS_PATH = RESULTS_PATH / "versions.txt"
+
 DEFAULT_CONFIG = "config.yml"
 BASE_LIB = "sklearn"
 FUNC_TIME_BUDGET = 30
 PLOT_HEIGHT_IN_PX = 350
-REPORTING_FONT_SIZE = 12
 COMPARABLE_COLS = [
     "mean_duration",
     "std_duration",
@@ -33,6 +33,11 @@ HPO_PREDICTIONS_TIME_BUDGET = 3
 BENCHMARKING_METHODS_N_EXECUTIONS = {"hp_match": 10, "hpo": 1}
 HPO_TIME_BUDGET = 600
 PROFILING_OUTPUT_EXTENSIONS = ["html", "json.gz"]
+DIFF_SCORES_THRESHOLDS = {
+    "accuracy_score": 0.001,
+    "r2_score": 0.001,
+    "adjusted_rand_score": 0.001,
+}
 
 
 def get_full_config(config=None):
