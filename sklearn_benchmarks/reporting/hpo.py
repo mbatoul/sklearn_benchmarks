@@ -21,7 +21,6 @@ from sklearn_benchmarks.utils import (
     get_lib_alias,
     make_hover_template,
     select_front_pareto,
-    string_matches_substrings,
 )
 
 
@@ -173,11 +172,6 @@ class HPOReporting:
 
             comparable_cols = [col for col in COMPARABLE_COLS if col in df.columns]
 
-            comparable_cols = [
-                col
-                for col in df.columns
-                if string_matches_substrings(col, comparable_cols)
-            ]
             if benchmark_result.lib == BASE_LIB:
                 df_predictions_onnx = pd.read_csv(
                     f"{BENCHMARKING_RESULTS_PATH}/onnx_{benchmark_result.estimator}.csv"
@@ -210,20 +204,26 @@ class HPOReporting:
             )
 
             # Reorder columns for readability purpose in reporting
-            ordered_columns = ["n_samples_train", "n_samples", "n_features"]
-            for suffix in ["fit", "predict", "onnx"]:
-                if benchmark_result.lib != BASE_LIB and suffix == "onnx":
-                    continue
-                ordered_columns += [
-                    f"mean_duration_{suffix}",
-                    f"std_duration_{suffix}",
-                    f"accuracy_score_{suffix}",
-                ]
+            ordered_columns = [
+                "estimator",
+                "n_samples_train",
+                "n_samples",
+                "n_features",
+            ]
+
+            for col in comparable_cols:
+                for suffix in ["fit", "predict", "onnx"]:
+                    if benchmark_result.lib != BASE_LIB and suffix == "onnx":
+                        continue
+                    ordered_columns += [f"{col}_{suffix}"]
+
             ordered_columns = ordered_columns + diff_between_lists(
                 df_merged.columns, ordered_columns
             )
+
             df_merged = df_merged[ordered_columns]
             df_merged = df_merged.dropna(axis=1)
+            df_merged = df_merged.round(3)
 
             fig.add_trace(
                 go.Scatter(

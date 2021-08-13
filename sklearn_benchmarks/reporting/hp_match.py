@@ -21,6 +21,7 @@ from sklearn_benchmarks.utils import (
     gen_coordinates_grid,
     get_lib_alias,
     make_hover_template,
+    diff_between_lists,
 )
 
 
@@ -154,10 +155,12 @@ class SingleEstimatorReport:
             and param not in self._get_shared_hyperpameters().keys()
         ]
         values = df[params_cols].values[0]
+
         for index, (param, value) in enumerate(zip(params_cols, values)):
             title += "%s: %s" % (param, value)
             if index != len(list(enumerate(zip(params_cols, values)))) - 1:
                 title += "<br>"
+
         return title
 
     def print_tables(self):
@@ -213,6 +216,24 @@ class SingleEstimatorReport:
 
     def plot(self):
         df_merged = self._make_reporting_df()
+
+        comparable_cols = [col for col in COMPARABLE_COLS if col in df_merged.columns]
+
+        # Reorder columns for readability purpose in reporting
+        ordered_columns = [
+            "estimator",
+            "n_samples_train",
+            "n_samples",
+            "n_features",
+        ]
+
+        for col in comparable_cols:
+            for suffix in ["fit", "predict", "onnx"]:
+                ordered_columns += [f"{col}_{suffix}"]
+
+        ordered_columns = ordered_columns + diff_between_lists(
+            df_merged.columns, ordered_columns
+        )
 
         if self.split_bars_by:
             group_by_params = [
