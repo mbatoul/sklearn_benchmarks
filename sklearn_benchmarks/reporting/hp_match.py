@@ -18,10 +18,10 @@ from sklearn_benchmarks.config import (
     get_full_config,
 )
 from sklearn_benchmarks.utils import (
+    diff_between_lists,
     gen_coordinates_grid,
     get_lib_alias,
     make_hover_template,
-    diff_between_lists,
 )
 
 
@@ -170,6 +170,7 @@ class SingleEstimatorReport:
         cols_to_drop = nunique[nunique == 1].index
         cols_to_drop = [col for col in cols_to_drop if col in self.estimator_parameters]
         df = df.drop(cols_to_drop, axis=1)
+        df = df.dropna(axis=1)
 
         for lib in [BASE_LIB, self.against_lib]:
             df[f"{lib}_profiling"] = df[

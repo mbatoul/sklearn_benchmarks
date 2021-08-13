@@ -40,6 +40,7 @@ def boostrap_fit_times(
     all_fit_times = []
     rng = np.random.RandomState(0)
     n_samples = fit_times.shape[0]
+
     for _ in range(n_bootstraps):
         indices = rng.randint(n_samples, size=n_samples)
         cum_fit_times_permutated, cum_scores_permutated = compute_cumulated(
