@@ -47,6 +47,9 @@ jobs:
       - name: Run benchmark suite
         run: python -m sklearn_benchmarks --config config.yml
 
+      - name: Run test suite
+        run: pytest sklearn_benchmarks/tests
+
       - name: Upload benchmark results
         uses: actions/upload-artifact@v2
         with:
