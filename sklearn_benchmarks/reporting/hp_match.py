@@ -25,7 +25,7 @@ from sklearn_benchmarks.utils import (
 )
 
 
-class HPMatchReporting:
+class HpMatchReporting:
     """
     Runs reporting for specified estimators.
     """
@@ -76,11 +76,53 @@ class HPMatchReporting:
             display(Markdown(title))
             display(Markdown(subtitle))
 
-            report = SingleEstimatorReport(**params)
+            report = SingleEstimatorReporting(**params)
             report.make_report()
 
 
-class SingleEstimatorReport:
+def make_profiling_link(components, lib=BASE_LIB):
+    function, parameters_digest, dataset_digest = components
+    path = f"profiling/{lib}_{function}_{parameters_digest}_{dataset_digest}.html"
+
+    if os.environ.get("RESULTS_BASE_URL") is not None:
+        base_url = os.environ.get("RESULTS_BASE_URL")
+    else:
+        base_url = "http://localhost:8000/results/"
+
+    return f"<a href='{base_url}{path}' target='_blank'>See</a>"
+
+
+def add_bar_plotly(
+    fig,
+    row,
+    col,
+    df,
+    color="dodgerblue",
+    name="",
+    showlegend=False,
+):
+    x = [f"({ns}, {nf})" for ns, nf in df[["n_samples", "n_features"]].values]
+    y = df["speedup"]
+
+    bar = go.Bar(
+        x=x,
+        y=y,
+        name=name,
+        marker_color=color,
+        hovertemplate=make_hover_template(df),
+        customdata=df.values,
+        showlegend=showlegend,
+        text=df["function"],
+        textposition="auto",
+    )
+    fig.add_trace(
+        bar,
+        row=row,
+        col=col,
+    )
+
+
+class SingleEstimatorReporting:
     """
     Runs reporting for one estimator.
     """
@@ -102,9 +144,10 @@ class SingleEstimatorReport:
     def _get_benchmark_df(self, lib=BASE_LIB):
         benchmarking_results_path = str(BENCHMARKING_RESULTS_PATH)
         file_path = f"{benchmarking_results_path}/{lib}_{self.name}.csv"
+
         return pd.read_csv(file_path)
 
-    def _make_reporting_df(self):
+    def prepare_data(self):
         base_lib_df = self._get_benchmark_df()
         base_lib_time = base_lib_df["mean_duration"]
         base_lib_std = base_lib_df["mean_duration"]
@@ -119,7 +162,7 @@ class SingleEstimatorReport:
 
         suffixes = map(lambda lib: f"_{lib}", [BASE_LIB, self.against_lib])
 
-        df_merged = pd.merge(
+        df_reporting = pd.merge(
             base_lib_df,
             against_lib_df[comparable_cols],
             left_index=True,
@@ -127,32 +170,23 @@ class SingleEstimatorReport:
             suffixes=suffixes,
         )
 
-        df_merged["speedup"] = base_lib_time / against_lib_time
-        df_merged["std_speedup"] = df_merged["speedup"] * (
+        df_reporting["speedup"] = base_lib_time / against_lib_time
+        df_reporting["std_speedup"] = df_reporting["speedup"] * (
             np.sqrt(
                 (base_lib_std / base_lib_time) ** 2
                 + (against_lib_std / against_lib_time) ** 2
             )
         )
 
-        return df_merged
+        self.df_reporting = df_reporting
 
-    def _make_profiling_link(self, components, lib=BASE_LIB):
-        function, parameters_digest, dataset_digest = components
-        path = f"profiling/{lib}_{function}_{parameters_digest}_{dataset_digest}.html"
-        if os.environ.get("RESULTS_BASE_URL") is not None:
-            base_url = os.environ.get("RESULTS_BASE_URL")
-        else:
-            base_url = "http://localhost:8000/results/"
-        return f"<a href='{base_url}{path}' target='_blank'>See</a>"
-
-    def _make_plot_title(self, df):
+    def make_plot_title(self, df):
         title = ""
         params_cols = [
             param
             for param in self.estimator_parameters
             if param not in self.split_bars_by
-            and param not in self._get_shared_hyperpameters().keys()
+            and param not in self.get_shared_parameters().keys()
         ]
         values = df[params_cols].values[0]
 
@@ -164,61 +198,44 @@ class SingleEstimatorReport:
         return title
 
     def print_tables(self):
-        df = self._make_reporting_df()
-        df = df.round(3)
+        df = self.df_reporting
+
         nunique = df.apply(pd.Series.nunique)
         cols_to_drop = nunique[nunique == 1].index
         cols_to_drop = [col for col in cols_to_drop if col in self.estimator_parameters]
+
         df = df.drop(cols_to_drop, axis=1)
         df = df.dropna(axis=1)
+        df = df.round(3)
 
         for lib in [BASE_LIB, self.against_lib]:
             df[f"{lib}_profiling"] = df[
                 ["function", "parameters_digest", "dataset_digest"]
-            ].apply(self._make_profiling_link, lib=lib, axis=1)
+            ].apply(make_profiling_link, lib=lib, axis=1)
 
         df = df.drop(["parameters_digest", "dataset_digest"], axis=1)
-        splitted_dfs = [x for _, x in df.groupby(["function"])]
+        dfs = [x for _, x in df.groupby(["function"])]
 
-        for df in splitted_dfs:
+        for df in dfs:
             display(HTML(df.to_html(escape=False)))
 
-    def _make_x_plot(self, df):
-        return [f"({ns}, {nf})" for ns, nf in df[["n_samples", "n_features"]].values]
+    def get_shared_parameters(self):
+        df = self.df_reporting
 
-    def _add_bar_to_plotly_fig(
-        self, fig, row, col, df, color="dodgerblue", name="", showlegend=False
-    ):
-        bar = go.Bar(
-            x=self._make_x_plot(df),
-            y=df["speedup"],
-            name=name,
-            marker_color=color,
-            hovertemplate=make_hover_template(df),
-            customdata=df.values,
-            showlegend=showlegend,
-            text=df["function"],
-            textposition="auto",
-        )
-        fig.add_trace(
-            bar,
-            row=row,
-            col=col,
-        )
-
-    def _get_shared_hyperpameters(self):
-        df_merged = self._make_reporting_df()
-        ret = {}
+        shared_params = {}
         for col in self.estimator_parameters:
-            unique_vals = df_merged[col].unique()
+            unique_vals = df[col].unique()
             if unique_vals.size == 1:
-                ret[col] = unique_vals[0]
-        return ret
+                shared_params[col] = unique_vals[0]
+
+        return shared_params
 
     def plot(self):
-        df_merged = self._make_reporting_df()
+        df_reporting = self.df_reporting
 
-        comparable_cols = [col for col in COMPARABLE_COLS if col in df_merged.columns]
+        comparable_cols = [
+            col for col in COMPARABLE_COLS if col in df_reporting.columns
+        ]
 
         # Reorder columns for readability purpose in reporting
         ordered_columns = [
@@ -233,7 +250,7 @@ class SingleEstimatorReport:
                 ordered_columns += [f"{col}_{suffix}"]
 
         ordered_columns = ordered_columns + diff_between_lists(
-            df_merged.columns, ordered_columns
+            df_reporting.columns, ordered_columns
         )
 
         if self.split_bars_by:
@@ -245,13 +262,13 @@ class SingleEstimatorReport:
         else:
             group_by_params = ["parameters_digest"]
 
-        df_merged_grouped = df_merged.groupby([*group_by_params, "function"])
+        df_reporting_grouped = df_reporting.groupby([*group_by_params, "function"])
 
-        n_plots = len(df_merged_grouped)
+        n_plots = len(df_reporting_grouped)
         n_rows = n_plots // self.n_cols + n_plots % self.n_cols
         coordinates = gen_coordinates_grid(n_rows, self.n_cols)
 
-        subplot_titles = [self._make_plot_title(df) for _, df in df_merged_grouped]
+        subplot_titles = [self.make_plot_title(df) for _, df in df_reporting_grouped]
 
         fig = make_subplots(
             rows=n_rows,
@@ -259,7 +276,7 @@ class SingleEstimatorReport:
             subplot_titles=subplot_titles,
         )
 
-        for (row, col), (_, df) in zip(coordinates, df_merged_grouped):
+        for (row, col), (_, df) in zip(coordinates, df_reporting_grouped):
             df = df.sort_values(by=["function", "n_samples", "n_features"])
             df = df.dropna(axis="columns")
             df = df.drop(["parameters_digest", "dataset_digest"], axis=1)
@@ -269,21 +286,21 @@ class SingleEstimatorReport:
                 for split_col in self.split_bars_by:
                     split_col_vals = df[split_col].unique()
                     for index, split_val in enumerate(split_col_vals):
-                        filtered_df = df[df[split_col] == split_val]
-                        filtered_df = filtered_df.sort_values(
+                        df_filtered = df[df[split_col] == split_val]
+                        df_filtered = df_filtered.sort_values(
                             by=["function", "n_samples", "n_features"]
                         )
-                        self._add_bar_to_plotly_fig(
+                        add_bar_plotly(
                             fig,
                             row,
                             col,
-                            filtered_df,
+                            df_filtered,
                             color=px.colors.qualitative.Plotly[index],
                             name="%s: %s" % (split_col, split_val),
                             showlegend=(row, col) == (1, 1),
                         )
             else:
-                self._add_bar_to_plotly_fig(fig, row, col, df)
+                add_bar_plotly(fig, row, col, df)
 
         for i in range(1, n_plots + 1):
             fig["layout"]["xaxis{}".format(i)]["title"] = "(n_samples, n_features)"
@@ -304,7 +321,7 @@ class SingleEstimatorReport:
 
         text = "All estimators share the following parameters: "
         df_shared_parameters = pd.DataFrame.from_dict(
-            self._get_shared_hyperpameters(), orient="index", columns=["value"]
+            self.get_shared_parameters(), orient="index", columns=["value"]
         )
         for i, (index, row) in enumerate(df_shared_parameters.iterrows()):
             text += "`%s=%s`" % (index, *row.values)
@@ -317,7 +334,7 @@ class SingleEstimatorReport:
         fig.show()
 
     def check_scores_are_close(self):
-        df = self._make_reporting_df()
+        df = self.prepare_data()
 
         df_filtered = df.copy()
         scores = [col for col in df_filtered.columns if "score" in col]
@@ -347,7 +364,10 @@ class SingleEstimatorReport:
 
             display(
                 HTML(
-                    f"<div style='padding: 20px; background-color: #f44336; color: white; margin-bottom: 15px;'><strong>WARNING!</strong> Mismatch between validation scores for {n_mismatches} {word_prediction} ({proportion_mismatch}%). See below.</div>"
+                    "<div style='padding: 20px; background-color: #f44336; color: white; margin-bottom: 15px;'>"
+                    "<strong>WARNING!</strong> "
+                    f"Mismatch between validation scores for {n_mismatches} {word_prediction} ({proportion_mismatch}%). See details in the dataframe below."
+                    "</div>"
                 )
             )
 
@@ -369,8 +389,12 @@ class SingleEstimatorReport:
             display(df_filtered[relevant_cols])
 
     def make_report(self):
+        self.prepare_data()
+
         display(Markdown("### Speedup barplots"))
         self.plot()
+
         self.check_scores_are_close()
+
         display(Markdown("### Raw results"))
         self.print_tables()
