@@ -334,9 +334,8 @@ class SingleEstimatorReporting:
         fig.show()
 
     def check_scores_are_close(self):
-        df = self.prepare_data()
+        df_filtered = self.df_reporting.copy()
 
-        df_filtered = df.copy()
         scores = [col for col in df_filtered.columns if "score" in col]
         scores = set(list(map(lambda score: "_".join(score.split("_")[:-1]), scores)))
 
