@@ -160,19 +160,22 @@ class SingleEstimatorReport:
                 title += "<br>"
         return title
 
-    def _print_tables(self):
+    def print_tables(self):
         df = self._make_reporting_df()
         df = df.round(3)
         nunique = df.apply(pd.Series.nunique)
         cols_to_drop = nunique[nunique == 1].index
         cols_to_drop = [col for col in cols_to_drop if col in self.estimator_parameters]
         df = df.drop(cols_to_drop, axis=1)
+
         for lib in [BASE_LIB, self.against_lib]:
             df[f"{lib}_profiling"] = df[
                 ["function", "parameters_digest", "dataset_digest"]
             ].apply(self._make_profiling_link, lib=lib, axis=1)
+
         df = df.drop(["parameters_digest", "dataset_digest"], axis=1)
         splitted_dfs = [x for _, x in df.groupby(["function"])]
+
         for df in splitted_dfs:
             display(HTML(df.to_html(escape=False)))
 
@@ -208,7 +211,7 @@ class SingleEstimatorReport:
                 ret[col] = unique_vals[0]
         return ret
 
-    def _plot(self):
+    def plot(self):
         df_merged = self._make_reporting_df()
 
         if self.split_bars_by:
@@ -291,6 +294,61 @@ class SingleEstimatorReport:
 
         fig.show()
 
+    def check_scores_are_close(self):
+        df = self._make_reporting_df()
+
+        df_filtered = df.copy()
+        scores = [col for col in df_filtered.columns if "score" in col]
+        scores = set(list(map(lambda score: "_".join(score.split("_")[:-1]), scores)))
+
+        for score in scores:
+
+            df_filtered[f"diff_{score}s"] = np.absolute(
+                df_filtered[f"{score}_{BASE_LIB}"]
+                - df_filtered[f"{score}_{self.against_lib}"]
+            )
+            df_filtered = df_filtered.query("function == 'predict'")
+
+            threshold = 0.001
+            df_filtered = df_filtered.query(f"diff_{score}s >= {threshold}")
+
+        if not df_filtered.empty:
+            n_mismatches = len(df_filtered)
+            n_total_predictions = len(df.query("function == 'predict'"))
+
+            proportion_mismatch = n_mismatches / n_total_predictions * 100
+            proportion_mismatch = round(proportion_mismatch, 2)
+
+            word_prediction = "prediction"
+            if n_mismatches > 1:
+                word_prediction += "s"
+
+            display(
+                HTML(
+                    f"<div style='padding: 20px; background-color: #f44336; color: white; margin-bottom: 15px;'><strong>WARNING!</strong> Mismatch between validation scores for {n_mismatches} {word_prediction} ({proportion_mismatch}%). See below.</div>"
+                )
+            )
+
+            relevant_cols = [
+                "estimator",
+                "function",
+                "n_samples_train",
+                "n_samples",
+                "n_features",
+            ]
+
+            for score in scores:
+                relevant_cols += [
+                    f"{score}_{BASE_LIB}",
+                    f"{score}_{self.against_lib}",
+                    f"diff_{score}s",
+                ]
+
+            display(df_filtered[relevant_cols])
+
     def make_report(self):
-        self._plot()
-        self._print_tables()
+        display(Markdown("### Speedup barplots"))
+        self.plot()
+        self.check_scores_are_close()
+        display(Markdown("### Raw results"))
+        self.print_tables()
