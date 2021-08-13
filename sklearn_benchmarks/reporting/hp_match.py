@@ -25,61 +25,6 @@ from sklearn_benchmarks.utils import (
 )
 
 
-class HpMatchReporting:
-    """
-    Runs reporting for specified estimators.
-    """
-
-    def __init__(self, against_lib="", config=None):
-        self.against_lib = against_lib
-        self.config = config
-
-    def _get_estimator_default_parameters(self, estimator):
-        splitted_path = estimator.split(".")
-        module, class_name = ".".join(splitted_path[:-1]), splitted_path[-1]
-        estimator_class = getattr(importlib.import_module(module), class_name)
-        estimator_instance = estimator_class()
-        parameters = estimator_instance.__dict__.keys()
-        return parameters
-
-    def _get_estimator_parameters(self, estimator_config):
-        if "parameters" in estimator_config:
-            return estimator_config["parameters"]["init"].keys()
-        else:
-            return self._get_estimator_default_parameters(estimator_config["estimator"])
-
-    def make_report(self):
-        config = get_full_config(config=self.config)
-        reporting_config = config["hp_match_reporting"]
-        benchmarking_estimators = config["benchmarking"]["estimators"]
-        reporting_estimators = reporting_config["estimators"][self.against_lib]
-
-        with open(VERSIONS_PATH) as json_file:
-            versions = json.load(json_file)
-
-        description = (
-            "We assume here there is a perfect match between the hyperparameters of both librairies. "
-            f"For a given set of parameters and a given dataset, we compute the speedup `time scikit-learn / time {self.against_lib}`. "
-            f"For instance, a speedup of 2 means that {self.against_lib} is twice as fast as scikit-learn for a given set of parameters and a given dataset."
-        )
-        display(Markdown(f"> {description}"))
-
-        for name, params in reporting_estimators.items():
-            params["n_cols"] = reporting_config["n_cols"]
-            params["estimator_parameters"] = self._get_estimator_parameters(
-                benchmarking_estimators[name]
-            )
-            against_lib = params["against_lib"]
-            against_lib = get_lib_alias(against_lib)
-            title = f"## `{name}`"
-            subtitle = f"**{against_lib} ({versions[against_lib]}) vs. scikit-learn ({versions['scikit-learn']})**"
-            display(Markdown(title))
-            display(Markdown(subtitle))
-
-            report = SingleEstimatorReporting(**params)
-            report.make_report()
-
-
 def make_profiling_link(components, lib=BASE_LIB):
     function, parameters_digest, dataset_digest = components
     path = f"profiling/{lib}_{function}_{parameters_digest}_{dataset_digest}.html"
@@ -122,6 +67,63 @@ def add_bar_plotly(
     )
 
 
+class HpMatchReporting:
+    """
+    Runs reporting for specified estimators.
+    """
+
+    def __init__(self, against_lib="", config=None, log_scale=False):
+        self.against_lib = against_lib
+        self.config = config
+        self.log_scale = log_scale
+
+    def _get_estimator_default_parameters(self, estimator):
+        splitted_path = estimator.split(".")
+        module, class_name = ".".join(splitted_path[:-1]), splitted_path[-1]
+        estimator_class = getattr(importlib.import_module(module), class_name)
+        estimator_instance = estimator_class()
+        parameters = estimator_instance.__dict__.keys()
+        return parameters
+
+    def _get_estimator_parameters(self, estimator_config):
+        if "parameters" in estimator_config:
+            return estimator_config["parameters"]["init"].keys()
+        else:
+            return self._get_estimator_default_parameters(estimator_config["estimator"])
+
+    def make_report(self):
+        config = get_full_config(config=self.config)
+        reporting_config = config["hp_match_reporting"]
+        benchmarking_estimators = config["benchmarking"]["estimators"]
+        reporting_estimators = reporting_config["estimators"][self.against_lib]
+
+        with open(VERSIONS_PATH) as json_file:
+            versions = json.load(json_file)
+
+        description = (
+            "We assume here there is a perfect match between the hyperparameters of both librairies. "
+            f"For a given set of parameters and a given dataset, we compute the speedup `time scikit-learn / time {self.against_lib}`. "
+            f"For instance, a speedup of 2 means that {self.against_lib} is twice as fast as scikit-learn for a given set of parameters and a given dataset."
+        )
+        display(Markdown(f"> {description}"))
+
+        for name, params in reporting_estimators.items():
+            params["n_cols"] = reporting_config["n_cols"]
+            params["estimator_parameters"] = self._get_estimator_parameters(
+                benchmarking_estimators[name]
+            )
+            params["log_scale"] = self.log_scale
+            against_lib = params["against_lib"]
+            against_lib = get_lib_alias(against_lib)
+            title = f"## `{name}`"
+            subtitle = f"**{against_lib} ({versions[against_lib]}) vs. scikit-learn ({versions['scikit-learn']})**"
+            display(Markdown(title))
+            display(Markdown(subtitle))
+
+            report = SingleEstimatorReporting(**params)
+            report.make_report()
+
+
 class SingleEstimatorReporting:
     """
     Runs reporting for one estimator.
@@ -134,12 +136,14 @@ class SingleEstimatorReporting:
         split_bars_by=[],
         estimator_parameters={},
         n_cols=None,
+        log_scale=False,
     ):
         self.name = name
         self.against_lib = against_lib
         self.split_bars_by = split_bars_by
         self.n_cols = n_cols
         self.estimator_parameters = estimator_parameters
+        self.log_scale = log_scale
 
     def _get_benchmark_df(self, lib=BASE_LIB):
         benchmarking_results_path = str(BENCHMARKING_RESULTS_PATH)
@@ -304,25 +308,31 @@ class SingleEstimatorReporting:
 
         for i in range(1, n_plots + 1):
             fig["layout"]["xaxis{}".format(i)]["title"] = "(n_samples, n_features)"
-            fig["layout"]["yaxis{}".format(i)]["title"] = "Speedup in logarithmic scale"
 
-        fig.for_each_xaxis(
-            lambda axis: axis.title.update(font=dict(size=REPORTING_FONT_SIZE))
-        )
-        fig.for_each_yaxis(
-            lambda axis: axis.title.update(font=dict(size=REPORTING_FONT_SIZE))
-        )
-        fig.update_annotations(font_size=REPORTING_FONT_SIZE)
+            y_title = "Speedup"
+            if self.log_scale:
+                y_title += " in log scale"
+            fig["layout"]["yaxis{}".format(i)]["title"] = y_title
+
         fig.update_layout(
             height=n_rows * PLOT_HEIGHT_IN_PX, barmode="group", showlegend=True
         )
-        for row, col in coordinates:
-            fig.update_yaxes(type="log", row=row, col=col)
 
-        text = "All estimators share the following parameters: "
+        if self.log_scale:
+            for row, col in coordinates:
+                fig.update_yaxes(type="log", row=row, col=col)
+
+        self.display_shared_parameters()
+
+        fig.show()
+
+    def display_shared_parameters(self):
         df_shared_parameters = pd.DataFrame.from_dict(
             self.get_shared_parameters(), orient="index", columns=["value"]
         )
+
+        text = "All estimators share the following parameters: "
+
         for i, (index, row) in enumerate(df_shared_parameters.iterrows()):
             text += "`%s=%s`" % (index, *row.values)
             if i == len(df_shared_parameters) - 1:
@@ -330,8 +340,6 @@ class SingleEstimatorReporting:
             else:
                 text += ", "
         display(Markdown(text))
-
-        fig.show()
 
     def check_scores_are_close(self):
         df_filtered = self.df_reporting.copy()
@@ -354,8 +362,8 @@ class SingleEstimatorReporting:
             n_mismatches = len(df_filtered)
             n_total_predictions = len(self.df_reporting.query("function == 'predict'"))
 
-            proportion_mismatch = n_mismatches / n_total_predictions * 100
-            proportion_mismatch = round(proportion_mismatch, 2)
+            proportion_mismatches = n_mismatches / n_total_predictions * 100
+            proportion_mismatches = round(proportion_mismatches, 2)
 
             word_prediction = "prediction"
             if n_mismatches > 1:
@@ -365,27 +373,12 @@ class SingleEstimatorReporting:
                 HTML(
                     "<div style='padding: 20px; background-color: #f44336; color: white; margin-bottom: 15px;'>"
                     "<strong>WARNING!</strong> "
-                    f"Mismatch between validation scores for {n_mismatches} {word_prediction} ({proportion_mismatch}%). See details in the dataframe below."
+                    f"Mismatch between validation scores for {n_mismatches} {word_prediction} ({proportion_mismatches}%). See details in the dataframe below."
                     "</div>"
                 )
             )
 
-            relevant_cols = [
-                "estimator",
-                "function",
-                "n_samples_train",
-                "n_samples",
-                "n_features",
-            ]
-
-            for score in scores:
-                relevant_cols += [
-                    f"{score}_{BASE_LIB}",
-                    f"{score}_{self.against_lib}",
-                    f"diff_{score}s",
-                ]
-
-            display(df_filtered[relevant_cols])
+            display(df_filtered)
 
     def make_report(self):
         self.prepare_data()
