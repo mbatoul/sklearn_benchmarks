@@ -42,6 +42,14 @@ from sklearn_benchmarks.utils import clean_results, convert
     help="Activate profiling of functions with Viztracer.",
 )
 @click.option(
+    "--distributed",
+    "--d",
+    is_flag=True,
+    required=False,
+    default=False,
+    help="Run benchmarks with Dask.",
+)
+@click.option(
     "--fast",
     "--f",
     is_flag=True,
@@ -78,6 +86,7 @@ from sklearn_benchmarks.utils import clean_results, convert
 def main(
     append,
     run_profiling,
+    distributed,
     fast,
     config,
     estimator,
@@ -140,7 +149,12 @@ def main(
 
         benchmark = Benchmark(**params)
         start_benchmark = time.perf_counter()
-        benchmark.run()
+
+        if distributed:
+            pass
+        else:
+            benchmark.run()
+
         end_benchmark = time.perf_counter()
 
         time_report.loc[len(time_report)] = [
