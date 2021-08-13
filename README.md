@@ -17,7 +17,7 @@
 
 ## About
 
-`sklearn_benchmarks` is a framework to benchmark `scikit-learn`'s estimators against concurrent implementations.
+sklearn_benchmarks is a framework to benchmark [scikit-learn](https://github.com/scikit-learn/scikit-learn)'s estimators against concurrent implementations.
 
 To consult benchmark results, see notebooks [scikit_learn_intelex_vs_scikit_learn.ipynb](https://github.com/mbatoul/sklearn_benchmarks/blob/master/scikit_learn_intelex_vs_scikit_learn.ipynb), [onnx_vs_scikit_learn.ipynb](https://github.com/mbatoul/sklearn_benchmarks/blob/master/onnx_vs_scikit_learn.ipynb) and [gradient_boosting.ipynb](https://github.com/mbatoul/sklearn_benchmarks/blob/master/gradient_boosting.ipynb).
 
