@@ -66,17 +66,17 @@ $ sklbench
 Usage: sklbench [OPTIONS]
 
 Options:
-  --append, --a                   Append benchmark results to existing ones. By default, all
-                                  existing results will be erased before new ones are made.
-
-  --config, --c TEXT              Path to config file. By default, `config.yml` is selected.
-
-  --profiling, --p [html|json.gz]
-                                  Profiling files type. By default, both `html` and `json.gz` files
-                                  are generated.
-
-  --estimator, --e TEXT           Estimator to benchmark. By default, all estimators in the config
-                                  file will be benchmarked.
-
+  --append, --a                   Append benchmark results to existing ones.
+  --run_profiling, --p            Activate profiling of functions with
+                                  Viztracer.
+  --fast, --f                     Activate the fast benchmark option for
+                                  debugging purposes. Datasets will be small.
+                                  All benchmarks will be converted to HPO.HPO
+                                  time budget will be set to 5 seconds.
+  --config, --c TEXT              Path to config file.
+  --estimator, --e TEXT           Estimator to benchmark.
+  --hpo_time_budget, --htb INTEGER
+                                  Custom time budget for HPO benchmarks in
+                                  seconds. Will be applied for all libraries.
   --help                          Show this message and exit.
 ```
