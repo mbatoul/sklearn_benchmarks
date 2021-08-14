@@ -20,7 +20,7 @@ from sklearn_benchmarks.utils import (
     HoverTemplateMaker,
     find_index_nearest,
     get_lib_alias,
-    select_front_pareto,
+    is_pareto_optimal,
 )
 
 
@@ -236,7 +236,7 @@ class HPOReporting:
                 [f"mean_duration_{func}", f"accuracy_score_predict"]
             ]
             df_merged[f"is_pareto_{func}"] = data_pareto.apply(
-                select_front_pareto, args=(data_pareto,), axis=1, raw=True
+                is_pareto_optimal, args=(data_pareto,), axis=1, raw=True
             )
             df_pareto = df_merged.query(f"is_pareto_{func} == True").sort_values(
                 [f"mean_duration_{func}"]
@@ -256,7 +256,7 @@ class HPOReporting:
             if func == "predict" and benchmark_result.lib == BASE_LIB:
                 data_pareto = df_merged[["mean_duration_onnx", "accuracy_score_onnx"]]
                 df_merged["is_pareto_onnx"] = data_pareto.apply(
-                    select_front_pareto, args=(data_pareto,), axis=1, raw=True
+                    is_pareto_optimal, args=(data_pareto,), axis=1, raw=True
                 )
 
                 hover_template_maker = HoverTemplateMaker(df_merged)
