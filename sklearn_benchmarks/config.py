@@ -13,7 +13,7 @@ VERSIONS_PATH = RESULTS_PATH / "versions.txt"
 DEFAULT_CONFIG = "config.yml"
 BASE_LIB = "sklearn"
 FUNC_TIME_BUDGET = 30
-PLOT_HEIGHT_IN_PX = 450
+PLOT_HEIGHT_IN_PX = 550
 COMPARABLE_COLS = [
     "mean_duration",
     "std_duration",
