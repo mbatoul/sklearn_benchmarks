@@ -25,6 +25,20 @@ from sklearn_benchmarks.utils import (
 
 
 def compute_cumulated(fit_times, scores):
+    """
+    Return the cumulative sums of fit times and cumulated maximums of scores.
+
+    Arguments:
+    ----------
+    fit_times -- sequence of fit times
+    scores -- sequence of scores
+
+    Returns:
+    --------
+    cumulated_fit_times -- sequence of cumulative sums of fit times
+    best_val_score_so_far -- sequence of cumulated maximums of scores
+    """
+
     cumulated_fit_times = fit_times.cumsum()
     best_val_score_so_far = pd.Series(scores).cummax()
 
@@ -37,15 +51,36 @@ def boostrap_fit_times(
     grid_scores,
     n_bootstraps=10_000,
 ):
+    """
+    Boostrap n_boostraps times the (fit_time, score) raw data points.
+
+    Arguments:
+    ---------
+    fit_times -- sequence of fit times
+    scores -- sequence of scores
+    grid_scores -- evenly spaced scores between baseline and common maximum score
+
+    Keyword arguments:
+    ---------
+    n_bootstraps -- number of bootstraps to perform (default 10 000)
+
+    Returns:
+    --------
+    all_fit_times (shape (n_boostraps, grid_scores.shape[0])) -- all the boostraped fit times
+    """
+
     all_fit_times = []
     rng = np.random.RandomState(0)
     n_samples = fit_times.shape[0]
 
     for _ in range(n_bootstraps):
         indices = rng.randint(n_samples, size=n_samples)
+        # Compute cumulative sum of randomly selected fit times and comulative maximum of of randomly selected scores.
         cum_fit_times_permutated, cum_scores_permutated = compute_cumulated(
             fit_times.iloc[indices], scores.iloc[indices]
         )
+        # Generate linear interpolation for cum_scores_permutated and cum_fit_times_permutated.
+        # When max score is reached, we add nan values.
         grid_fit_times = np.interp(
             grid_scores,
             cum_scores_permutated,
@@ -59,7 +94,9 @@ def boostrap_fit_times(
 
 @dataclass
 class HpoBenchmarkResult:
-    """Class to store formatted data of HPO benchmark results."""
+    """
+    Class responsible for storing formatted data of HPO benchmark results.
+    """
 
     estimator: str
     lib: str
@@ -91,6 +128,10 @@ class HpoBenchmarkResults:
 
 
 class HPOReporting:
+    """
+    Class responsible for running a HPO reporting for estimators specified in the configuration file.
+    """
+
     def __init__(self, config=None):
         self.config = config
 
@@ -99,6 +140,11 @@ class HPOReporting:
             self.versions = json.load(json_file)
 
     def prepare_data(self):
+        """
+        Prepare the raw data for reporting.
+
+        Set benchmark_results attribute.
+        """
         all_results = []
         estimators = self.config["estimators"]
 
@@ -120,6 +166,7 @@ class HPOReporting:
             fit_times = df.query("function == 'fit'")["mean_duration"]
             scores = df.query("function == 'predict'")["accuracy_score"]
 
+            # The best score of the worst performing library is the minimum of maximum scores.
             best_score_worst_performer = min(best_score_worst_performer, scores.max())
 
             bootstrapped_fit_times = boostrap_fit_times(
@@ -128,6 +175,7 @@ class HPOReporting:
                 grid_scores,
             )
 
+            # We catch warnings due to nan values in arrays.
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
 
@@ -178,6 +226,10 @@ class HPOReporting:
         )
 
     def scatter(self, func="fit"):
+        """
+        Display scatter plot of raw results with cumulated fit or predict times in the x-axis and validation scores in the y-axis.
+        """
+
         fig = go.Figure()
 
         for index, benchmark_result in enumerate(self.benchmark_results):
@@ -190,6 +242,7 @@ class HPOReporting:
                 df_predictions_onnx = pd.read_csv(
                     f"{BENCHMARKING_RESULTS_PATH}/onnx_{benchmark_result.estimator}.csv"
                 )
+                # Results are merged based on the set of parameters and the dataset used during benchmark.
                 df_predictions = df_predictions.merge(
                     df_predictions_onnx[
                         [
@@ -304,10 +357,15 @@ class HPOReporting:
         fig.show()
 
     def smoothed_curves(self):
+        """
+        Display HPO smoothed curves. Main lines are the means of bootstraped fit times.
+        """
+
         fig = go.Figure()
         grid_scores = self.benchmark_results.grid_scores
 
         for benchmark_result in self.benchmark_results:
+            # Add mean line.
             fig.add_trace(
                 go.Scatter(
                     x=benchmark_result.mean_grid_times,
@@ -319,6 +377,7 @@ class HPOReporting:
                 )
             )
 
+            # Add fill between first and third quartiles.
             for quartile_grid_times in [
                 benchmark_result.first_quartile_grid_times,
                 benchmark_result.third_quartile_grid_times,
@@ -335,6 +394,7 @@ class HPOReporting:
                     )
                 )
 
+        # Add horizontal line at the score at which we compute barplot speedups.
         threshold = self.benchmark_results.threshold_speedup
         fig.add_hline(
             y=threshold,
@@ -348,7 +408,7 @@ class HPOReporting:
 
         y_min = grid_scores.min()
         y_max = self.benchmark_results.max_grid_score
-        y_max += (y_max - y_min) * 0.1
+        y_max += (y_max - y_min) * 0.1  # Add a little offset for readability.
         fig.update_yaxes(range=[y_min, y_max])
 
         fig.update_layout(height=600, hovermode="closest")
@@ -359,6 +419,10 @@ class HPOReporting:
         fig.show()
 
     def speedup_barplot(self):
+        """
+        Display speedup barplots at the best score of the worst performing library.
+        """
+
         fig = go.Figure()
 
         grid_scores = self.benchmark_results.grid_scores
