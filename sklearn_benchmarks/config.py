@@ -13,14 +13,6 @@ VERSIONS_PATH = RESULTS_PATH / "versions.txt"
 DEFAULT_CONFIG = "config.yml"
 BASE_LIB = "sklearn"
 FUNC_TIME_BUDGET = 30
-PLOT_HEIGHT_IN_PX = 550
-COMPARABLE_COLS = [
-    "mean_duration",
-    "std_duration",
-    "accuracy_score",
-    "adjusted_rand_score",
-    "r2_score",
-]
 BENCH_LIBS = [
     "scikit-learn",
     "scikit-learn-intelex",
@@ -33,11 +25,27 @@ HPO_PREDICTIONS_TIME_BUDGET = 3
 BENCHMARKING_METHODS_N_EXECUTIONS = {"hp_match": 10, "hpo": 1}
 HPO_TIME_BUDGET = 600
 PROFILING_OUTPUT_EXTENSIONS = ["html", "json.gz"]
+
+PLOT_HEIGHT_IN_PX = 550
+COMPARABLE_COLS = [
+    "mean_duration",
+    "std_duration",
+    "accuracy_score",
+    "adjusted_rand_score",
+    "r2_score",
+]
 DIFF_SCORES_THRESHOLDS = {
     "accuracy_score": 0.001,
     "r2_score": 0.001,
     "adjusted_rand_score": 0.001,
 }
+PLOTLY_COLORS_TO_FILLCOLORS = dict(
+    blue="rgba(0, 0, 255, 0.1)",
+    red="rgba(255, 0, 0, 0.1)",
+    green="rgba(41, 124, 29, 0.1)",
+    purple="rgba(178, 0, 255, 0.1)",
+    orange="rgba(255, 153, 0, 0.1)",
+)
 
 
 def get_full_config(config=None):

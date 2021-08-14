@@ -12,6 +12,7 @@ from sklearn_benchmarks.config import (
     BASE_LIB,
     BENCHMARKING_RESULTS_PATH,
     COMPARABLE_COLS,
+    PLOTLY_COLORS_TO_FILLCOLORS,
     VERSIONS_PATH,
     get_full_config,
 )
@@ -73,6 +74,7 @@ class HpoBenchmarkResult:
 @dataclass
 class HpoBenchmarkResults:
     grid_scores: np.ndarray
+    max_grid_score: float
     threshold_speedup: float
     results: List[HpoBenchmarkResult] = field(default_factory=list)
 
@@ -103,6 +105,7 @@ class HPOReporting:
         baseline_score, max_score = 0.7, 1.0
         grid_scores = np.linspace(baseline_score, max_score, 1000)
 
+        max_grid_score = 0.0
         best_score_worst_performer = 1.0
         for estimator, params in estimators.items():
             lib = params["lib"]
@@ -145,6 +148,10 @@ class HPOReporting:
                     axis=0,
                 )
 
+            idx_max_grid_time = mean_grid_times[~np.isnan(mean_grid_times)].shape[0]
+            curr_max_grid_score = grid_scores[idx_max_grid_time]
+            max_grid_score = max(max_grid_score, curr_max_grid_score)
+
             result = HpoBenchmarkResult(
                 estimator,
                 lib,
@@ -160,7 +167,10 @@ class HPOReporting:
 
         threshold_speedup = round(best_score_worst_performer * 0.95, 3)
         self.benchmark_results = HpoBenchmarkResults(
-            grid_scores, threshold_speedup, all_results
+            grid_scores,
+            max_grid_score,
+            threshold_speedup,
+            all_results,
         )
 
     def scatter(self, func="fit"):
@@ -290,39 +300,68 @@ class HPOReporting:
         fig.show()
 
     def smoothed_curves(self):
-        plt.figure(figsize=(15, 10))
+        fig = go.Figure()
         grid_scores = self.benchmark_results.grid_scores
 
         for benchmark_result in self.benchmark_results:
-            plt.plot(
-                benchmark_result.mean_grid_times,
-                grid_scores,
-                c=f"tab:{benchmark_result.color}",
-                label=benchmark_result.legend,
+            fig.add_trace(
+                go.Scatter(
+                    x=benchmark_result.mean_grid_times,
+                    y=grid_scores,
+                    mode="lines",
+                    name=benchmark_result.legend,
+                    marker=dict(color=benchmark_result.color),
+                    hovertemplate="Cumulated fit time: %{x:.2f}<br>Validation score: %{y:.3f}<extra></extra>",
+                )
             )
-            plt.fill_betweenx(
-                grid_scores,
-                benchmark_result.first_quartile_grid_times,
-                benchmark_result.third_quartile_grid_times,
-                color=benchmark_result.color,
-                alpha=0.1,
+            fig.add_trace(
+                go.Scatter(
+                    x=benchmark_result.first_quartile_grid_times,
+                    y=grid_scores,
+                    fill="tonexty",
+                    showlegend=False,
+                    mode="none",
+                    fillcolor=PLOTLY_COLORS_TO_FILLCOLORS[benchmark_result.color],
+                    hoverinfo="skip",
+                )
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=benchmark_result.third_quartile_grid_times,
+                    y=grid_scores,
+                    fill="tonexty",
+                    showlegend=False,
+                    mode="none",
+                    fillcolor=PLOTLY_COLORS_TO_FILLCOLORS[benchmark_result.color],
+                    hoverinfo="skip",
+                )
             )
 
         threshold = self.benchmark_results.threshold_speedup
-        plt.axhline(
+        fig.add_hline(
             y=threshold,
-            color="black",
-            alpha=0.3,
-            linestyle="dashed",
-            label=f"Threshold of {threshold}",
+            line_dash="dot",
+            annotation_text=f"Threshold of {threshold}",
+            annotation_position="bottom right",
+            annotation_font_size=12,
+            fillcolor="grey",
+            annotation_font_color="grey",
         )
-        plt.xlabel("Cumulated fit times in seconds")
-        plt.ylabel("Validation scores")
-        plt.legend()
-        plt.show()
+
+        y_min = grid_scores.min()
+        y_max = self.benchmark_results.max_grid_score
+        y_max += (y_max - y_min) * 0.1
+        fig.update_yaxes(range=[y_min, y_max])
+
+        fig.update_layout(height=600, hovermode="closest")
+
+        fig["layout"]["xaxis{}".format(1)]["title"] = "Cumulated fit times in seconds"
+        fig["layout"]["yaxis{}".format(1)]["title"] = "Validation score"
+
+        fig.show()
 
     def speedup_barplot(self):
-        plt.figure(figsize=(15, 10))
+        fig = go.Figure()
 
         grid_scores = self.benchmark_results.grid_scores
         threshold = self.benchmark_results.threshold_speedup
@@ -343,39 +382,53 @@ class HPOReporting:
             )
             df_threshold = df_threshold.append(row, ignore_index=True)
 
-        plt.bar(
-            x=df_threshold["legend"],
-            height=df_threshold["speedup"],
-            width=0.3,
-            color=df_threshold["color"],
+        fig.add_trace(
+            go.Bar(
+                x=df_threshold["legend"],
+                y=df_threshold["speedup"],
+                marker_color=df_threshold["color"],
+                showlegend=False,
+                hovertemplate="Speedup over scikit-learn: %{y:.2f}<extra></extra>",
+            )
         )
 
-        plt.xlabel("Library")
-        plt.ylabel(f"Speedup over scikit-learn")
-        plt.title(f"At validation score of {threshold}")
+        fig.update_layout(height=600, title=f"At validation score of {threshold}")
 
-        plt.tight_layout()
-        plt.show()
+        fig["layout"]["xaxis{}".format(1)]["title"] = "Library"
+        fig["layout"]["yaxis{}".format(1)]["title"] = f"Speedup over scikit-learn"
+
+        fig.show()
 
     def speedup_curves(self):
-        plt.figure(figsize=(15, 10))
+        fig = go.Figure()
+        grid_scores = self.benchmark_results.grid_scores
 
         for benchmark_result in self.benchmark_results:
             speedup_grid_times = (
                 self.benchmark_results.base.mean_grid_times
                 / benchmark_result.mean_grid_times
             )
-            plt.plot(
-                self.benchmark_results.grid_scores,
-                speedup_grid_times,
-                c=f"tab:{benchmark_result.color}",
-                label=benchmark_result.legend,
+            fig.add_trace(
+                go.Scatter(
+                    x=grid_scores,
+                    y=speedup_grid_times,
+                    mode="lines",
+                    name=benchmark_result.legend,
+                    marker=dict(color=benchmark_result.color),
+                    hovertemplate="Validation score: %{x:.2f}<br>Cumulated fit time: %{y:.3f}<br><extra></extra>",
+                )
             )
 
-        plt.xlabel("Validation scores")
-        plt.ylabel(f"Speedup over scikit-learn")
-        plt.legend()
-        plt.show()
+        x_min = grid_scores.min()
+        x_max = self.benchmark_results.max_grid_score
+        fig.update_xaxes(range=[x_min, x_max])
+
+        fig.update_layout(height=600, hovermode="closest")
+
+        fig["layout"]["xaxis{}".format(1)]["title"] = "Validation score"
+        fig["layout"]["yaxis{}".format(1)]["title"] = "Cumulated fit times in seconds"
+
+        fig.show()
 
     def make_report(self):
         config = get_full_config(config=self.config)
