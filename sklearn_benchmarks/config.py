@@ -9,6 +9,7 @@ BENCHMARKING_RESULTS_PATH = RESULTS_PATH / "benchmarking"
 TIME_REPORT_PATH = RESULTS_PATH / "time_report.csv"
 ENV_INFO_PATH = RESULTS_PATH / "env_info.txt"
 VERSIONS_PATH = RESULTS_PATH / "versions.txt"
+TIME_MOST_RECENT_RUN_PATH = RESULTS_PATH / "time_most_recent_run.txt"
 
 DEFAULT_CONFIG = "config.yml"
 BASE_LIB = "sklearn"

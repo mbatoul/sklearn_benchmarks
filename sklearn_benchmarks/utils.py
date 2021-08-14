@@ -14,6 +14,7 @@ from sklearn_benchmarks.config import (
     COMPARABLE_COLS,
     ENV_INFO_PATH,
     RESULTS_PATH,
+    TIME_MOST_RECENT_RUN_PATH,
     TIME_REPORT_PATH,
 )
 
@@ -61,6 +62,12 @@ def display_links_to_notebooks():
     display(Markdown("## Notebooks"))
     for file, title in notebook_titles.items():
         display(Markdown(f"### [{title}]({base_url}{file}.{file_extension})"))
+
+
+def display_time_most_recent_run():
+    with open(TIME_MOST_RECENT_RUN_PATH) as file:
+        str_most_recent_time = file.readlines()[0]
+    display(Markdown(f"> These results were obtained on {str_most_recent_time}."))
 
 
 def gen_coordinates_grid(n_rows, n_cols):

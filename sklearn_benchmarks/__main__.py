@@ -3,6 +3,7 @@ The main entry point. Invoke as `sklearn_benchmarks' or `python -m sklearn_bench
 """
 import json
 import time
+from datetime import datetime
 from importlib.metadata import version
 
 import click
@@ -16,6 +17,7 @@ from sklearn_benchmarks.config import (
     BENCH_LIBS,
     DEFAULT_CONFIG,
     ENV_INFO_PATH,
+    TIME_MOST_RECENT_RUN_PATH,
     TIME_REPORT_PATH,
     VERSIONS_PATH,
     get_full_config,
@@ -180,6 +182,10 @@ def main(
     env_info["cpu_count"] = joblib.cpu_count(only_physical_cores=True)
     with open(ENV_INFO_PATH, "w") as outfile:
         json.dump(env_info, outfile)
+
+    # Store current time
+    with open(TIME_MOST_RECENT_RUN_PATH, "w") as outfile:
+        outfile.write(datetime.now().strftime("%A %d %B, %Y at %H:%M:%S"))
 
 
 if __name__ == "__main__":
