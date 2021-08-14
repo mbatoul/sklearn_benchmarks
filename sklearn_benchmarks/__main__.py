@@ -83,6 +83,10 @@ def main(
     estimator,
     hpo_time_budget,
 ):
+    """
+    Run the benchmarks for all estimators specified in the configuration file.
+    """
+
     if not append:
         clean_results()
     config = get_full_config(config)
@@ -110,6 +114,7 @@ def main(
                 params.pop("predict_with_onnx")
             params["estimator"] = curr_estimator
 
+        # When common dataset name is set, we inserted the common dataset's configuration in the estimator's datasets configuration.
         for i in range(len(params["datasets"])):
             common_dataset_name = params["datasets"][i].get("name", None)
             if common_dataset_name is not None:
@@ -117,6 +122,7 @@ def main(
                     common_dataset_name
                 ]
 
+        # When fast option is enabled, we use a small dataset to make benchmarks run faster.
         if fast:
             fast_dataset = dict(
                 n_features=10,
@@ -132,6 +138,7 @@ def main(
         params["random_seed"] = benchmarking_config.get("random_seed", None)
         params["run_profiling"] = run_profiling
 
+        # When fast option is enabled, all benchmarks will be HPO benchmarks, meaning we will not explore the whole grid and stop when time limit is reached.
         if fast:
             params["benchmarking_method"] = "hpo"
             params["time_budget"] = 5

@@ -31,6 +31,10 @@ from sklearn_benchmarks.utils import gen_data
 
 @dataclass
 class BenchmarkMeasurements:
+    """
+    Class responsible for storing measurements made during benchmarks.
+    """
+
     mean_duration: float
     std_duration: float
     n_iter: int
@@ -40,6 +44,10 @@ class BenchmarkMeasurements:
 
 @dataclass
 class RawBenchmarkResult:
+    """
+    Class responsible for the result of the benchmark for one given configuration, i.e. a set of parameters and a dataset for one estimator's function.
+    """
+
     estimator: str
     function: str
     n_samples_train: int
@@ -59,6 +67,10 @@ class RawBenchmarkResult:
 
 @dataclass
 class RawBenchmarkResults:
+    """
+    Class responsible for the results of benchmarks for one estimator.
+    """
+
     results: List[RawBenchmarkResult] = field(default_factory=list)
 
     def __iter__(self):
@@ -100,6 +112,29 @@ def run_benchmark_one_func(
     onnx_model_filepath=None,
     **kwargs,
 ):
+    """
+    Run benchmark for one function.
+
+    Arguments:
+    ----------
+    func -- function to run
+    estimator -- instance of an estimator class
+    profiling_output_path -- file path to store results of profiling
+    X -- training data
+
+    Keyword arguments:
+    ------------------
+    y -- target values (default None)
+    n_executions -- number of executions of the function to run (default 10)
+    run_profiling -- whether profiling should be run (default False)
+    onnx_model_filepath -- file path to retrieve ONNX model (default None, when predictions should not be made with ONNX)
+    kwargs -- keyword arguments that should be passed to benchmarked function
+
+    Returns:
+    --------
+    func_result -- result of the benchmarked function (None if fit, predicted targets for predict)
+    benchmark_measurements -- a BenchmarkMeasurements instance (see above for details)
+    """
     if run_profiling:
         # First run with a profiler (not timed)
         with VizTracer(verbose=0) as tracer:
@@ -116,8 +151,7 @@ def run_benchmark_one_func(
     # Next runs: at most n_executions runs or 30 sec total execution time
     times = []
     start_global = time.perf_counter()
-    if run_profiling:
-        n_executions -= 1
+    n_executions = n_executions - 1 if run_profiling else n_executions
     for _ in range(n_executions):
         start_iter = time.perf_counter()
 
@@ -138,6 +172,7 @@ def run_benchmark_one_func(
         end_iter = time.perf_counter()
         times.append(end_iter - start_iter)
 
+        # Benchmark for one func should not exceed FUNC_TIME_BUDGET seconds across all executions.
         if end_iter - start_global > FUNC_TIME_BUDGET:
             break
 
@@ -160,6 +195,10 @@ def run_benchmark_one_func(
 
 
 class Benchmark:
+    """
+    Class responsible for benchmarking one estimator.
+    """
+
     def __init__(
         self,
         name="",
@@ -189,6 +228,10 @@ class Benchmark:
         self.run_profiling = run_profiling
 
     def _make_parameters_grid(self):
+        """
+        Return a shuffled hyperparameters grid generated from the parameters specified in the configuration file.
+        """
+
         init_parameters = self.parameters.get("init", {})
         if not init_parameters:
             estimator_class = self._load_estimator_class()
@@ -197,23 +240,39 @@ class Benchmark:
             init_parameters = {k: [v] for k, v in estimator.__dict__.items()}
         grid = list(ParameterGrid(init_parameters))
         self.random_state.shuffle(grid)
+
         return grid
 
     def _load_estimator_class(self):
+        """
+        Return the estimator class loaded from the path given by the estimator attribute.
+        """
+
         split_path = self.estimator.split(".")
         mod, class_name = ".".join(split_path[:-1]), split_path[-1]
+
         return getattr(importlib.import_module(mod), class_name)
 
     def _load_metrics_funcs(self):
+        """
+        Return a list of metric functions loaded from sklearn.metrics module.
+        """
+
         module = importlib.import_module("sklearn.metrics")
+
         return [getattr(module, m) for m in self.metrics]
 
     def run(self):
+        """
+        Run the benchmark script.
+        """
+
         library = self.estimator.split(".")[0]
         estimator_class = self._load_estimator_class()
         metrics_funcs = self._load_metrics_funcs()
         parameters_grid = self._make_parameters_grid()
         benchmark_results = RawBenchmarkResults()
+        # If predictions should also be made with ONNX, we store them in a different object.
         if self.predict_with_onnx:
             onnx_benchmark_results = RawBenchmarkResults()
         n_executions = BENCHMARKING_METHODS_N_EXECUTIONS[self.benchmarking_method]
@@ -225,6 +284,8 @@ class Benchmark:
             n_samples_test = sorted(dataset["n_samples_test"], reverse=True)
 
             for ns_train in n_samples_train:
+                # We set n_samples as the sum of n_samples_train and the maximum of the n_samples_test as we
+                # are going to split the data after.
                 n_samples = ns_train + max(n_samples_test)
                 X, y = gen_data(
                     dataset["sample_generator"],
@@ -246,7 +307,7 @@ class Benchmark:
                     profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_fit_{parameters_digest}_{dataset_digest}"
 
                     # Benchmark fit
-                    func_result, benchmark_measurements = run_benchmark_one_func(
+                    _, benchmark_measurements = run_benchmark_one_func(
                         estimator.fit,
                         estimator,
                         profiling_output_path,
@@ -340,6 +401,7 @@ class Benchmark:
                             scores[metric_func.__name__] = score
 
                         if self.predict_with_onnx:
+                            # Check ONNX predictions consistency with scikit-learn's predictions.
                             assert onnx_func_result.shape == func_result.shape
 
                             for score in scores.keys():

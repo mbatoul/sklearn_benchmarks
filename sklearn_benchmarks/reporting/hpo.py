@@ -148,8 +148,11 @@ class HPOReporting:
                     axis=0,
                 )
 
+            # As grid_times arrays will only contain nan values at some point, we retrieve the index of the non-nan
+            # value as it corresponds to the max score obtained.
             idx_max_grid_time = mean_grid_times[~np.isnan(mean_grid_times)].shape[0]
             curr_max_grid_score = grid_scores[idx_max_grid_time]
+            # We look for the maximum grid score across all librairies.
             max_grid_score = max(max_grid_score, curr_max_grid_score)
 
             result = HpoBenchmarkResult(
@@ -165,6 +168,7 @@ class HPOReporting:
 
             all_results.append(result)
 
+        # We are intested in computed speedups at 95% of the worst performing library best score.
         threshold_speedup = round(best_score_worst_performer * 0.95, 3)
         self.benchmark_results = HpoBenchmarkResults(
             grid_scores,
@@ -314,28 +318,22 @@ class HPOReporting:
                     hovertemplate="Cumulated fit time: %{x:.2f}<br>Validation score: %{y:.3f}<extra></extra>",
                 )
             )
-            fig.add_trace(
-                go.Scatter(
-                    x=benchmark_result.first_quartile_grid_times,
-                    y=grid_scores,
-                    fill="tonexty",
-                    showlegend=False,
-                    mode="none",
-                    fillcolor=PLOTLY_COLORS_TO_FILLCOLORS[benchmark_result.color],
-                    hoverinfo="skip",
+
+            for quartile_grid_times in [
+                benchmark_result.first_quartile_grid_times,
+                benchmark_result.third_quartile_grid_times,
+            ]:
+                fig.add_trace(
+                    go.Scatter(
+                        x=quartile_grid_times,
+                        y=grid_scores,
+                        fill="tonexty",
+                        showlegend=False,
+                        mode="none",
+                        fillcolor=PLOTLY_COLORS_TO_FILLCOLORS[benchmark_result.color],
+                        hoverinfo="skip",
+                    )
                 )
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=benchmark_result.third_quartile_grid_times,
-                    y=grid_scores,
-                    fill="tonexty",
-                    showlegend=False,
-                    mode="none",
-                    fillcolor=PLOTLY_COLORS_TO_FILLCOLORS[benchmark_result.color],
-                    hoverinfo="skip",
-                )
-            )
 
         threshold = self.benchmark_results.threshold_speedup
         fig.add_hline(

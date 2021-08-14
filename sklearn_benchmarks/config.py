@@ -22,11 +22,13 @@ BENCH_LIBS = [
     "onnx",
 ]
 HPO_PREDICTIONS_TIME_BUDGET = 3
+# n_executions for each benchmarking method.
 BENCHMARKING_METHODS_N_EXECUTIONS = {"hp_match": 10, "hpo": 1}
 HPO_TIME_BUDGET = 600
 PROFILING_OUTPUT_EXTENSIONS = ["html", "json.gz"]
 
 PLOT_HEIGHT_IN_PX = 550
+# The columns we want to compare between libraries. Correspond to the data stored in BenchmarkMeasurements.
 COMPARABLE_COLS = [
     "mean_duration",
     "std_duration",
@@ -34,6 +36,7 @@ COMPARABLE_COLS = [
     "adjusted_rand_score",
     "r2_score",
 ]
+# When the following thresholds are reached, HTML warnings are displayed in reporting.
 DIFF_SCORES_THRESHOLDS = {
     "accuracy_score": 0.001,
     "r2_score": 0.001,
@@ -64,8 +67,8 @@ def parse_parameters(params):
     as strings.
 
     PR to track: https://github.com/yaml/pyyaml/issues/486
-
     """
+
     from sklearn_benchmarks.utils import is_scientific_notation
 
     init_parameters = params.get("parameters", {}).get("init", {})
