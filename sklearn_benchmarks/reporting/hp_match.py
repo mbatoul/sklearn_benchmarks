@@ -18,10 +18,9 @@ from sklearn_benchmarks.config import (
     get_full_config,
 )
 from sklearn_benchmarks.utils import (
-    diff_between_lists,
+    HoverTemplateMaker,
     gen_coordinates_grid,
     get_lib_alias,
-    make_hover_template,
 )
 
 
@@ -49,17 +48,23 @@ def add_bar_plotly(
     x = [f"({ns}, {nf})" for ns, nf in df[["n_samples", "n_features"]].values]
     y = df["speedup"]
 
+    df_hover = df.copy()
+    df_hover = df_hover.drop(columns=["estimator", "function"])
+
+    hover_template_maker = HoverTemplateMaker(df_hover)
+
     bar = go.Bar(
         x=x,
         y=y,
         name=name,
         marker_color=color,
-        hovertemplate=make_hover_template(df),
-        customdata=df.values,
+        hovertemplate=hover_template_maker.make_template(),
+        customdata=hover_template_maker.make_data(),
         showlegend=showlegend,
         text=df["function"],
         textposition="auto",
     )
+
     fig.add_trace(
         bar,
         row=row,
@@ -204,11 +209,13 @@ class SingleEstimatorReporting:
     def print_tables(self):
         df = self.df_reporting
 
-        nunique = df.apply(pd.Series.nunique)
-        cols_to_drop = nunique[nunique == 1].index
-        cols_to_drop = [col for col in cols_to_drop if col in self.estimator_parameters]
+        n_unique_values = df.apply(pd.Series.nunique)
+        columns_to_drop = n_unique_values[n_unique_values == 1].index
+        columns_to_drop = [
+            col for col in columns_to_drop if col in self.estimator_parameters
+        ]
+        df = df.drop(columns_to_drop, axis=1)
 
-        df = df.drop(cols_to_drop, axis=1)
         df = df.dropna(axis=1)
         df = df.round(3)
 
@@ -236,26 +243,6 @@ class SingleEstimatorReporting:
 
     def plot(self):
         df_reporting = self.df_reporting
-
-        comparable_cols = [
-            col for col in COMPARABLE_COLS if col in df_reporting.columns
-        ]
-
-        # Reorder columns for readability purpose in reporting
-        ordered_columns = [
-            "estimator",
-            "n_samples_train",
-            "n_samples",
-            "n_features",
-        ]
-
-        for col in comparable_cols:
-            for suffix in ["fit", "predict", "onnx"]:
-                ordered_columns += [f"{col}_{suffix}"]
-
-        ordered_columns = ordered_columns + diff_between_lists(
-            df_reporting.columns, ordered_columns
-        )
 
         if self.split_bars_by:
             group_by_params = [

@@ -16,10 +16,9 @@ from sklearn_benchmarks.config import (
     get_full_config,
 )
 from sklearn_benchmarks.utils import (
-    diff_between_lists,
+    HoverTemplateMaker,
     find_index_nearest,
     get_lib_alias,
-    make_hover_template,
     select_front_pareto,
 )
 
@@ -201,30 +200,13 @@ class HPOReporting:
 
             # Remove columns used during merges
             df_merged = df_merged.drop(
-                ["function", "parameters_digest", "dataset_digest"], axis=1
+                ["function", "estimator", "parameters_digest", "dataset_digest"], axis=1
             )
 
-            # Reorder columns for readability purpose in reporting
-            ordered_columns = [
-                "estimator",
-                "n_samples_train",
-                "n_samples",
-                "n_features",
-            ]
-
-            for col in comparable_cols:
-                for suffix in ["fit", "predict", "onnx"]:
-                    if benchmark_result.lib != BASE_LIB and suffix == "onnx":
-                        continue
-                    ordered_columns += [f"{col}_{suffix}"]
-
-            ordered_columns = ordered_columns + diff_between_lists(
-                df_merged.columns, ordered_columns
-            )
-
-            df_merged = df_merged[ordered_columns]
             df_merged = df_merged.dropna(axis=1)
             df_merged = df_merged.round(3)
+
+            hover_template_maker = HoverTemplateMaker(df_merged)
 
             fig.add_trace(
                 go.Scatter(
@@ -232,8 +214,8 @@ class HPOReporting:
                     y=df_merged[f"accuracy_score_predict"],
                     mode="markers",
                     name=benchmark_result.legend,
-                    hovertemplate=make_hover_template(df_merged),
-                    customdata=df_merged.values,
+                    hovertemplate=hover_template_maker.make_template(),
+                    customdata=hover_template_maker.make_data(),
                     marker=dict(color=benchmark_result.color),
                     legendgroup=index,
                 )
@@ -267,14 +249,16 @@ class HPOReporting:
                     select_front_pareto, args=(data_pareto,), axis=1, raw=True
                 )
 
+                hover_template_maker = HoverTemplateMaker(df_merged)
+
                 fig.add_trace(
                     go.Scatter(
                         x=df_merged["mean_duration_onnx"],
                         y=df_merged["accuracy_score_onnx"],
                         mode="markers",
                         name=f"ONNX ({self.versions['onnx']})",
-                        hovertemplate=make_hover_template(df_merged),
-                        customdata=df_merged.values,
+                        hovertemplate=hover_template_maker.make_template(),
+                        customdata=hover_template_maker.make_data(),
                         marker=dict(color="lightgray"),
                         legendgroup=len(self.benchmark_results),
                     )

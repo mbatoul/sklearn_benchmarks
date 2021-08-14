@@ -10,7 +10,12 @@ import pandas as pd
 from IPython.display import Markdown, display
 from joblib import Memory
 
-from sklearn_benchmarks.config import ENV_INFO_PATH, RESULTS_PATH, TIME_REPORT_PATH
+from sklearn_benchmarks.config import (
+    ENV_INFO_PATH,
+    RESULTS_PATH,
+    TIME_REPORT_PATH,
+    COMPARABLE_COLS,
+)
 
 
 def print_time_report():
@@ -155,3 +160,82 @@ def string_matches_substrings(string, substrings):
 
 def diff_between_lists(l1, l2):
     return list(set(l1) - set(l2)) + list(set(l2) - set(l1))
+
+
+def get_position(string):
+    top_columns = [
+        "estimator",
+        "n_samples_train",
+        "n_samples",
+        "n_features",
+    ]
+    if string in top_columns:
+        return 4
+    elif "mean_duration" in string:
+        return 3
+    elif "std_duration" in string:
+        return 2
+    elif "score" in string:
+        return 1
+    elif "speedup" in string:
+        return 0
+    else:
+        return -1
+
+
+class HoverTemplateMaker:
+    def __init__(self, df):
+        self.df = df
+        self.dimensions = ["n_samples_train", "n_samples", "n_features"]
+
+    def __len__(self):
+        return len(self.dimensions) + len(self.measurements) + len(self.parameters)
+
+    def __iter__(self):
+        return iter([*self.dimensions, *self.measurements, *self.parameters])
+
+    def at(self, i):
+        return [*self.dimensions, *self.measurements, *self.parameters][i]
+
+    def split_columns_in_groups(self):
+        measurements = filter(
+            lambda col: string_matches_substrings(
+                col,
+                [
+                    *COMPARABLE_COLS,
+                    "speedup",
+                    "std_speedup",
+                    "iteration_throughput",
+                    "latency",
+                ],
+            ),
+            self.df.columns,
+        )
+        measurements = sorted(measurements, key=get_position, reverse=True)
+        self.measurements = list(measurements)
+
+        parameters = diff_between_lists(
+            self.df.columns, [*self.dimensions, *self.measurements]
+        )
+        parameters = sorted(parameters)
+        self.parameters = list(parameters)
+
+    def make_template(self):
+        self.split_columns_in_groups()
+
+        titles_indices = {0: "Dimensions"}
+        titles_indices[len(self.dimensions)] = "Benchmark measurements"
+        titles_indices[len(self.dimensions) + len(self.measurements)] = "Parameters"
+
+        template = ""
+        for i in range(len(self)):
+            if i in titles_indices:
+                template += "<br>"
+                template += f"<b>{titles_indices[i]}</b><br>"
+            template += "%s: %%{customdata[%i]}<br>" % (self.at(i), i)
+        template += "<extra></extra>"
+
+        return template
+
+    def make_data(self):
+        return self.df[[*self.dimensions, *self.measurements, *self.parameters]].values
