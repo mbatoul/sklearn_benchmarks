@@ -25,9 +25,16 @@ from sklearn_benchmarks.utils import (
 
 
 def make_profiling_link(components, lib=BASE_LIB):
+    """
+    Return an anchor tag pointing to a profiling HTML file result.
+
+    Links are made from the library, the function and the digests.
+    """
+
     function, parameters_digest, dataset_digest = components
     path = f"profiling/{lib}_{function}_{parameters_digest}_{dataset_digest}.html"
 
+    # When the env variable RESULTS_BASE_URL is not set, we assume we are working locally and that a file server is running on port 8000 to serve static files.
     if os.environ.get("RESULTS_BASE_URL") is not None:
         base_url = os.environ.get("RESULTS_BASE_URL")
     else:
@@ -45,9 +52,14 @@ def add_bar_plotly(
     name="",
     showlegend=False,
 ):
+    """
+    Add a bar to a Plotly figure.
+    """
+
     x = [f"({ns}, {nf})" for ns, nf in df[["n_samples", "n_features"]].values]
     y = df["speedup"]
 
+    # Data displayed in hovers is less exhaustive that raw data.
     df_hover = df.copy()
     df_hover = df_hover.drop(columns=["estimator", "function"])
 
@@ -74,7 +86,7 @@ def add_bar_plotly(
 
 class HpMatchReporting:
     """
-    Runs reporting for specified estimators.
+    Class responsible for running a HP reporting for estimators specified in the configuration file.
     """
 
     def __init__(self, against_lib="", config=None, log_scale=False):
@@ -83,20 +95,33 @@ class HpMatchReporting:
         self.log_scale = log_scale
 
     def _get_estimator_default_parameters(self, estimator):
+        """
+        Return the list of parameters of an estimator load from the class.
+        """
+
         splitted_path = estimator.split(".")
         module, class_name = ".".join(splitted_path[:-1]), splitted_path[-1]
         estimator_class = getattr(importlib.import_module(module), class_name)
         estimator_instance = estimator_class()
         parameters = estimator_instance.__dict__.keys()
+
         return parameters
 
     def _get_estimator_parameters(self, estimator_config):
+        """
+        Return the list of parameters of an estimator (from configuration file if they are specified, otherwise it loads the class).
+        """
+
         if "parameters" in estimator_config:
             return estimator_config["parameters"]["init"].keys()
         else:
             return self._get_estimator_default_parameters(estimator_config["estimator"])
 
     def make_report(self):
+        """
+        Run the reporting script for estimators specified in configuration file.
+        """
+
         config = get_full_config(config=self.config)
         reporting_config = config["hp_match_reporting"]
         benchmarking_estimators = config["benchmarking"]["estimators"]
@@ -120,8 +145,10 @@ class HpMatchReporting:
             params["log_scale"] = self.log_scale
             against_lib = params["against_lib"]
             against_lib = get_lib_alias(against_lib)
+
             title = f"## `{name}`"
             subtitle = f"**{against_lib} ({versions[against_lib]}) vs. scikit-learn ({versions['scikit-learn']})**"
+
             display(Markdown(title))
             display(Markdown(subtitle))
 
@@ -131,7 +158,7 @@ class HpMatchReporting:
 
 class SingleEstimatorReporting:
     """
-    Runs reporting for one estimator.
+    Class responsible for running HP reporting for one estimator.
     """
 
     def __init__(
@@ -150,18 +177,29 @@ class SingleEstimatorReporting:
         self.estimator_parameters = estimator_parameters
         self.log_scale = log_scale
 
-    def _get_benchmark_df(self, lib=BASE_LIB):
+    def get_benchmark_df(self, lib=BASE_LIB):
+        """
+        Return dataframe of results loaded from file.
+        """
+
         benchmarking_results_path = str(BENCHMARKING_RESULTS_PATH)
         file_path = f"{benchmarking_results_path}/{lib}_{self.name}.csv"
 
         return pd.read_csv(file_path)
 
     def prepare_data(self):
-        base_lib_df = self._get_benchmark_df()
+        """
+        Merge results from both libraries for an estimator.
+
+        Set attribute df_reporting.
+        Compute speedup and speedup's standard deviations.
+        """
+
+        base_lib_df = self.get_benchmark_df()
         base_lib_time = base_lib_df["mean_duration"]
         base_lib_std = base_lib_df["mean_duration"]
 
-        against_lib_df = self._get_benchmark_df(lib=self.against_lib)
+        against_lib_df = self.get_benchmark_df(lib=self.against_lib)
         against_lib_time = against_lib_df["mean_duration"]
         against_lib_std = against_lib_df["std_duration"]
 
@@ -189,14 +227,20 @@ class SingleEstimatorReporting:
 
         self.df_reporting = df_reporting
 
-    def make_plot_title(self, df):
+    def make_subplot_title(self, df):
+        """
+        Return the title of one subplot based on results in dataframe.
+        """
+
         title = ""
+        # We remove columns contained in split_bars_by and shared parameters because they will be displayed elsewhere on the plot.
         params_cols = [
             param
             for param in self.estimator_parameters
             if param not in self.split_bars_by
             and param not in self.get_shared_parameters().keys()
         ]
+        # We add parameters with single value to the title.
         values = df[params_cols].values[0]
 
         for index, (param, value) in enumerate(zip(params_cols, values)):
@@ -207,8 +251,13 @@ class SingleEstimatorReporting:
         return title
 
     def print_tables(self):
+        """
+        Display dataframe of raw results.
+        """
+
         df = self.df_reporting
 
+        # We remove parameters with single value because they are displayed in the title.
         n_unique_values = df.apply(pd.Series.nunique)
         columns_to_drop = n_unique_values[n_unique_values == 1].index
         columns_to_drop = [
@@ -219,18 +268,24 @@ class SingleEstimatorReporting:
         df = df.dropna(axis=1)
         df = df.round(3)
 
+        # We add profiling links to df.
         for lib in [BASE_LIB, self.against_lib]:
             df[f"{lib}_profiling"] = df[
                 ["function", "parameters_digest", "dataset_digest"]
             ].apply(make_profiling_link, lib=lib, axis=1)
 
         df = df.drop(["parameters_digest", "dataset_digest"], axis=1)
+
         dfs = [x for _, x in df.groupby(["function"])]
 
         for df in dfs:
             display(HTML(df.to_html(escape=False)))
 
     def get_shared_parameters(self):
+        """
+        Return the list of parameters whose values are shared across all results.
+        """
+
         df = self.df_reporting
 
         shared_params = {}
@@ -242,8 +297,13 @@ class SingleEstimatorReporting:
         return shared_params
 
     def plot(self):
+        """
+        Display speedup barplots.
+        """
+
         df_reporting = self.df_reporting
 
+        # By default, we group results by set of parameters.
         if self.split_bars_by:
             group_by_params = [
                 param
@@ -259,7 +319,7 @@ class SingleEstimatorReporting:
         n_rows = n_plots // self.n_cols + n_plots % self.n_cols
         coordinates = gen_coordinates_grid(n_rows, self.n_cols)
 
-        subplot_titles = [self.make_plot_title(df) for _, df in df_reporting_grouped]
+        subplot_titles = [self.make_subplot_title(df) for _, df in df_reporting_grouped]
 
         fig = make_subplots(
             rows=n_rows,
@@ -273,6 +333,7 @@ class SingleEstimatorReporting:
             df = df.drop(["parameters_digest", "dataset_digest"], axis=1)
             df = df.round(3)
 
+            # We add bars for each value in the columns we want to split the bars by.
             if self.split_bars_by:
                 for split_col in self.split_bars_by:
                     split_col_vals = df[split_col].unique()
@@ -314,6 +375,10 @@ class SingleEstimatorReporting:
         fig.show()
 
     def display_shared_parameters(self):
+        """
+        Display list of shared parameters across all results.
+        """
+
         df_shared_parameters = pd.DataFrame.from_dict(
             self.get_shared_parameters(), orient="index", columns=["value"]
         )
@@ -329,13 +394,18 @@ class SingleEstimatorReporting:
         display(Markdown(text))
 
     def check_scores_are_close(self):
+        """
+        Display a HTML warning when we observe differences above the thresholds between score columns.
+        """
+
         df_filtered = self.df_reporting.copy()
 
+        # We find stored scores from column names.
         scores = [col for col in df_filtered.columns if "score" in col]
         scores = set(list(map(lambda score: "_".join(score.split("_")[:-1]), scores)))
 
         for score in scores:
-
+            # Compute difference.
             df_filtered[f"diff_{score}s"] = np.absolute(
                 df_filtered[f"{score}_{BASE_LIB}"]
                 - df_filtered[f"{score}_{self.against_lib}"]
@@ -343,6 +413,8 @@ class SingleEstimatorReporting:
             df_filtered = df_filtered.query("function == 'predict'")
 
             threshold = DIFF_SCORES_THRESHOLDS[score]
+
+            # Filter problematic rows.
             df_filtered = df_filtered.query(f"diff_{score}s >= {threshold}")
 
         if not df_filtered.empty:
