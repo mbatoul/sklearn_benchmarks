@@ -175,13 +175,13 @@ def main(
         json.dump(versions, outfile)
 
     # Store bench environment information
-    env_info = {}
-    env_info["system_info"] = _get_sys_info()
-    env_info["dependencies_info"] = _get_deps_info()
-    env_info["threadpool_info"] = threadpool_info()
-    env_info["cpu_count"] = joblib.cpu_count(only_physical_cores=True)
+    environment_information = {}
+    environment_information["system"] = _get_sys_info()
+    environment_information["dependencies"] = _get_deps_info()
+    environment_information["threadpool"] = threadpool_info()
+    environment_information["cpu_count"] = joblib.cpu_count(only_physical_cores=True)
     with open(ENV_INFO_PATH, "w") as outfile:
-        json.dump(env_info, outfile)
+        json.dump(environment_information, outfile)
 
     # Store current time
     with open(TIME_MOST_RECENT_RUN_PATH, "w") as outfile:

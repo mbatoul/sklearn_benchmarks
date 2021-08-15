@@ -562,48 +562,48 @@ hp_match_reporting:
     sklearnex:
       KNeighborsClassifier_brute_force:
         name: KNeighborsClassifier_brute_force
-        against_lib: sklearnex
-        split_bars_by:
+        other_library: sklearnex
+        split_bars_by_parameters:
           - n_jobs
 
       KNeighborsClassifier_kd_tree:
         name: KNeighborsClassifier_kd_tree
-        against_lib: sklearnex
-        split_bars_by:
+        other_library: sklearnex
+        split_bars_by_parameters:
           - n_jobs
 
       KMeans_tall:
         name: KMeans_tall
-        against_lib: sklearnex
+        other_library: sklearnex
 
       KMeans_short:
         name: KMeans_short
-        against_lib: sklearnex
+        other_library: sklearnex
 
       LogisticRegression:
         name: LogisticRegression
-        against_lib: sklearnex
+        other_library: sklearnex
 
       Ridge:
         name: Ridge
-        against_lib: sklearnex
+        other_library: sklearnex
 
     onnx:
       KNeighborsClassifier_brute_force:
         name: KNeighborsClassifier_brute_force
-        against_lib: onnx
-        split_bars_by:
+        other_library: onnx
+        split_bars_by_parameters:
           - n_jobs
 
       KNeighborsClassifier_kd_tree:
         name: KNeighborsClassifier_kd_tree
-        against_lib: onnx
-        split_bars_by:
+        other_library: onnx
+        split_bars_by_parameters:
           - n_jobs
 
       HistGradientBoostingClassifier_best:
         name: HistGradientBoostingClassifier_best
-        against_lib: onnx
+        other_library: onnx
 
 hpo_reporting:
   speedup_thresholds:

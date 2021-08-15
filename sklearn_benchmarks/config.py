@@ -28,6 +28,12 @@ BENCHMARKING_METHODS_N_EXECUTIONS = {"hp_match": 10, "hpo": 1}
 HPO_TIME_BUDGET = 600
 PROFILING_OUTPUT_EXTENSIONS = ["html", "json.gz"]
 
+NOTEBOOKS_TITLES = dict(
+    scikit_learn_intelex_vs_scikit_learn="scikit-learn-intelex (Intel® oneAPI) vs. scikit-learn benchmarks",
+    onnx_vs_scikit_learn="ONNX Runtime (Microsoft) vs. scikit-learn benchmarks",
+    gradient_boosting="Gradient boosting: randomized HPO benchmarks",
+)
+
 PLOT_HEIGHT_IN_PX = 550
 # The columns we want to compare between libraries. Correspond to the data stored in BenchmarkMeasurements.
 COMPARABLE_COLS = [

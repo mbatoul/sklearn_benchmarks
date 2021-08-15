@@ -13,6 +13,7 @@ from joblib import Memory
 from sklearn_benchmarks.config import (
     COMPARABLE_COLS,
     ENV_INFO_PATH,
+    NOTEBOOKS_TITLES,
     RESULTS_PATH,
     TIME_MOST_RECENT_RUN_PATH,
     TIME_REPORT_PATH,
@@ -30,52 +31,88 @@ def print_time_report():
     total_hour, total_min, total_sec = row_total[["hour", "min", "sec"]].values
     subtitle = f"Total time elapsed: {total_hour}h {total_min}m {total_sec}s"
 
+    benchmarking_methods_full_names = dict(
+        hpo="Hyperparameters optimization benchmarks",
+        hp_match="Hyperparameters match benchmarks",
+    )
+
     display(Markdown("## Time report"))
     display(Markdown(f"{subtitle}"))
     for benchmarking_method, df in df.groupby(["benchmarking_method"]):
-        benchmarking_method = benchmarking_method.replace("_", " ")
-        benchmarking_method = benchmarking_method.capitalize()
+        benchmarking_method = benchmarking_methods_full_names[benchmarking_method]
         display(Markdown(f"### {benchmarking_method}"))
 
         df = df.drop(columns=["benchmarking_method"])
-        display(df)
+        for name, row in df.iterrows():
+            str_time_elapsed = ""
+            time_units = dict(h=0, m=0, s=0)
+            time_units["h"], time_units["m"], time_units["s"] = row.values
+
+            for index, (suffix, value) in enumerate(time_units.items()):
+                if value == 0:
+                    continue
+                str_time_elapsed += f"{value}{suffix}"
+                if not index == len(time_units) - 1:
+                    str_time_elapsed += " "
+
+            df.loc[name, "time elapsed"] = str_time_elapsed
+
+        display(df[["time elapsed"]])
 
 
-def print_env_info():
+def print_benchmark_environment_information():
     with open(ENV_INFO_PATH) as json_file:
         data = json.load(json_file)
-    display(Markdown("## Benchmark environment"))
-    print(json.dumps(data, indent=2))
+
+    display(Markdown("## Benchmark environment information"))
+
+    display(Markdown("### System"))
+    display(pd.DataFrame.from_dict(data["system"], orient="index", columns=[""]))
+
+    display(Markdown("### Dependencies"))
+    display(
+        pd.DataFrame.from_dict(
+            data["dependencies"], orient="index", columns=["version"]
+        )
+    )
+
+    display(Markdown("### Threadpool"))
+    display(pd.DataFrame(data=data["threadpool"]))
+
+    display(Markdown("### CPU count"))
+    display(
+        pd.DataFrame.from_dict(
+            {"cpu_count": data["cpu_count"]}, orient="index", columns=[""]
+        )
+    )
 
 
 def display_links_to_notebooks():
-    if os.environ.get("RESULTS_BASE_URL") is not None:
-        base_url = os.environ.get("RESULTS_BASE_URL")
-    else:
+    # When the env variable PUBLISHED_BASE_URL is not set, we assume that we are working locally.
+    base_url = os.environ.get("PUBLISHED_BASE_URL")
+    if base_url is None:
         base_url = "http://localhost:8888/notebooks/"
-    notebook_titles = dict(
-        scikit_learn_intelex_vs_scikit_learn="scikit-learn-intelex (Intel® oneAPI) vs. scikit-learn benchmarks",
-        onnx_vs_scikit_learn="ONNX Runtime (Microsoft) vs. scikit-learn benchmarks",
-        gradient_boosting="Gradient boosting: randomized HPO benchmarks",
-    )
-    file_extension = "html" if os.environ.get("RESULTS_BASE_URL") else "ipynb"
+        file_extension = "ipynb"
+    else:
+        file_extension = "html"
+
     display(Markdown("## Notebooks"))
-    for file, title in notebook_titles.items():
+    for file, title in NOTEBOOKS_TITLES.items():
         display(Markdown(f"### [{title}]({base_url}{file}.{file_extension})"))
 
 
 def display_time_most_recent_run():
     with open(TIME_MOST_RECENT_RUN_PATH) as file:
         str_most_recent_time = file.readlines()[0]
-    display(Markdown(f"> These results were obtained on {str_most_recent_time}."))
+    display(Markdown(f"> Last run: {str_most_recent_time}."))
 
 
-def gen_coordinates_grid(n_rows, n_cols):
+def generate_coordinates_grid(n_rows, n_cols):
     """
     Return a grid of coordinates in a 2D plan from number of rows cols.
 
     Example:
-        gen_coordinates_grid(2, 2) => [(1, 1), (1, 2), (2, 1), (2, 2)]
+        generate_coordinates_grid(2, 2) => [(1, 1), (1, 2), (2, 1), (2, 2)]
     """
 
     coordinates = [[j for j in range(n_cols)] for _ in range(n_rows)]
@@ -95,6 +132,7 @@ def identify_pareto(data):
     without making at least one individual or preference criterion worse off or without any loss thereof.
     The Pareto front is the set of all Pareto efficient allocations, conventionally shown graphically.
     """
+
     n = data.shape[0]
     all_indices = np.arange(n)
     front_pareto = np.ones(n, dtype=bool)
@@ -103,6 +141,7 @@ def identify_pareto(data):
             if data.iloc[i][0] > data.iloc[j][0] and data.iloc[i][1] < data.iloc[j][1]:
                 front_pareto[i] = 0
                 break
+
     return all_indices[front_pareto]
 
 
@@ -122,7 +161,7 @@ memory = Memory(_cachedir, verbose=0)
 
 
 @memory.cache
-def gen_data(
+def generate_data(
     generator_path, n_samples=1000, n_features=10, random_state=None, **kwargs
 ):
     """
@@ -146,6 +185,7 @@ def is_scientific_notation(string):
          is_scientific_notation("1e2") => True
          is_scientific_notation("100") => False
     """
+
     return isinstance(string, str) and bool(re.match(r"1[eE](\-)*\d{1,}", string))
 
 
@@ -153,6 +193,7 @@ def clean_results():
     """
     Remove static files generated during benchmarks.
     """
+
     extensions = [".csv", ".html", ".json.gz", ".txt"]
     files = []
     for extension in extensions:
@@ -172,8 +213,10 @@ def convert(seconds):
     """
     Return number of hours, minutes and seconds converted from total number of seconds.
     """
+
     min, sec = divmod(seconds, 60)
     hour, min = divmod(min, 60)
+
     return hour, min, sec
 
 
@@ -181,25 +224,30 @@ def find_index_nearest(array, value):
     """
     Return the index of the closest element to the value in the array.
     """
+
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
+
     return idx
 
 
-def get_lib_alias(lib):
+def get_library_full_name(abbreviation):
     """
-    Return the library's name alias.
+    Return the library's full name.
 
     We often want to use the full library name instead of the abbreviation.
     """
-    aliases = dict(sklearn="scikit-learn", sklearnex="scikit-learn-intelex")
-    return aliases.get(lib, lib)
+
+    full_names = dict(sklearn="scikit-learn", sklearnex="scikit-learn-intelex")
+
+    return full_names.get(abbreviation, abbreviation)
 
 
 def string_matches_substrings(string, substrings):
     """
     Return True if a string matches one or more of the provided substrings, False otherwise.
     """
+
     return any(map(string.__contains__, substrings))
 
 
@@ -207,19 +255,41 @@ def diff_between_lists(l1, l2):
     """
     Return the difference between two lists.
     """
+
     return list(set(l1) - set(l2)) + list(set(l2) - set(l1))
+
+
+def load_from_path(path):
+    """
+    Return attribute load from path.
+    """
+
+    splitted_path = path.split(".")
+    mod, attr_name = ".".join(splitted_path[:-1]), splitted_path[-1]
+
+    return getattr(importlib.import_module(mod), attr_name)
+
+
+def load_metrics(metrics):
+    """
+    Return a list of metric functions loaded from sklearn.metrics module.
+    """
+
+    return [load_from_path(f"sklearn.metrics.{metric}") for metric in metrics]
 
 
 def get_position(column):
     """
     Return the expected position of a dataframe column.
     """
+
     top_columns = [
         "estimator",
         "n_samples_train",
         "n_samples",
         "n_features",
     ]
+
     if column in top_columns:
         return 4
     elif "mean_duration" in column:

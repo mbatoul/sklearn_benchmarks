@@ -3,7 +3,6 @@ import warnings
 from dataclasses import dataclass, field
 from typing import List
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -19,7 +18,7 @@ from sklearn_benchmarks.config import (
 from sklearn_benchmarks.utils import (
     HoverTemplateMaker,
     find_index_nearest,
-    get_lib_alias,
+    get_library_full_name,
     is_pareto_optimal,
 )
 
@@ -110,6 +109,10 @@ class HpoBenchmarkResult:
 
 @dataclass
 class HpoBenchmarkResults:
+    """
+    Class responsible for storing all formatted data of HPO benchmark results and common metrics.
+    """
+
     grid_scores: np.ndarray
     max_grid_score: float
     threshold_speedup: float
@@ -125,6 +128,54 @@ class HpoBenchmarkResults:
     @property
     def base(self):
         return next(result for result in self.results if result.lib == BASE_LIB)
+
+
+def add_points_to_scatter(
+    fig,
+    df,
+    legend,
+    color,
+    legendgroup,
+    duration_suffix="fit",
+    score_suffix="predict",
+):
+    mean_duration_column = f"mean_duration_{duration_suffix}"
+    score_column = f"accuracy_score_{score_suffix}"
+
+    df = df.sort_values(mean_duration_column)
+
+    hover_template_maker = HoverTemplateMaker(df)
+
+    fig.add_trace(
+        go.Scatter(
+            x=df[mean_duration_column],
+            y=df[score_column],
+            mode="markers",
+            name=legend,
+            hovertemplate=hover_template_maker.make_template(),
+            customdata=hover_template_maker.make_data(),
+            marker=dict(color=color),
+            legendgroup=legendgroup,
+        )
+    )
+
+    # Add front pareto line.
+    is_pareto_column = f"is_pareto_{duration_suffix}"
+    df_pareto = df[[mean_duration_column, score_column]].copy()
+    df_pareto[is_pareto_column] = df_pareto.apply(
+        is_pareto_optimal, args=(df_pareto,), axis=1, raw=True
+    )
+    df_pareto = df_pareto.query(f"{is_pareto_column} == True")
+    fig.add_trace(
+        go.Scatter(
+            x=df_pareto[mean_duration_column],
+            y=df_pareto[score_column],
+            mode="lines",
+            showlegend=False,
+            marker=dict(color=color),
+            legendgroup=legendgroup,
+        )
+    )
 
 
 class HPOReporting:
@@ -159,7 +210,7 @@ class HPOReporting:
             df = pd.read_csv(f"{BENCHMARKING_RESULTS_PATH}/{lib}_{estimator}.csv")
 
             legend = params.get("legend", lib)
-            legend += f" ({self.versions[get_lib_alias(lib)]})"
+            legend += f" ({self.versions[get_library_full_name(lib)]})"
 
             color = params["color"]
 
@@ -196,7 +247,7 @@ class HPOReporting:
                     axis=0,
                 )
 
-            # As grid_times arrays will only contain nan values at some point, we retrieve the index of the non-nan
+            # As grid_times arrays will only contain nan values at some point, we retrieve the index of the last non-nan
             # value as it corresponds to the max score obtained.
             idx_max_grid_time = mean_grid_times[~np.isnan(mean_grid_times)].shape[0]
             curr_max_grid_score = grid_scores[idx_max_grid_time]
@@ -227,7 +278,7 @@ class HPOReporting:
 
     def scatter(self, func="fit"):
         """
-        Display scatter plot of raw results with cumulated fit or predict times in the x-axis and validation scores in the y-axis.
+        Display a scatter plot of raw results with cumulated fit or predict times in the x-axis and validation scores in the y-axis.
         """
 
         fig = go.Figure()
@@ -236,7 +287,12 @@ class HPOReporting:
             df = benchmark_result.df
             df_predictions = df.query("function == 'predict'")
 
-            comparable_cols = [col for col in COMPARABLE_COLS if col in df.columns]
+            comparable_columns = [col for col in COMPARABLE_COLS if col in df.columns]
+            merged_columns = [
+                "parameters_digest",
+                "dataset_digest",
+                *comparable_columns,
+            ]
 
             if benchmark_result.lib == BASE_LIB:
                 df_predictions_onnx = pd.read_csv(
@@ -244,105 +300,47 @@ class HPOReporting:
                 )
                 # Results are merged based on the set of parameters and the dataset used during benchmark.
                 df_predictions = df_predictions.merge(
-                    df_predictions_onnx[
-                        [
-                            "parameters_digest",
-                            "dataset_digest",
-                            *comparable_cols,
-                        ]
-                    ],
+                    df_predictions_onnx[merged_columns],
                     on=["parameters_digest", "dataset_digest"],
                     how="inner",
                     suffixes=["", "_onnx"],
                 )
 
             df_merged = df_predictions.merge(
-                df.query("function == 'fit'")[
-                    ["parameters_digest", "dataset_digest", *comparable_cols]
-                ],
+                df.query("function == 'fit'")[merged_columns],
                 on=["parameters_digest", "dataset_digest"],
                 how="inner",
                 suffixes=["_predict", "_fit"],
             )
 
-            # Remove columns used during merges
             df_merged = df_merged.drop(
-                ["function", "estimator", "parameters_digest", "dataset_digest"], axis=1
+                ["function", "estimator", "parameters_digest", "dataset_digest"],
+                axis=1,
             )
 
             df_merged = df_merged.dropna(axis=1)
             df_merged = df_merged.round(3)
 
-            hover_template_maker = HoverTemplateMaker(df_merged)
-
-            fig.add_trace(
-                go.Scatter(
-                    x=df_merged[f"mean_duration_{func}"],
-                    y=df_merged[f"accuracy_score_predict"],
-                    mode="markers",
-                    name=benchmark_result.legend,
-                    hovertemplate=hover_template_maker.make_template(),
-                    customdata=hover_template_maker.make_data(),
-                    marker=dict(color=benchmark_result.color),
-                    legendgroup=index,
-                )
-            )
-
-            # Add front pareto line
-            data_pareto = df_merged[
-                [f"mean_duration_{func}", f"accuracy_score_predict"]
-            ]
-            df_merged[f"is_pareto_{func}"] = data_pareto.apply(
-                is_pareto_optimal, args=(data_pareto,), axis=1, raw=True
-            )
-            df_pareto = df_merged.query(f"is_pareto_{func} == True").sort_values(
-                [f"mean_duration_{func}"]
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=df_pareto[f"mean_duration_{func}"],
-                    y=df_pareto[f"accuracy_score_predict"],
-                    mode="lines",
-                    showlegend=False,
-                    marker=dict(color=benchmark_result.color),
-                    legendgroup=index,
-                )
+            add_points_to_scatter(
+                fig,
+                df_merged,
+                benchmark_result.legend,
+                benchmark_result.color,
+                index,
+                duration_suffix=func,
+                score_suffix="predict",
             )
 
             # For scikit-learn, we repeat the process to add ONNX prediction results
             if func == "predict" and benchmark_result.lib == BASE_LIB:
-                data_pareto = df_merged[["mean_duration_onnx", "accuracy_score_onnx"]]
-                df_merged["is_pareto_onnx"] = data_pareto.apply(
-                    is_pareto_optimal, args=(data_pareto,), axis=1, raw=True
-                )
-
-                hover_template_maker = HoverTemplateMaker(df_merged)
-
-                fig.add_trace(
-                    go.Scatter(
-                        x=df_merged["mean_duration_onnx"],
-                        y=df_merged["accuracy_score_onnx"],
-                        mode="markers",
-                        name=f"ONNX ({self.versions['onnx']})",
-                        hovertemplate=hover_template_maker.make_template(),
-                        customdata=hover_template_maker.make_data(),
-                        marker=dict(color="lightgray"),
-                        legendgroup=len(self.benchmark_results),
-                    )
-                )
-
-                df_pareto = df_merged.query("is_pareto_onnx == True").sort_values(
-                    "mean_duration_onnx"
-                )
-                fig.add_trace(
-                    go.Scatter(
-                        x=df_pareto["mean_duration_onnx"],
-                        y=df_pareto["accuracy_score_onnx"],
-                        mode="lines",
-                        showlegend=False,
-                        marker=dict(color="lightgray"),
-                        legendgroup=len(self.benchmark_results),
-                    )
+                add_points_to_scatter(
+                    fig,
+                    df_merged,
+                    f"ONNX ({self.versions['onnx']})",
+                    "lightgray",
+                    len(self.benchmark_results),
+                    duration_suffix="onnx",
+                    score_suffix="onnx",
                 )
 
         fig.update_xaxes(showspikes=True)

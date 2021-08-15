@@ -1,4 +1,3 @@
-import importlib
 import os
 import time
 from dataclasses import asdict, dataclass, field
@@ -26,85 +25,17 @@ from sklearn_benchmarks.config import (
     PROFILING_RESULTS_PATH,
     RESULTS_PATH,
 )
-from sklearn_benchmarks.utils import gen_data
-
-
-@dataclass
-class BenchmarkMeasurements:
-    """
-    Class responsible for storing measurements made during benchmarks.
-    """
-
-    mean_duration: float
-    std_duration: float
-    n_iter: int
-    iteration_throughput: float
-    latency: float
-
-
-@dataclass
-class RawBenchmarkResult:
-    """
-    Class responsible for the result of the benchmark for one given configuration, i.e. a set of parameters and a dataset for one estimator's function.
-    """
-
-    estimator: str
-    function: str
-    n_samples_train: int
-    n_samples: int
-    n_features: int
-    parameters_digest: str
-    dataset_digest: str
-    benchmark_measurements: BenchmarkMeasurements
-    parameters_batch: dict
-    scores: Dict = field(default_factory=dict)
-
-    def __str__(self):
-        output = repr(self)
-        output += "\n---"
-        return output
-
-
-@dataclass
-class RawBenchmarkResults:
-    """
-    Class responsible for the results of benchmarks for one estimator.
-    """
-
-    results: List[RawBenchmarkResult] = field(default_factory=list)
-
-    def __iter__(self):
-        return iter(self.results)
-
-    def append(self, result):
-        self.results.append(result)
-
-    def to_csv(self, csv_path):
-        results = []
-        for result in self:
-            result = asdict(result)
-            result = {
-                **result,
-                **result["benchmark_measurements"],
-                **result["parameters_batch"],
-                **result["scores"],
-            }
-            del result["benchmark_measurements"]
-            del result["parameters_batch"]
-            del result["scores"]
-            results.append(result)
-
-        pd.DataFrame(results).to_csv(
-            csv_path,
-            mode="w+",
-            index=False,
-        )
+from sklearn_benchmarks.utils import (
+    generate_data,
+    load_from_path,
+    load_metrics,
+)
 
 
 def run_benchmark_one_func(
     func,
     estimator,
-    profiling_output_path,
+    profiling_result_path,
     X,
     y=None,
     n_executions=10,
@@ -119,7 +50,7 @@ def run_benchmark_one_func(
     ----------
     func -- function to run
     estimator -- instance of an estimator class
-    profiling_output_path -- file path to store results of profiling
+    profiling_result_path -- file path to store results of profiling
     X -- training data
 
     Keyword arguments:
@@ -145,7 +76,7 @@ def run_benchmark_one_func(
                 func(X, **kwargs)
             tracer.stop()
             for extension in PROFILING_OUTPUT_EXTENSIONS:
-                output_file = f"{profiling_output_path}.{extension}"
+                output_file = f"{profiling_result_path}.{extension}"
                 tracer.save(output_file=output_file)
 
     # Next runs: at most n_executions runs or 30 sec total execution time
@@ -194,6 +125,99 @@ def run_benchmark_one_func(
     return func_result, benchmark_measurements
 
 
+class ResultPathMaker:
+    def __init__(self, library, estimator, parameters_digest, dataset_digest):
+        self.library = library
+        self.estimator = estimator
+        self.parameters_digest = parameters_digest
+        self.dataset_digest = dataset_digest
+
+    def profiling_path(self, function, library=None):
+        if library is None:
+            library = self.library
+
+        return f"{PROFILING_RESULTS_PATH}/{self.library}_{function}_{self.parameters_digest}_{self.dataset_digest}"
+
+    def benchmarking_path(self, estimator, library=None, extension="csv"):
+        if library is None:
+            library = self.library
+
+        return f"{BENCHMARKING_RESULTS_PATH}/{library}_{estimator}.{extension}"
+
+
+@dataclass
+class BenchmarkMeasurements:
+    """
+    Class responsible for storing measurements made during benchmarks.
+    """
+
+    mean_duration: float
+    std_duration: float
+    n_iter: int
+    iteration_throughput: float
+    latency: float
+
+
+@dataclass
+class RawBenchmarkResult:
+    """
+    Class responsible for the result of the benchmark for one given configuration, i.e. a set of parameters and a dataset for one estimator's function.
+    """
+
+    estimator: str
+    function: str
+    n_samples_train: int
+    n_samples: int
+    n_features: int
+    parameters_digest: str
+    dataset_digest: str
+    benchmark_measurements: BenchmarkMeasurements
+    parameters_batch: dict
+    scores: Dict = field(default_factory=dict)
+
+    def __str__(self):
+        output = repr(self)
+        output += "\n---"
+
+        return output
+
+
+@dataclass
+class RawBenchmarkResults:
+    """
+    Class responsible for the results of benchmarks for one estimator.
+    """
+
+    results: List[RawBenchmarkResult] = field(default_factory=list)
+
+    def __iter__(self):
+        return iter(self.results)
+
+    def append(self, result):
+        self.results.append(result)
+
+    def to_csv(self, csv_path):
+        results = []
+        for result in self:
+            result = asdict(result)
+            result = {
+                **result,
+                **result["benchmark_measurements"],
+                **result["parameters_batch"],
+                **result["scores"],
+            }
+            del result["benchmark_measurements"]
+            del result["parameters_batch"]
+            del result["scores"]
+            results.append(result)
+
+        pd.DataFrame(results).to_csv(
+            csv_path,
+            mode="w+",
+            index=False,
+        )
+
+
 class Benchmark:
     """
     Class responsible for benchmarking one estimator.
@@ -227,14 +251,14 @@ class Benchmark:
         self.profiling_file_type = profiling_file_type
         self.run_profiling = run_profiling
 
-    def _make_parameters_grid(self):
+    def make_parameters_grid(self):
         """
         Return a shuffled hyperparameters grid generated from the parameters specified in the configuration file.
         """
 
         init_parameters = self.parameters.get("init", {})
         if not init_parameters:
-            estimator_class = self._load_estimator_class()
+            estimator_class = load_from_path(self.estimator)
             estimator = estimator_class()
             # Parameters grid should have list values
             init_parameters = {k: [v] for k, v in estimator.__dict__.items()}
@@ -243,34 +267,15 @@ class Benchmark:
 
         return grid
 
-    def _load_estimator_class(self):
-        """
-        Return the estimator class loaded from the path given by the estimator attribute.
-        """
-
-        split_path = self.estimator.split(".")
-        mod, class_name = ".".join(split_path[:-1]), split_path[-1]
-
-        return getattr(importlib.import_module(mod), class_name)
-
-    def _load_metrics_funcs(self):
-        """
-        Return a list of metric functions loaded from sklearn.metrics module.
-        """
-
-        module = importlib.import_module("sklearn.metrics")
-
-        return [getattr(module, m) for m in self.metrics]
-
     def run(self):
         """
         Run the benchmark script.
         """
 
         library = self.estimator.split(".")[0]
-        estimator_class = self._load_estimator_class()
-        metrics_funcs = self._load_metrics_funcs()
-        parameters_grid = self._make_parameters_grid()
+        estimator_class = load_from_path(self.estimator)
+        metrics = load_metrics(self.metrics)
+        parameters_grid = self.make_parameters_grid()
         benchmark_results = RawBenchmarkResults()
         # If predictions should also be made with ONNX, we store them in a different object.
         if self.predict_with_onnx:
@@ -285,10 +290,11 @@ class Benchmark:
 
             for ns_train in n_samples_train:
                 # We set n_samples as the sum of n_samples_train and the maximum of the n_samples_test as we
-                # are going to split the data after.
+                # are going to split the data in training and test data afterwards.
                 n_samples = ns_train + max(n_samples_test)
-                X, y = gen_data(
-                    dataset["sample_generator"],
+                sample_generator = dataset["sample_generator"]
+                X, y = generate_data(
+                    sample_generator,
                     n_samples=n_samples,
                     n_features=n_features,
                     random_state=self.random_state,
@@ -304,13 +310,18 @@ class Benchmark:
                     # Use digests to identify results later in reporting
                     parameters_digest = joblib.hash(parameters_batch)
                     dataset_digest = joblib.hash((index, dataset))
-                    profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_fit_{parameters_digest}_{dataset_digest}"
+                    result_path_maker = ResultPathMaker(
+                        library,
+                        self.name,
+                        parameters_digest,
+                        dataset_digest,
+                    )
 
-                    # Benchmark fit
+                    # Benchmark fit function first.
                     _, benchmark_measurements = run_benchmark_one_func(
                         estimator.fit,
                         estimator,
-                        profiling_output_path,
+                        result_path_maker.profiling_path("fit"),
                         X_train,
                         y=y_train,
                         n_executions=n_executions,
@@ -349,14 +360,13 @@ class Benchmark:
                         bench_func = estimator.predict
 
                         if self.predict_with_onnx:
-                            onnx_profiling_output_path = f"{PROFILING_RESULTS_PATH}/onnx_{bench_func.__name__}_{parameters_digest}_{dataset_digest}"
                             (
                                 onnx_func_result,
                                 onnx_benchmark_measurements,
                             ) = run_benchmark_one_func(
                                 bench_func,
                                 estimator,
-                                onnx_profiling_output_path,
+                                result_path_maker.profiling_path("fit", library="onnx"),
                                 X_test_,
                                 n_executions=n_executions,
                                 run_profiling=self.run_profiling,
@@ -364,9 +374,9 @@ class Benchmark:
                             )
 
                             onnx_scores = {}
-                            for metric_func in metrics_funcs:
-                                score = metric_func(y_test_, onnx_func_result)
-                                onnx_scores[metric_func.__name__] = score
+                            for metric in metrics:
+                                score = metric(y_test_, onnx_func_result)
+                                onnx_scores[metric.__name__] = score
 
                             onnx_benchmark_result = RawBenchmarkResult(
                                 self.name,
@@ -384,21 +394,19 @@ class Benchmark:
                             print(onnx_benchmark_result)
                             onnx_benchmark_results.append(onnx_benchmark_result)
 
-                        profiling_output_path = f"{PROFILING_RESULTS_PATH}/{library}_{bench_func.__name__}_{parameters_digest}_{dataset_digest}"
-
                         func_result, benchmark_measurements = run_benchmark_one_func(
                             bench_func,
                             estimator,
-                            profiling_output_path,
+                            result_path_maker.profiling_path(bench_func.__name__),
                             X_test_,
                             n_executions=n_executions,
                             run_profiling=self.run_profiling,
                         )
 
                         scores = {}
-                        for metric_func in metrics_funcs:
-                            score = metric_func(y_test_, func_result)
-                            scores[metric_func.__name__] = score
+                        for metric in metrics:
+                            score = metric(y_test_, func_result)
+                            scores[metric.__name__] = score
 
                         if self.predict_with_onnx:
                             # Check ONNX predictions consistency with scikit-learn's predictions.
@@ -423,14 +431,12 @@ class Benchmark:
                         print(benchmark_result)
                         benchmark_results.append(benchmark_result)
 
-                        csv_path = (
-                            f"{BENCHMARKING_RESULTS_PATH}/{library}_{self.name}.csv"
-                        )
+                        csv_path = result_path_maker.benchmarking_path(self.name)
                         benchmark_results.to_csv(csv_path)
 
                         if self.predict_with_onnx:
-                            csv_path = (
-                                f"{BENCHMARKING_RESULTS_PATH}/onnx_{self.name}.csv"
+                            csv_path = result_path_maker.benchmarking_path(
+                                self.name, library="onnx"
                             )
                             onnx_benchmark_results.to_csv(csv_path)
 
