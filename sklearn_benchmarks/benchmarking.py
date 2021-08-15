@@ -126,6 +126,10 @@ def run_benchmark_one_func(
 
 
 class ResultPathMaker:
+    """
+    Class responsible for generating paths to result files (profiling and benchmarking).
+    """
+
     def __init__(self, library, estimator, parameters_digest, dataset_digest):
         self.library = library
         self.estimator = estimator
