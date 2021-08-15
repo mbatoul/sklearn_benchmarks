@@ -15,7 +15,7 @@ from sklearn_benchmarks.config import (
     ENV_INFO_PATH,
     NOTEBOOKS_TITLES,
     RESULTS_PATH,
-    TIME_MOST_RECENT_RUN_PATH,
+    TIME_LAST_RUN_PATH,
     TIME_REPORT_PATH,
 )
 
@@ -101,8 +101,8 @@ def display_links_to_notebooks():
         display(Markdown(f"### [{title}]({base_url}{file}.{file_extension})"))
 
 
-def display_time_most_recent_run():
-    with open(TIME_MOST_RECENT_RUN_PATH) as file:
+def display_time_last_run():
+    with open(TIME_LAST_RUN_PATH) as file:
         str_most_recent_time = file.readlines()[0]
     display(Markdown(f"> Last run: {str_most_recent_time}."))
 

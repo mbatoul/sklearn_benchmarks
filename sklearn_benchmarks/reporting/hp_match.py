@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from IPython.display import HTML, Markdown, display
 from plotly.subplots import make_subplots
 from sklearn_benchmarks.config import (
-    BASE_LIB,
+    BASE_LIBRARY,
     BENCHMARKING_RESULTS_PATH,
     COMPARABLE_COLS,
     DIFF_SCORES_THRESHOLDS,
@@ -24,7 +24,7 @@ from sklearn_benchmarks.utils import (
 )
 
 
-def make_profiling_link(components, lib=BASE_LIB):
+def make_profiling_link(components, library=BASE_LIBRARY):
     """
     Return an anchor tag pointing to a profiling HTML file result.
 
@@ -32,7 +32,7 @@ def make_profiling_link(components, lib=BASE_LIB):
     """
 
     function, parameters_digest, dataset_digest = components
-    path = f"profiling/{lib}_{function}_{parameters_digest}_{dataset_digest}.html"
+    path = f"profiling/{library}_{function}_{parameters_digest}_{dataset_digest}.html"
 
     # When the env variable PUBLISHED_BASE_URL is not set, we assume that we are working locally and that a file server is running on port 8000 to serve static files.
     if os.environ.get("PUBLISHED_BASE_URL") is not None:
@@ -177,13 +177,13 @@ class SingleEstimatorHpMatchReporting:
         self.estimator_parameters = estimator_parameters
         self.log_scale = log_scale
 
-    def get_benchmark_df(self, lib=BASE_LIB):
+    def get_benchmark_df(self, library=BASE_LIBRARY):
         """
         Return dataframe of results loaded from file.
         """
 
         benchmarking_results_path = str(BENCHMARKING_RESULTS_PATH)
-        file_path = f"{benchmarking_results_path}/{lib}_{self.name}.csv"
+        file_path = f"{benchmarking_results_path}/{library}_{self.name}.csv"
 
         return pd.read_csv(file_path)
 
@@ -195,11 +195,11 @@ class SingleEstimatorHpMatchReporting:
         Compute speedup and standard deviation of speedup.
         """
 
-        base_lib_df = self.get_benchmark_df()
-        base_lib_time = base_lib_df["mean_duration"]
-        base_lib_std = base_lib_df["mean_duration"]
+        base_library_df = self.get_benchmark_df()
+        base_library_time = base_library_df["mean_duration"]
+        base_library_std = base_library_df["mean_duration"]
 
-        other_library_df = self.get_benchmark_df(lib=self.other_library)
+        other_library_df = self.get_benchmark_df(library=self.other_library)
         other_library_time = other_library_df["mean_duration"]
         other_library_std = other_library_df["std_duration"]
 
@@ -207,20 +207,20 @@ class SingleEstimatorHpMatchReporting:
             col for col in COMPARABLE_COLS if col in other_library_df.columns
         ]
 
-        suffixes = map(lambda lib: f"_{lib}", [BASE_LIB, self.other_library])
+        suffixes = map(lambda lib: f"_{lib}", [BASE_LIBRARY, self.other_library])
 
         df_reporting = pd.merge(
-            base_lib_df,
+            base_library_df,
             other_library_df[comparable_columns],
             left_index=True,
             right_index=True,
             suffixes=suffixes,
         )
 
-        df_reporting["speedup"] = base_lib_time / other_library_time
+        df_reporting["speedup"] = base_library_time / other_library_time
         df_reporting["std_speedup"] = df_reporting["speedup"] * (
             np.sqrt(
-                (base_lib_std / base_lib_time) ** 2
+                (base_library_std / base_library_time) ** 2
                 + (other_library_std / other_library_time) ** 2
             )
         )
@@ -269,10 +269,10 @@ class SingleEstimatorHpMatchReporting:
         df = df.round(3)
 
         # We add profiling links to df.
-        for lib in [BASE_LIB, self.other_library]:
+        for lib in [BASE_LIBRARY, self.other_library]:
             df[f"{lib}_profiling"] = df[
                 ["function", "parameters_digest", "dataset_digest"]
-            ].apply(make_profiling_link, lib=lib, axis=1)
+            ].apply(make_profiling_link, library=lib, axis=1)
 
         df = df.drop(["parameters_digest", "dataset_digest"], axis=1)
 
@@ -288,13 +288,13 @@ class SingleEstimatorHpMatchReporting:
 
         df = self.df_reporting
 
-        shared_params = {}
+        shared_parameters = {}
         for col in self.estimator_parameters:
             unique_vals = df[col].unique()
             if unique_vals.size == 1:
-                shared_params[col] = unique_vals[0]
+                shared_parameters[col] = unique_vals[0]
 
-        return shared_params
+        return shared_parameters
 
     def plot(self):
         """
@@ -414,7 +414,7 @@ class SingleEstimatorHpMatchReporting:
         for score in scores:
             # Compute difference.
             df_filtered[f"diff_{score}s"] = np.absolute(
-                df_filtered[f"{score}_{BASE_LIB}"]
+                df_filtered[f"{score}_{BASE_LIBRARY}"]
                 - df_filtered[f"{score}_{self.other_library}"]
             )
             df_filtered = df_filtered.query("function == 'predict'")

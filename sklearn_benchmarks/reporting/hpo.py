@@ -8,7 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from IPython.display import Markdown, display
 from sklearn_benchmarks.config import (
-    BASE_LIB,
+    BASE_LIBRARY,
     BENCHMARKING_RESULTS_PATH,
     COMPARABLE_COLS,
     PLOTLY_COLORS_TO_FILLCOLORS,
@@ -127,7 +127,7 @@ class HpoBenchmarkResults:
     # Returns base lib (scikit-learn) results
     @property
     def base(self):
-        return next(result for result in self.results if result.lib == BASE_LIB)
+        return next(result for result in self.results if result.lib == BASE_LIBRARY)
 
 
 def add_points_to_scatter(
@@ -294,7 +294,7 @@ class HPOReporting:
                 *comparable_columns,
             ]
 
-            if benchmark_result.lib == BASE_LIB:
+            if benchmark_result.lib == BASE_LIBRARY:
                 df_predictions_onnx = pd.read_csv(
                     f"{BENCHMARKING_RESULTS_PATH}/onnx_{benchmark_result.estimator}.csv"
                 )
@@ -332,7 +332,7 @@ class HPOReporting:
             )
 
             # For scikit-learn, we repeat the process to add ONNX prediction results
-            if func == "predict" and benchmark_result.lib == BASE_LIB:
+            if func == "predict" and benchmark_result.lib == BASE_LIBRARY:
                 add_points_to_scatter(
                     fig,
                     df_merged,

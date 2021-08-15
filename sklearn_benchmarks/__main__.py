@@ -17,7 +17,7 @@ from sklearn_benchmarks.config import (
     BENCH_LIBS,
     DEFAULT_CONFIG,
     ENV_INFO_PATH,
-    TIME_MOST_RECENT_RUN_PATH,
+    TIME_LAST_RUN_PATH,
     TIME_REPORT_PATH,
     VERSIONS_PATH,
     get_full_config,
@@ -184,7 +184,7 @@ def main(
         json.dump(environment_information, outfile)
 
     # Store current time
-    with open(TIME_MOST_RECENT_RUN_PATH, "w") as outfile:
+    with open(TIME_LAST_RUN_PATH, "w") as outfile:
         outfile.write(datetime.now().strftime("%A %d %B, %Y at %H:%M:%S"))
 
 
