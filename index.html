@@ -13974,7 +13974,11 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[1]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn_benchmarks.utils</span> <span class="kn">import</span> <span class="n">print_time_report</span><span class="p">,</span> <span class="n">print_env_info</span><span class="p">,</span> <span class="n">display_links_to_notebooks</span><span class="p">,</span> <span class="n">display_time_most_recent_run</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn_benchmarks.utils</span> <span class="kn">import</span> <span class="n">print_time_report</span><span class="p">,</span> <span class="n">print_benchmark_environment_information</span><span class="p">,</span> <span class="n">display_links_to_notebooks</span><span class="p">,</span> <span class="n">display_time_most_recent_run</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.max_colwidth&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.max_columns&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.max_rows&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -14014,7 +14018,7 @@ a.anchor-link {
 
 
 <div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-OutputArea-output " data-mime-type="text/markdown">
-<blockquote><p>These results were obtained on Saturday 14 August, 2021 at 17:46:55.</p>
+<blockquote><p>Last run: Sunday 15 August, 2021 at 12:20:54.</p>
 </blockquote>
 
 </div>
@@ -14140,7 +14144,7 @@ a.anchor-link {
 
 
 <div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-OutputArea-output " data-mime-type="text/markdown">
-<p>Total time elapsed: 1h 31m 47s</p>
+<p>Total time elapsed: 1h 29m 10s</p>
 
 </div>
 
@@ -14154,7 +14158,7 @@ a.anchor-link {
 
 
 <div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-OutputArea-output " data-mime-type="text/markdown">
-<h3 id="Hp-match">Hp match<a class="anchor-link" href="#Hp-match">&#182;</a></h3>
+<h3 id="Hyperparameters-match-benchmarks">Hyperparameters match benchmarks<a class="anchor-link" href="#Hyperparameters-match-benchmarks">&#182;</a></h3>
 </div>
 
 </div>
@@ -14185,95 +14189,65 @@ a.anchor-link {
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>hour</th>
-      <th>min</th>
-      <th>sec</th>
+      <th>time elapsed</th>
     </tr>
     <tr>
       <th>estimator</th>
-      <th></th>
-      <th></th>
       <th></th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>sklearnex_KMeans_short</th>
-      <td>0</td>
-      <td>0</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>KMeans_short</th>
-      <td>0</td>
-      <td>0</td>
-      <td>10</td>
+      <td>6s</td>
     </tr>
     <tr>
       <th>sklearnex_Ridge</th>
-      <td>0</td>
-      <td>0</td>
-      <td>11</td>
+      <td>11s</td>
+    </tr>
+    <tr>
+      <th>KMeans_short</th>
+      <td>12s</td>
     </tr>
     <tr>
       <th>sklearnex_KNeighborsClassifier_brute_force</th>
-      <td>0</td>
-      <td>0</td>
-      <td>18</td>
+      <td>19s</td>
     </tr>
     <tr>
       <th>Ridge</th>
-      <td>0</td>
-      <td>0</td>
-      <td>21</td>
+      <td>21s</td>
     </tr>
     <tr>
       <th>sklearnex_LogisticRegression</th>
-      <td>0</td>
-      <td>0</td>
-      <td>30</td>
+      <td>32s</td>
     </tr>
     <tr>
       <th>LogisticRegression</th>
-      <td>0</td>
-      <td>0</td>
-      <td>52</td>
+      <td>51s</td>
     </tr>
     <tr>
       <th>sklearnex_KNeighborsClassifier_kd_tree</th>
-      <td>0</td>
-      <td>1</td>
-      <td>5</td>
+      <td>1m 9s</td>
     </tr>
     <tr>
       <th>sklearnex_KMeans_tall</th>
-      <td>0</td>
-      <td>1</td>
-      <td>9</td>
+      <td>1m 15s</td>
     </tr>
     <tr>
       <th>KMeans_tall</th>
-      <td>0</td>
-      <td>1</td>
-      <td>29</td>
+      <td>1m 22s</td>
     </tr>
     <tr>
       <th>HistGradientBoostingClassifier_best</th>
-      <td>0</td>
-      <td>1</td>
-      <td>49</td>
+      <td>1m 40s</td>
     </tr>
     <tr>
       <th>KNeighborsClassifier_brute_force</th>
-      <td>0</td>
-      <td>11</td>
-      <td>22</td>
+      <td>11m 32s</td>
     </tr>
     <tr>
       <th>KNeighborsClassifier_kd_tree</th>
-      <td>0</td>
-      <td>21</td>
-      <td>13</td>
+      <td>18m 46s</td>
     </tr>
   </tbody>
 </table>
@@ -14290,7 +14264,7 @@ a.anchor-link {
 
 
 <div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-OutputArea-output " data-mime-type="text/markdown">
-<h3 id="Hpo">Hpo<a class="anchor-link" href="#Hpo">&#182;</a></h3>
+<h3 id="Hyperparameters-optimization-benchmarks">Hyperparameters optimization benchmarks<a class="anchor-link" href="#Hyperparameters-optimization-benchmarks">&#182;</a></h3>
 </div>
 
 </div>
@@ -14321,47 +14295,33 @@ a.anchor-link {
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>hour</th>
-      <th>min</th>
-      <th>sec</th>
+      <th>time elapsed</th>
     </tr>
     <tr>
       <th>estimator</th>
-      <th></th>
-      <th></th>
       <th></th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <th>HistGradientBoostingClassifier</th>
-      <td>0</td>
-      <td>10</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>xgboost</th>
-      <td>0</td>
-      <td>10</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <th>catboost_lossguide</th>
-      <td>0</td>
-      <td>10</td>
-      <td>9</td>
-    </tr>
-    <tr>
       <th>catboost_symmetric</th>
-      <td>0</td>
-      <td>10</td>
-      <td>25</td>
+      <td>10m 1s</td>
     </tr>
     <tr>
       <th>lightgbm</th>
-      <td>0</td>
-      <td>10</td>
-      <td>30</td>
+      <td>10m 2s</td>
+    </tr>
+    <tr>
+      <th>xgboost</th>
+      <td>10m 7s</td>
+    </tr>
+    <tr>
+      <th>catboost_lossguide</th>
+      <td>10m 15s</td>
+    </tr>
+    <tr>
+      <th>HistGradientBoostingClassifier</th>
+      <td>10m 30s</td>
     </tr>
   </tbody>
 </table>
@@ -14380,7 +14340,7 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[5]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">print_env_info</span><span class="p">()</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">print_benchmark_environment_information</span><span class="p">()</span>
 </pre></div>
 
      </div>
@@ -14401,7 +14361,7 @@ a.anchor-link {
 
 
 <div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-OutputArea-output " data-mime-type="text/markdown">
-<h2 id="Benchmark-environment">Benchmark environment<a class="anchor-link" href="#Benchmark-environment">&#182;</a></h2>
+<h2 id="Benchmark-environment-information">Benchmark environment information<a class="anchor-link" href="#Benchmark-environment-information">&#182;</a></h2>
 </div>
 
 </div>
@@ -14412,57 +14372,294 @@ a.anchor-link {
     <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 
 
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>{
-  &#34;system_info&#34;: {
-    &#34;python&#34;: &#34;3.8.10 | packaged by conda-forge | (default, May 11 2021, 07:01:05)  [GCC 9.3.0]&#34;,
-    &#34;executable&#34;: &#34;/usr/share/miniconda/envs/sklbench/bin/python&#34;,
-    &#34;machine&#34;: &#34;Linux-5.8.0-1039-azure-x86_64-with-glibc2.10&#34;
-  },
-  &#34;dependencies_info&#34;: {
-    &#34;pip&#34;: &#34;21.2.4&#34;,
-    &#34;setuptools&#34;: &#34;49.6.0.post20210108&#34;,
-    &#34;sklearn&#34;: &#34;1.0.dev0&#34;,
-    &#34;numpy&#34;: &#34;1.21.1&#34;,
-    &#34;scipy&#34;: &#34;1.7.1&#34;,
-    &#34;Cython&#34;: null,
-    &#34;pandas&#34;: &#34;1.3.1&#34;,
-    &#34;matplotlib&#34;: &#34;3.4.3&#34;,
-    &#34;joblib&#34;: &#34;1.0.1&#34;,
-    &#34;threadpoolctl&#34;: &#34;2.2.0&#34;
-  },
-  &#34;threadpool_info&#34;: [
-    {
-      &#34;filepath&#34;: &#34;/usr/share/miniconda/envs/sklbench/lib/libopenblasp-r0.3.17.so&#34;,
-      &#34;prefix&#34;: &#34;libopenblas&#34;,
-      &#34;user_api&#34;: &#34;blas&#34;,
-      &#34;internal_api&#34;: &#34;openblas&#34;,
-      &#34;version&#34;: &#34;0.3.17&#34;,
-      &#34;num_threads&#34;: 2,
-      &#34;threading_layer&#34;: &#34;pthreads&#34;,
-      &#34;architecture&#34;: &#34;SkylakeX&#34;
-    },
-    {
-      &#34;filepath&#34;: &#34;/usr/share/miniconda/envs/sklbench/lib/python3.8/site-packages/scikit_learn.libs/libgomp-f7e03b3e.so.1.0.0&#34;,
-      &#34;prefix&#34;: &#34;libgomp&#34;,
-      &#34;user_api&#34;: &#34;openmp&#34;,
-      &#34;internal_api&#34;: &#34;openmp&#34;,
-      &#34;version&#34;: null,
-      &#34;num_threads&#34;: 2
-    },
-    {
-      &#34;filepath&#34;: &#34;/usr/share/miniconda/envs/sklbench/lib/libgomp.so.1.0.0&#34;,
-      &#34;prefix&#34;: &#34;libgomp&#34;,
-      &#34;user_api&#34;: &#34;openmp&#34;,
-      &#34;internal_api&#34;: &#34;openmp&#34;,
-      &#34;version&#34;: null,
-      &#34;num_threads&#34;: 2
-    }
-  ],
-  &#34;cpu_count&#34;: 2
-}
-</pre>
+
+<div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-OutputArea-output " data-mime-type="text/markdown">
+<h3 id="System">System<a class="anchor-link" href="#System">&#182;</a></h3>
 </div>
+
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output " data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>python</th>
+      <td>3.8.10 | packaged by conda-forge | (default, May 11 2021, 07:01:05)  [GCC 9.3.0]</td>
+    </tr>
+    <tr>
+      <th>executable</th>
+      <td>/usr/share/miniconda/envs/sklbench/bin/python</td>
+    </tr>
+    <tr>
+      <th>machine</th>
+      <td>Linux-5.8.0-1039-azure-x86_64-with-glibc2.10</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-OutputArea-output " data-mime-type="text/markdown">
+<h3 id="Dependencies">Dependencies<a class="anchor-link" href="#Dependencies">&#182;</a></h3>
+</div>
+
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output " data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>version</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>pip</th>
+      <td>21.2.4</td>
+    </tr>
+    <tr>
+      <th>setuptools</th>
+      <td>49.6.0.post20210108</td>
+    </tr>
+    <tr>
+      <th>sklearn</th>
+      <td>1.0.dev0</td>
+    </tr>
+    <tr>
+      <th>numpy</th>
+      <td>1.21.1</td>
+    </tr>
+    <tr>
+      <th>scipy</th>
+      <td>1.7.1</td>
+    </tr>
+    <tr>
+      <th>Cython</th>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>pandas</th>
+      <td>1.3.1</td>
+    </tr>
+    <tr>
+      <th>matplotlib</th>
+      <td>3.4.3</td>
+    </tr>
+    <tr>
+      <th>joblib</th>
+      <td>1.0.1</td>
+    </tr>
+    <tr>
+      <th>threadpoolctl</th>
+      <td>2.2.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-OutputArea-output " data-mime-type="text/markdown">
+<h3 id="Threadpool">Threadpool<a class="anchor-link" href="#Threadpool">&#182;</a></h3>
+</div>
+
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output " data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>filepath</th>
+      <th>prefix</th>
+      <th>user_api</th>
+      <th>internal_api</th>
+      <th>version</th>
+      <th>num_threads</th>
+      <th>threading_layer</th>
+      <th>architecture</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>/usr/share/miniconda/envs/sklbench/lib/libopenblasp-r0.3.17.so</td>
+      <td>libopenblas</td>
+      <td>blas</td>
+      <td>openblas</td>
+      <td>0.3.17</td>
+      <td>2</td>
+      <td>pthreads</td>
+      <td>SkylakeX</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>/usr/share/miniconda/envs/sklbench/lib/python3.8/site-packages/scikit_learn.libs/libgomp-f7e03b3e.so.1.0.0</td>
+      <td>libgomp</td>
+      <td>openmp</td>
+      <td>openmp</td>
+      <td>None</td>
+      <td>2</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>/usr/share/miniconda/envs/sklbench/lib/libgomp.so.1.0.0</td>
+      <td>libgomp</td>
+      <td>openmp</td>
+      <td>openmp</td>
+      <td>None</td>
+      <td>2</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-OutputArea-output " data-mime-type="text/markdown">
+<h3 id="CPU-count">CPU count<a class="anchor-link" href="#CPU-count">&#182;</a></h3>
+</div>
+
+</div>
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+
+
+
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output " data-mime-type="text/html">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>cpu_count</th>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
 </div>
 
 </div>
