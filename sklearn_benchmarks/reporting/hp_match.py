@@ -276,9 +276,8 @@ class SingleEstimatorHpMatchReporting:
 
         df = df.drop(["parameters_digest", "dataset_digest"], axis=1)
 
-        dfs = [x for _, x in df.groupby(["function"])]
-
-        for df in dfs:
+        for function, df in df.groupby(["function"]):
+            display(Markdown(f"**`{function}`**"))
             display(HTML(df.to_html(escape=False)))
 
     def get_shared_parameters(self):
@@ -406,23 +405,26 @@ class SingleEstimatorHpMatchReporting:
         """
 
         df_filtered = self.df_reporting.copy()
+        df_filtered = df_filtered.drop(columns=["parameters_digest", "dataset_digest"])
 
         # We find stored scores from column names.
         scores = [col for col in df_filtered.columns if "score" in col]
         scores = set(list(map(lambda score: "_".join(score.split("_")[:-1]), scores)))
 
-        for score in scores:
+        for index, score in enumerate(scores):
             # Compute difference.
-            df_filtered[f"diff_{score}s"] = np.absolute(
-                df_filtered[f"{score}_{BASE_LIBRARY}"]
-                - df_filtered[f"{score}_{self.other_library}"]
-            )
+            base_library_scores = df_filtered[f"{score}_{BASE_LIBRARY}"]
+            other_library_scores = df_filtered[f"{score}_{self.other_library}"]
+            diff_scores = np.absolute(base_library_scores - other_library_scores)
+
+            df_filtered.insert(2 + index, f"diff_{score}s", diff_scores)
             df_filtered = df_filtered.query("function == 'predict'")
 
             threshold = DIFF_SCORES_THRESHOLDS[score]
 
             # Filter rows where difference between scores is above threshold.
             df_filtered = df_filtered.query(f"diff_{score}s >= {threshold}")
+            df_filtered.sort_values(by=[f"diff_{score}s"])
 
         if not df_filtered.empty:
             n_mismatches = len(df_filtered)
@@ -431,32 +433,36 @@ class SingleEstimatorHpMatchReporting:
             proportion_mismatches = n_mismatches / n_total_predictions * 100
             proportion_mismatches = round(proportion_mismatches, 2)
 
-            plural_suffix = "s" if len(scores) > 1 else ""
-
             string_observed_diffs = "The observed differences can be found in the"
             for index, score in enumerate(scores):
-                string_observed_diffs += f" diff_{score}s"
+                string_observed_diffs += f" <strong>diff_{score}s</strong>"
                 if index == len(scores) - 1:
-                    string_observed_diffs += f" column{plural_suffix}. "
+                    string_observed_diffs += (
+                        f" column{'s' if len(scores) > 1 else ''}. "
+                    )
                 else:
                     string_observed_diffs += ", "
 
-            string_chosen_thresholds = f"The chosen difference threshold{plural_suffix} {'are' if len(scores) > 1 else 'is'}"
+            string_chosen_thresholds = f"The chosen difference threshold{'s' if len(scores) > 1 else ''} {'are' if len(scores) > 1 else 'is'}"
             for index, score in enumerate(scores):
                 threshold = DIFF_SCORES_THRESHOLDS[score]
-                string_chosen_thresholds += f" {threshold} for {score}"
+                string_chosen_thresholds += (
+                    f" <strong>{threshold}</strong> for <strong>{score}</strong>"
+                )
                 if index == len(scores) - 1:
                     string_chosen_thresholds += "."
                 else:
                     string_chosen_thresholds += ", "
 
+            display(Markdown("### Mismatches between validation scores"))
+
             display(
                 HTML(
-                    "<div style='padding: 20px; background-color: #f44336; color: white; margin-bottom: 15px;'>"
+                    "<div style='padding: 20px; background-color: #f44336; color: white; margin-bottom: 15px; font-size: 16px; line-height: 25px;'>"
                     "<strong>WARNING!</strong> "
-                    f"Mismatch between validation scores for {n_mismatches} prediction{plural_suffix} ({proportion_mismatches}%). "
-                    f"{string_observed_diffs}"
-                    f"{string_chosen_thresholds}"
+                    f"Mismatch between validation scores for {n_mismatches} prediction{'s' if len(df_filtered) > 1 else ''} ({proportion_mismatches}%).<br>"
+                    f"{string_observed_diffs}<br>"
+                    f"{string_chosen_thresholds}<br>"
                     " See details in the dataframe below. "
                     "</div>"
                 )
