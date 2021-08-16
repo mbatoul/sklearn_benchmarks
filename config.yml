@@ -557,9 +557,9 @@ benchmarking:
         - name: gradient_boosting
 
 hp_match_reporting:
-  n_cols: 2
-  estimators:
-    sklearnex:
+  sklearnex:
+    n_cols: 2
+    estimators:
       KNeighborsClassifier_brute_force:
         name: KNeighborsClassifier_brute_force
         other_library: sklearnex
@@ -588,7 +588,11 @@ hp_match_reporting:
         name: Ridge
         other_library: sklearnex
 
-    onnx:
+  onnx:
+    n_cols: 2
+    relevant_functions:
+      - predict
+    estimators:
       KNeighborsClassifier_brute_force:
         name: KNeighborsClassifier_brute_force
         other_library: onnx

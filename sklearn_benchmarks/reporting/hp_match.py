@@ -123,9 +123,11 @@ class HpMatchReporting:
         """
 
         config = get_full_config(config=self.config)
-        reporting_config = config["hp_match_reporting"]
+
+        reporting_config = config["hp_match_reporting"][self.other_library]
+        reporting_estimators = reporting_config["estimators"]
+
         benchmarking_estimators = config["benchmarking"]["estimators"]
-        reporting_estimators = reporting_config["estimators"][self.other_library]
 
         with open(VERSIONS_PATH) as json_file:
             versions = json.load(json_file)
@@ -139,6 +141,8 @@ class HpMatchReporting:
 
         for name, params in reporting_estimators.items():
             params["n_cols"] = reporting_config["n_cols"]
+            if "relevant_functions" in reporting_config:
+                params["relevant_functions"] = reporting_config["relevant_functions"]
             params["estimator_parameters"] = self._get_estimator_parameters(
                 benchmarking_estimators[name]
             )
@@ -167,14 +171,16 @@ class SingleEstimatorHpMatchReporting:
         other_library="",
         split_bars_by_parameters=[],
         estimator_parameters={},
+        relevant_functions=["fit", "predict"],
         n_cols=None,
         log_scale=False,
     ):
         self.name = name
         self.other_library = other_library
         self.split_bars_by_parameters = split_bars_by_parameters
-        self.n_cols = n_cols
         self.estimator_parameters = estimator_parameters
+        self.relevant_functions = relevant_functions
+        self.n_cols = n_cols
         self.log_scale = log_scale
 
     def get_benchmark_df(self, library=BASE_LIBRARY):
@@ -196,10 +202,16 @@ class SingleEstimatorHpMatchReporting:
         """
 
         base_library_df = self.get_benchmark_df()
+        base_library_df = base_library_df.query(
+            f"function in {self.relevant_functions}"
+        )
         base_library_time = base_library_df["mean_duration"]
         base_library_std = base_library_df["mean_duration"]
 
         other_library_df = self.get_benchmark_df(library=self.other_library)
+        other_library_df = other_library_df.query(
+            f"function in {self.relevant_functions}"
+        )
         other_library_time = other_library_df["mean_duration"]
         other_library_std = other_library_df["std_duration"]
 
@@ -207,7 +219,7 @@ class SingleEstimatorHpMatchReporting:
             col for col in COMPARABLE_COLS if col in other_library_df.columns
         ]
 
-        suffixes = map(lambda lib: f"_{lib}", [BASE_LIBRARY, self.other_library])
+        suffixes = list(map(lambda lib: f"_{lib}", [BASE_LIBRARY, self.other_library]))
 
         df_reporting = pd.merge(
             base_library_df,
