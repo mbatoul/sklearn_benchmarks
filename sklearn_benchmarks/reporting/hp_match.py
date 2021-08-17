@@ -204,14 +204,16 @@ class SingleEstimatorHpMatchReporting:
         base_library_df = self.get_benchmark_df()
         base_library_df = base_library_df.query(
             f"function in {self.relevant_functions}"
-        )
+        ).reset_index(drop=True)
+
         base_library_time = base_library_df["mean_duration"]
         base_library_std = base_library_df["mean_duration"]
 
         other_library_df = self.get_benchmark_df(library=self.other_library)
         other_library_df = other_library_df.query(
             f"function in {self.relevant_functions}"
-        )
+        ).reset_index(drop=True)
+
         other_library_time = other_library_df["mean_duration"]
         other_library_std = other_library_df["std_duration"]
 
