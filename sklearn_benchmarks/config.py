@@ -58,11 +58,10 @@ PLOTLY_COLORS_TO_FILLCOLORS = dict(
 )
 
 
-def get_full_config(config=None):
-    if config is None:
-        config = os.environ.get("DEFAULT_CONFIG")
+def get_full_config(config=DEFAULT_CONFIG):
     with open(config, "r") as config_file:
         config = yaml.full_load(config_file)
+
     return config
 
 
