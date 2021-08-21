@@ -9,6 +9,7 @@ from importlib.metadata import version
 import click
 import joblib
 import pandas as pd
+from sklearn.utils import check_random_state
 from sklearn.utils._show_versions import _get_deps_info, _get_sys_info
 from threadpoolctl import threadpool_info
 
@@ -91,6 +92,7 @@ def main(
 
     if not append:
         clean_results()
+
     config = get_full_config(config)
     benchmarking_config = config["benchmarking"]
     if not "estimators" in benchmarking_config:
@@ -100,6 +102,9 @@ def main(
     selected_estimators = all_estimators
     if estimator:
         selected_estimators = {k: all_estimators[k] for k in estimator}
+
+    random_seed = benchmarking_config.get("random_seed", None)
+    random_state = check_random_state(random_seed)
 
     time_report = pd.DataFrame(
         columns=["estimator", "benchmarking_method", "hour", "min", "sec"]
@@ -137,7 +142,7 @@ def main(
 
         params = parse_parameters(params)
 
-        params["random_seed"] = benchmarking_config.get("random_seed", None)
+        params["random_state"] = random_state
         params["run_profiling"] = run_profiling
 
         # When fast option is enabled, all benchmarks will be HPO benchmarks, meaning we will not explore the whole grid and stop when time limit is reached.

@@ -157,21 +157,24 @@ def is_pareto_optimal(point, data):
 
 
 _cachedir = "tmp"
-memory = Memory(_cachedir, verbose=0)
+memory = Memory(_cachedir, verbose=1)
 
 
 @memory.cache
 def generate_data(
-    generator_path, n_samples=1000, n_features=10, random_state=None, **kwargs
+    sample_generator,
+    n_samples=1000,
+    n_features=10,
+    **kwargs,
 ):
     """
-    Returns a tuple of data from the specified generator.
+    Returns a tuple of data generated with the specified sample generator.
     """
-    splitted_path = generator_path.split(".")
-    module, func = ".".join(splitted_path[:-1]), splitted_path[-1]
-    generator_func = getattr(importlib.import_module(module), func)
-    data = generator_func(
-        n_samples=n_samples, n_features=n_features, random_state=random_state, **kwargs
+
+    data = sample_generator(
+        n_samples=n_samples,
+        n_features=n_features,
+        **kwargs,
     )
 
     return data

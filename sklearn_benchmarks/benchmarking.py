@@ -11,7 +11,6 @@ from numpy.testing import assert_almost_equal
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import ParameterGrid, train_test_split
-from sklearn.utils import check_random_state
 from sklearn.utils._testing import set_random_state
 from viztracer import VizTracer
 
@@ -236,7 +235,7 @@ class Benchmark:
         parameters={},
         datasets=[],
         predict_with_onnx=False,
-        random_seed=None,
+        random_state=None,
         benchmarking_method="",
         time_budget=HPO_TIME_BUDGET,
         profiling_file_type="",
@@ -248,7 +247,7 @@ class Benchmark:
         self.metrics = metrics
         self.parameters = parameters
         self.datasets = datasets
-        self.random_state = check_random_state(random_seed)
+        self.random_state = random_state
         self.predict_with_onnx = predict_with_onnx
         self.benchmarking_method = benchmarking_method
         self.time_budget = time_budget
@@ -297,15 +296,18 @@ class Benchmark:
                 # are going to split the data in training and test data afterwards.
                 n_samples = ns_train + max(n_samples_test)
                 sample_generator = dataset["sample_generator"]
+                sample_generator = load_from_path(sample_generator)
                 X, y = generate_data(
                     sample_generator,
                     n_samples=n_samples,
                     n_features=n_features,
-                    random_state=self.random_state,
                     **dataset["params"],
                 )
                 X_train, X_test, y_train, y_test = train_test_split(
-                    X, y, train_size=ns_train, random_state=self.random_state
+                    X,
+                    y,
+                    train_size=ns_train,
+                    random_state=self.random_state,
                 )
 
                 for parameters_batch in parameters_grid:
