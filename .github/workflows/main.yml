@@ -59,6 +59,9 @@ jobs:
           name: results
           path: results
 
+      - name: Remove profiling files above 100mb
+        run: python scripts/remove_heavy_files.py
+
       - name: Convert notebook to html
         run: |
           jupyter nbconvert --to html --execute --output results/index.html index.ipynb
