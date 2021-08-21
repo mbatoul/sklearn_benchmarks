@@ -34,6 +34,9 @@ def make_profiling_link(components, library=BASE_LIBRARY):
     function, parameters_digest, dataset_digest = components
     path = f"profiling/{library}_{function}_{parameters_digest}_{dataset_digest}.html"
 
+    if not os.path.exists(path):
+        return ""
+
     # When the env variable PUBLISHED_BASE_URL is not set, we assume that we are working locally and that a file server is running on port 8000 to serve static files.
     if os.environ.get("PUBLISHED_BASE_URL") is not None:
         base_url = os.environ.get("PUBLISHED_BASE_URL")
