@@ -50,6 +50,9 @@ jobs:
       - name: Run test suite
         run: pytest sklearn_benchmarks/tests
 
+      - name: Copy configuration file in results folder
+        run: cp config.yml ./results
+
       - name: Upload benchmark results
         uses: actions/upload-artifact@v2
         with:

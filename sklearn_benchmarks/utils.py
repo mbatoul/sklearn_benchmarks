@@ -307,6 +307,16 @@ def get_position(column):
         return -1
 
 
+def make_link_to_config_file(config_file_name):
+    """
+    Return a link to configuration file.
+    """
+    base_url = os.environ.get("PUBLISHED_BASE_URL")
+    full_link = f"{base_url}blob/gh-pages/{config_file_name}"
+
+    return full_link
+
+
 class HoverTemplateMaker:
     """
     Class responsible for generating hover templates for Plotly plots.

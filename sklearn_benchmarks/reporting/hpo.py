@@ -1,4 +1,5 @@
 import json
+import os
 import warnings
 from dataclasses import dataclass, field
 from typing import List
@@ -20,6 +21,7 @@ from sklearn_benchmarks.utils import (
     find_index_nearest,
     get_library_full_name,
     is_pareto_optimal,
+    make_link_to_config_file,
 )
 
 
@@ -507,9 +509,14 @@ class HPOReporting:
             "We boostrap 10 000 times the hyperparameters optimization data points represented on the plot above. "
             "Then we compute the average cumulated time to reach a specific validation score by taking "
             "the mean across the bootstrapped samples. The shaded areas represent boostrapped quartiles. "
-            "The fastest libraries are therefore the closest to the upper left corner. The specification "
-            "of the HP grid can be found in the [configuration file]()."
+            "The fastest libraries are therefore the closest to the upper left corner."
         )
+
+        # If we are in production env, we add a link to the configuration file hosted on Github.
+        if os.environ.get("PUBLISHED_BASE_URL") is not None:
+            link_configuration_file = make_link_to_config_file(self.config)
+            description += f" The specification of the HP grid can be found in the [configuration file]({link_configuration_file})."
+
         display(Markdown(f"> {description}"))
         self.smoothed_curves()
 
