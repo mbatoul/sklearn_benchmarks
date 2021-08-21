@@ -81,7 +81,6 @@ def run_benchmark_one_func(
     # Next runs: at most n_executions runs or 30 sec total execution time
     times = []
     start_global = time.perf_counter()
-    n_executions = n_executions - 1 if run_profiling else n_executions
     for _ in range(n_executions):
         start_iter = time.perf_counter()
 
