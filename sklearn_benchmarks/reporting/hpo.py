@@ -508,7 +508,7 @@ class HPOReporting:
         description = (
             "We boostrap 10 000 times the hyperparameters optimization data points represented on the plot above. "
             "Then we compute the average cumulated time to reach a specific validation score by taking "
-            "the mean across the bootstrapped samples. The shaded areas represent boostrapped quartiles. "
+            "the mean across the bootstrapped samples. The shaded areas represent the quartiles of the bootstrap samples. "
             "The fastest libraries are therefore the closest to the upper left corner."
         )
 
