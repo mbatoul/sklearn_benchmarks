@@ -321,7 +321,7 @@ class HPOReporting:
             )
 
             df_merged = df_merged.dropna(axis=1)
-            df_merged = df_merged.round(3)
+            df_merged = df_merged.round(6)
 
             add_points_to_scatter(
                 fig,
@@ -364,7 +364,7 @@ class HPOReporting:
         fig = go.Figure()
         grid_scores = self.benchmark_results.grid_scores
 
-        for benchmark_result in self.benchmark_results:
+        for index, benchmark_result in enumerate(self.benchmark_results):
             # Add mean line.
             fig.add_trace(
                 go.Scatter(
@@ -374,6 +374,7 @@ class HPOReporting:
                     name=benchmark_result.legend,
                     marker=dict(color=benchmark_result.color),
                     hovertemplate="Cumulated fit time: %{x:.2f}<br>Validation score: %{y:.3f}<extra></extra>",
+                    legendgroup=index,
                 )
             )
 
@@ -391,6 +392,7 @@ class HPOReporting:
                         mode="none",
                         fillcolor=PLOTLY_COLORS_TO_FILLCOLORS[benchmark_result.color],
                         hoverinfo="skip",
+                        legendgroup=index,
                     )
                 )
 
@@ -500,6 +502,12 @@ class HPOReporting:
 
         self.prepare_data()
 
+        description = (
+            "Here, we assume there is no perfect match of hyperparameters between librairies. "
+            "We perform a randomized hyperparameters search with a fixed time budget for each library."
+        )
+        display(Markdown(f"> {description}"))
+
         display(Markdown("## Benchmark results for `fit`"))
         display(Markdown("### Raw fit times vs. validation scores"))
         self.scatter(func="fit")
@@ -521,6 +529,8 @@ class HPOReporting:
         self.smoothed_curves()
 
         display(Markdown("### Speedup barplot"))
+        description = "The speedup threshold is found by taking 95% of the best score of the worst performing library."
+        display(Markdown(f"> {description}"))
         self.speedup_barplot()
 
         display(Markdown("### Speedup curves"))
