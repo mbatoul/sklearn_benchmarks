@@ -6,6 +6,8 @@ import yaml
 RESULTS_PATH = os.environ.get("RESULTS_PATH")
 if RESULTS_PATH is None:
     RESULTS_PATH = Path(__file__).resolve().parent.parent / "results"
+else:
+    RESULTS_PATH = Path(RESULTS_PATH)
 PROFILING_RESULTS_PATH = RESULTS_PATH / "profiling"
 BENCHMARKING_RESULTS_PATH = RESULTS_PATH / "benchmarking"
 TIME_REPORT_PATH = RESULTS_PATH / "time_report.csv"
