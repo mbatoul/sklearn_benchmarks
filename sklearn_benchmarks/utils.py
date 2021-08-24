@@ -311,7 +311,7 @@ def make_link_to_config_file(config_file_name):
     """
     Return a link to configuration file.
     """
-    base_url = os.environ.get("PUBLISHED_BASE_URL")
+    base_url = "https://github.com/mbatoul/sklearn_benchmarks/"
     full_link = f"{base_url}blob/gh-pages/{config_file_name}"
 
     return full_link
