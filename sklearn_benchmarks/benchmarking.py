@@ -70,9 +70,18 @@ def run_benchmark_one_func(
         with VizTracer(max_stack_depth=10, verbose=0) as tracer:
             tracer.start()
             if y is not None:
-                func(X, y, **kwargs)
+                func_result = func(X, y, **kwargs)
             else:
-                func(X, **kwargs)
+                if onnx_model_filepath is not None:
+                    sess = rt.InferenceSession(onnx_model_filepath)
+                    input_name = sess.get_inputs()[0].name
+                    label_name = sess.get_outputs()[0].name
+
+                    func_result = sess.run(
+                        [label_name], {input_name: X.astype(np.float32)}
+                    )[0]
+                else:
+                    func_result = func(X, **kwargs)
             tracer.stop()
             for extension in PROFILING_OUTPUT_EXTENSIONS:
                 output_file = f"{profiling_result_path}.{extension}"
@@ -365,13 +374,18 @@ class Benchmark:
                         bench_func = estimator.predict
 
                         if self.predict_with_onnx:
+                            onnx_profiling_path = result_path_maker.profiling_path(
+                                bench_func.__name__,
+                                library="onnx",
+                            )
+
                             (
                                 onnx_func_result,
                                 onnx_benchmark_measurements,
                             ) = run_benchmark_one_func(
                                 bench_func,
                                 estimator,
-                                result_path_maker.profiling_path("fit", library="onnx"),
+                                onnx_profiling_path,
                                 X_test_,
                                 n_executions=n_executions,
                                 run_profiling=self.run_profiling,
