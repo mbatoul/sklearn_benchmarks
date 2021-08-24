@@ -154,3 +154,5 @@ wip.ipynb
 *.onnx
 *.html
 result.json
+
+results/*.yml
