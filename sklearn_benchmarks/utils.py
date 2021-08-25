@@ -13,6 +13,8 @@ from joblib import Memory
 from sklearn_benchmarks.config import (
     COMPARABLE_COLS,
     ENV_INFO_PATH,
+    JOBLIB_CACHEDIR,
+    JOBLIB_VERBOSE,
     NOTEBOOKS_TITLES,
     RESULTS_PATH,
     TIME_LAST_RUN_PATH,
@@ -156,8 +158,10 @@ def is_pareto_optimal(point, data):
     return point_in_front_pareto
 
 
-_cachedir = "tmp"
-memory = Memory(_cachedir, verbose=1)
+memory = Memory(
+    JOBLIB_CACHEDIR,
+    verbose=JOBLIB_VERBOSE,
+)
 
 
 @memory.cache
@@ -262,9 +266,9 @@ def diff_between_lists(l1, l2):
     return list(set(l1) - set(l2)) + list(set(l2) - set(l1))
 
 
-def load_from_path(path):
+def dynamic_load(path):
     """
-    Return attribute load from path.
+    Dynamically loads an attribute from given path.
     """
 
     splitted_path = path.split(".")
@@ -278,7 +282,7 @@ def load_metrics(metrics):
     Return a list of metric functions loaded from sklearn.metrics module.
     """
 
-    return [load_from_path(f"sklearn.metrics.{metric}") for metric in metrics]
+    return [dynamic_load(f"sklearn.metrics.{metric}") for metric in metrics]
 
 
 def get_position(column):

@@ -31,6 +31,8 @@ HPO_PREDICTIONS_TIME_BUDGET = 3
 BENCHMARKING_METHODS_N_EXECUTIONS = {"hp_match": 10, "hpo": 1}
 HPO_TIME_BUDGET = 600
 PROFILING_OUTPUT_EXTENSIONS = ["html", "json.gz"]
+JOBLIB_CACHEDIR = "tmp"
+JOBLIB_VERBOSE = 1
 
 NOTEBOOKS_TITLES = dict(
     scikit_learn_intelex_vs_scikit_learn="scikit-learn-intelex (Intel® oneAPI) vs. scikit-learn benchmarks",

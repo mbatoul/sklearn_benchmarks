@@ -121,13 +121,18 @@ def main(
                 params.pop("predict_with_onnx")
             params["estimator"] = curr_estimator
 
-        # When common dataset name is set, we inserted the common dataset's configuration in the estimator's datasets configuration.
         for i in range(len(params["datasets"])):
+            # When common dataset name is set, we inserted the common dataset's configuration in the estimator's datasets configuration.
             common_dataset_name = params["datasets"][i].get("name", None)
             if common_dataset_name is not None:
                 params["datasets"][i] = benchmarking_config["common_datasets"][
                     common_dataset_name
                 ]
+
+            # Set random_state for sample generators.
+            dataset_params = params["datasets"][i]["params"]
+            dataset_params["random_state"] = random_seed
+            params["datasets"][i]["params"] = dataset_params
 
         # When fast option is enabled, we use a small dataset to make benchmarks run faster.
         if fast:

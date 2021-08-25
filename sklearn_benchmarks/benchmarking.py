@@ -26,7 +26,7 @@ from sklearn_benchmarks.config import (
 )
 from sklearn_benchmarks.utils import (
     generate_data,
-    load_from_path,
+    dynamic_load,
     load_metrics,
 )
 
@@ -269,7 +269,7 @@ class Benchmark:
 
         init_parameters = self.parameters.get("init", {})
         if not init_parameters:
-            estimator_class = load_from_path(self.estimator)
+            estimator_class = dynamic_load(self.estimator)
             estimator = estimator_class()
             # Parameters grid should have list values
             init_parameters = {k: [v] for k, v in estimator.__dict__.items()}
@@ -284,7 +284,7 @@ class Benchmark:
         """
 
         library = self.estimator.split(".")[0]
-        estimator_class = load_from_path(self.estimator)
+        estimator_class = dynamic_load(self.estimator)
         metrics = load_metrics(self.metrics)
         parameters_grid = self.make_parameters_grid()
         benchmark_results = RawBenchmarkResults()
@@ -304,17 +304,20 @@ class Benchmark:
                 # are going to split the data in training and test data afterwards.
                 n_samples = ns_train + max(n_samples_test)
                 sample_generator = dataset["sample_generator"]
-                sample_generator = load_from_path(sample_generator)
+                sample_generator = dynamic_load(sample_generator)
+
                 X, y = generate_data(
                     sample_generator,
                     n_samples=n_samples,
                     n_features=n_features,
                     **dataset["params"],
                 )
+
                 X_train, X_test, y_train, y_test = train_test_split(
                     X,
                     y,
                     train_size=ns_train,
+                    shuffle=False,
                     random_state=self.random_state,
                 )
 
