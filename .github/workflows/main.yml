@@ -53,14 +53,14 @@ jobs:
       - name: Copy configuration file in results folder
         run: cp config.yml ./results
 
+      - name: Remove profiling files above 100mb
+        run: python scripts/remove_heavy_files.py
+
       - name: Upload benchmark results
         uses: actions/upload-artifact@v2
         with:
           name: results
           path: results
-
-      - name: Remove profiling files above 100mb
-        run: python scripts/remove_heavy_files.py
 
       - name: Convert notebook to html
         run: |
