@@ -176,6 +176,7 @@ class RawBenchmarkResult:
     """
 
     estimator: str
+    library: str
     function: str
     n_samples_train: int
     n_samples: int
@@ -358,6 +359,7 @@ class Benchmark:
 
                     benchmark_result = RawBenchmarkResult(
                         self.name,
+                        library,
                         "fit",
                         ns_train,
                         ns_train,
@@ -402,6 +404,7 @@ class Benchmark:
 
                             onnx_benchmark_result = RawBenchmarkResult(
                                 self.name,
+                                "onnx",
                                 bench_func.__name__,
                                 ns_train,
                                 ns_test,
@@ -439,6 +442,7 @@ class Benchmark:
 
                         benchmark_result = RawBenchmarkResult(
                             self.name,
+                            library,
                             bench_func.__name__,
                             ns_train,
                             ns_test,
