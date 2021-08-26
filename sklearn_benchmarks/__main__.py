@@ -5,6 +5,7 @@ import json
 import time
 from datetime import datetime
 from importlib.metadata import version
+from pathlib import Path
 
 import click
 import joblib
@@ -15,6 +16,8 @@ from threadpoolctl import threadpool_info
 
 from sklearn_benchmarks.benchmarking import Benchmark
 from sklearn_benchmarks.config import (
+    BENCHMARKING_RESULTS_PATH,
+    PROFILING_RESULTS_PATH,
     BENCH_LIBS,
     DEFAULT_CONFIG,
     ENV_INFO_PATH,
@@ -156,6 +159,10 @@ def main(
             params["time_budget"] = 5
         elif hpo_time_budget is not None:
             params["time_budget"] = hpo_time_budget
+
+        # Creates folder to store results if they don't exist.
+        Path(BENCHMARKING_RESULTS_PATH).mkdir(parents=True, exist_ok=True)
+        Path(PROFILING_RESULTS_PATH).mkdir(parents=True, exist_ok=True)
 
         benchmark = Benchmark(**params)
         start_benchmark = time.perf_counter()
