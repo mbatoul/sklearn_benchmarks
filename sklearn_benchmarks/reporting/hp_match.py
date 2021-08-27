@@ -214,6 +214,8 @@ class SingleEstimatorHpMatchReporting:
             f"function in {self.relevant_functions}"
         ).reset_index(drop=True)
 
+        assert base_library_df.shape == other_library_df.shape
+
         other_library_time = other_library_df["mean_duration"]
         other_library_std = other_library_df["std_duration"]
 
@@ -222,13 +224,26 @@ class SingleEstimatorHpMatchReporting:
         ]
 
         suffixes = list(map(lambda lib: f"_{lib}", [BASE_LIBRARY, self.other_library]))
+        merge_columns = [
+            "parameters_digest",
+            "function",
+            "n_samples_train",
+            "n_samples",
+            "n_features",
+        ]
 
-        df_reporting = pd.merge(
-            base_library_df,
-            other_library_df[comparable_columns],
-            left_index=True,
-            right_index=True,
+        df_reporting = base_library_df.merge(
+            other_library_df[[*merge_columns, *comparable_columns]],
+            on=merge_columns,
             suffixes=suffixes,
+        )
+
+        assert df_reporting.shape[0] == base_library_df.shape[0]
+        assert df_reporting.shape[1] == base_library_df.shape[1] + len(
+            comparable_columns
+        )
+        assert df_reporting.shape[1] == other_library_df.shape[1] + len(
+            comparable_columns
         )
 
         df_reporting["speedup"] = base_library_time / other_library_time
